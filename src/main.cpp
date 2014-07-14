@@ -21,7 +21,7 @@
 QString vertexShaderSourceVarCol =
     "#version 130\n"
     "\n"
-    "in vec2 vertexPosition;\n"
+    "in vec3 vertexPosition;\n"
     "in vec3 vertexColor;\n"
     "uniform mat4 mvp;\n"
     "\n"
@@ -30,29 +30,28 @@ QString vertexShaderSourceVarCol =
     "void main(void)\n"
     "{\n"
     "    outColor = vertexColor;\n"
-    "    gl_Position = mvp * vec4(vertexPosition, 0.0, 1.0);\n"
+    "    gl_Position = mvp * vec4(vertexPosition, 1.0);\n"
     "}\n";
 
 QString fragmentShaderSourceVarCol =
     "#version 130\n"
     "\n"
     "in vec3 outColor;\n"
-    "uniform float fade;\n"
     "\n"
     "void main(void)\n"
     "{\n"
-    "    gl_FragColor = vec4(outColor, fade);\n"
+    "    gl_FragColor = vec4(outColor, 1.0);\n"
     "}\n";
 
 QString vertexShaderSourceConstCol =
     "#version 130\n"
     "\n"
-    "in vec2 vertexPosition;\n"
+    "in vec3 vertexPosition;\n"
     "uniform mat4 mvp;\n"
     "\n"
     "void main(void)\n"
     "{\n"
-    "    gl_Position = mvp * vec4(vertexPosition, 0.0, 1.0);\n"
+    "    gl_Position = mvp * vec4(vertexPosition, 1.0);\n"
     "}\n";
 
 QString fragmentShaderSourceConstCol =
@@ -84,6 +83,7 @@ private:
     QOpenGLShaderProgram ccProgram;
     QOpenGLBuffer vertexBuffer;
     QOpenGLBuffer colorBuffer;
+    QOpenGLBuffer indexBuffer;
 
     QTimer timer;
     QElapsedTimer elapsedTimer;
@@ -94,6 +94,7 @@ GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
                                       vcProgram(), ccProgram(),
                                       vertexBuffer(QOpenGLBuffer::VertexBuffer),
                                       colorBuffer(QOpenGLBuffer::VertexBuffer),
+                                      indexBuffer(QOpenGLBuffer::IndexBuffer),
                                       timer(this)
 {
 }
@@ -101,48 +102,30 @@ GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
 
 void GLWidget::paintGL()
 {
-    // qDebug() << "paintGL " << elapsedTimer.elapsed();
-
     glClearColor(1.0, 1.0, 1.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    GLfloat fade = (elapsedTimer.elapsed() % 2000) / 1000.0;
-    fade = fade < 1.0 ? fade : 2.0 - fade;
-
-    float el = elapsedTimer.elapsed() / 1000.0;
-    QMatrix4x4 mx;
-    mx.translate(sin(2 * 3.14159265 * el / 7), 0, 0);
-    mx.rotate(360.0 / 10 * el, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     vcProgram.bind();
 
     vertexBuffer.bind();
     vcProgram.enableAttributeArray("vertexPosition");
-    vcProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
+    vcProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
 
     colorBuffer.bind();
     vcProgram.enableAttributeArray("vertexColor");
     vcProgram.setAttributeBuffer("vertexColor", GL_FLOAT, 0, 3);
 
+    indexBuffer.bind();
+
+    float el = elapsedTimer.elapsed() / 1000.0;
+    float aspect = (float) width() / height();
+    QMatrix4x4 mx;
+    mx.perspective(45.0, aspect, 0.1, 100.0);
+    mx.lookAt(QVector3D(0, -4, 2), QVector3D(0, 0, 0), QVector3D(0, 0, 1));
+    mx.rotate(360.0 * el / 10, QVector3D(0, 0, 1));
     vcProgram.setUniformValue("mvp", mx);
-    vcProgram.setUniformValue("fade", fade);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-
-    // ccProgram.bind();
-
-    // vertexBuffer.bind();
-    // ccProgram.enableAttributeArray("vertexPosition");
-    // ccProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
-
-    // ccProgram.setUniformValue("col", QVector4D(0.0, 0.0, 1.0, 1.0 - fade));
-
-    // glDrawArrays(GL_TRIANGLES, 0, 3);
-
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
 
     swapBuffers();
 }
@@ -156,6 +139,10 @@ void GLWidget::resizeGL(int w, int h)
 
 void GLWidget::initializeGL()
 {
+    glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     if (!vcProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSourceVarCol))
         close();
     if (!vcProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSourceVarCol))
@@ -170,34 +157,62 @@ void GLWidget::initializeGL()
     if (!ccProgram.link())
         close();
 
-    vcProgram.bind();
-
     float vertexData[] = {
-        0.0f, 0.8f,
-        -0.8f, -0.8f,
-        0.8f, -0.8f
+        -1.0, -1.0,  1.0,
+        1.0, -1.0,  1.0,
+        1.0,  1.0,  1.0,
+        -1.0,  1.0,  1.0,
+        -1.0, -1.0, -1.0,
+        1.0, -1.0, -1.0,
+        1.0,  1.0, -1.0,
+        -1.0,  1.0, -1.0,
     };
 
     vertexBuffer.create();
     vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     vertexBuffer.bind();
-    vertexBuffer.allocate(vertexData, 3 * 2 * sizeof(float));
+    vertexBuffer.allocate(vertexData, 8 * 3 * sizeof(float));
 
     float colorData[] = {
-        1.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f,
-        1.0f, 0.0f, 0.0f
+        0.0, 0.0, 1.0,
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 1.0,
+        0.0, 1.0, 1.0,
+        0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
     };
 
     colorBuffer.create();
     colorBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     colorBuffer.bind();
-    colorBuffer.allocate(colorData, 3 * 3 * sizeof(float));
+    colorBuffer.allocate(colorData, 8 * 3 * sizeof(float));
+
+    GLushort indexData[] = {
+        0, 1, 2,
+        2, 3, 0,
+        3, 2, 6,
+        6, 7, 3,
+        7, 6, 5,
+        5, 4, 7,
+        4, 5, 1,
+        1, 0, 4,
+        4, 0, 3,
+        3, 7, 4,
+        1, 5, 6,
+        6, 2, 1
+    };
+
+    indexBuffer.create();
+    indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    indexBuffer.bind();
+    indexBuffer.allocate(indexData, 12 * 3 * sizeof(GLushort));
 
     elapsedTimer.start();
 
     connect(&timer, SIGNAL(timeout()), this, SLOT(updateGL()));
-    timer.start(30);
+    timer.start(25);
 }
 
 
