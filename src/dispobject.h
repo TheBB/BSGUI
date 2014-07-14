@@ -11,12 +11,13 @@ public:
     virtual ~DispObject() { }
 
     void init();
-    void draw(qint64 el, QOpenGLShaderProgram &prog);
+    void draw(qint64, QMatrix4x4&, QMatrix4x4&, QOpenGLShaderProgram&, QOpenGLShaderProgram&);
 
 private:
     QOpenGLBuffer vertexBuffer;
     QOpenGLBuffer colorBuffer;
-    QOpenGLBuffer indexBuffer;
+    QOpenGLBuffer faceIndexBuffer;
+    QOpenGLBuffer lineIndexBuffer;
 };
 
 #endif /* DISPOBJECT_H */
