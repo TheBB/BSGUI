@@ -7,6 +7,7 @@
 #include <QElapsedTimer>
 #include <QMainWindow>
 #include <QTimer>
+#include <QVector4D>
 
 #include <QGLFormat>
 #include <QGLWidget>
@@ -16,7 +17,7 @@
 #include "main.h"
 
 
-QString vertexShaderSource =
+QString vertexShaderSourceVarCol =
     "#version 130\n"
     "\n"
     "in vec2 vertexPosition;\n"
@@ -30,7 +31,7 @@ QString vertexShaderSource =
     "    gl_Position = vec4(vertexPosition, 0.0, 1.0);\n"
     "}\n";
 
-QString fragmentShaderSource =
+QString fragmentShaderSourceVarCol =
     "#version 130\n"
     "\n"
     "in vec3 outColor;\n"
@@ -39,6 +40,26 @@ QString fragmentShaderSource =
     "void main(void)\n"
     "{\n"
     "    gl_FragColor = vec4(outColor, fade);\n"
+    "}\n";
+
+QString vertexShaderSourceConstCol =
+    "#version 130\n"
+    "\n"
+    "in vec2 vertexPosition;\n"
+    "\n"
+    "void main(void)\n"
+    "{\n"
+    "    gl_Position = vec4(vertexPosition, 0.0, 1.0);\n"
+    "}\n";
+
+QString fragmentShaderSourceConstCol =
+    "#version 130\n"
+    "\n"
+    "uniform vec4 col;\n"
+    "\n"
+    "void main(void)\n"
+    "{\n"
+    "    gl_FragColor = col;\n"
     "}\n";
 
 
@@ -56,7 +77,8 @@ protected:
     void paintGL();
 
 private:
-    QOpenGLShaderProgram program;
+    QOpenGLShaderProgram vcProgram;
+    QOpenGLShaderProgram ccProgram;
     QOpenGLBuffer vertexBuffer;
     QOpenGLBuffer colorBuffer;
 
@@ -66,7 +88,7 @@ private:
 
 
 GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
-                                      program(),
+                                      vcProgram(), ccProgram(),
                                       vertexBuffer(QOpenGLBuffer::VertexBuffer),
                                       colorBuffer(QOpenGLBuffer::VertexBuffer),
                                       timer(this)
@@ -84,20 +106,35 @@ void GLWidget::paintGL()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    vertexBuffer.bind();
-    program.enableAttributeArray("vertexPosition");
-    program.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
-
-    colorBuffer.bind();
-    program.enableAttributeArray("vertexColor");
-    program.setAttributeBuffer("vertexColor", GL_FLOAT, 0, 3);
-
     GLfloat elapsed = (elapsedTimer.elapsed() % 2000) / 1000.0;
     GLfloat fade = elapsed < 1.0 ? elapsed : 2.0 - elapsed;
-    program.setUniformValue("fade", fade);
 
-    program.bind();
+
+    vcProgram.bind();
+
+    vertexBuffer.bind();
+    vcProgram.enableAttributeArray("vertexPosition");
+    vcProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
+
+    colorBuffer.bind();
+    vcProgram.enableAttributeArray("vertexColor");
+    vcProgram.setAttributeBuffer("vertexColor", GL_FLOAT, 0, 3);
+
+    vcProgram.setUniformValue("fade", fade);
+
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
+
+    ccProgram.bind();
+
+    vertexBuffer.bind();
+    ccProgram.enableAttributeArray("vertexPosition");
+    ccProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
+
+    ccProgram.setUniformValue("col", QVector4D(0.0, 0.0, 1.0, 1.0 - fade));
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
 
     swapBuffers();
 }
@@ -111,16 +148,21 @@ void GLWidget::resizeGL(int w, int h)
 
 void GLWidget::initializeGL()
 {
-    if (!program.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource))
+    if (!vcProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSourceVarCol))
+        close();
+    if (!vcProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSourceVarCol))
+        close();
+    if (!vcProgram.link())
         close();
 
-    if (!program.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource))
+    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSourceConstCol))
+        close();
+    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSourceConstCol))
+        close();
+    if (!ccProgram.link())
         close();
 
-    if (!program.link())
-        close();
-
-    program.bind();
+    vcProgram.bind();
 
     float vertexData[] = {
         0.0f, 0.8f,
