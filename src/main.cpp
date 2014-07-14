@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <sstream>
 
@@ -22,13 +23,14 @@ QString vertexShaderSourceVarCol =
     "\n"
     "in vec2 vertexPosition;\n"
     "in vec3 vertexColor;\n"
+    "uniform mat4 mvp;\n"
     "\n"
     "out vec3 outColor;\n"
     "\n"
     "void main(void)\n"
     "{\n"
     "    outColor = vertexColor;\n"
-    "    gl_Position = vec4(vertexPosition, 0.0, 1.0);\n"
+    "    gl_Position = mvp * vec4(vertexPosition, 0.0, 1.0);\n"
     "}\n";
 
 QString fragmentShaderSourceVarCol =
@@ -46,10 +48,11 @@ QString vertexShaderSourceConstCol =
     "#version 130\n"
     "\n"
     "in vec2 vertexPosition;\n"
+    "uniform mat4 mvp;\n"
     "\n"
     "void main(void)\n"
     "{\n"
-    "    gl_Position = vec4(vertexPosition, 0.0, 1.0);\n"
+    "    gl_Position = mvp * vec4(vertexPosition, 0.0, 1.0);\n"
     "}\n";
 
 QString fragmentShaderSourceConstCol =
@@ -98,7 +101,7 @@ GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
 
 void GLWidget::paintGL()
 {
-    qDebug() << "paintGL " << elapsedTimer.elapsed();
+    // qDebug() << "paintGL " << elapsedTimer.elapsed();
 
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -106,9 +109,13 @@ void GLWidget::paintGL()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    GLfloat elapsed = (elapsedTimer.elapsed() % 2000) / 1000.0;
-    GLfloat fade = elapsed < 1.0 ? elapsed : 2.0 - elapsed;
+    GLfloat fade = (elapsedTimer.elapsed() % 2000) / 1000.0;
+    fade = fade < 1.0 ? fade : 2.0 - fade;
 
+    float el = elapsedTimer.elapsed() / 1000.0;
+    QMatrix4x4 mx;
+    mx.translate(sin(2 * 3.14159265 * el / 7), 0, 0);
+    mx.rotate(360.0 / 10 * el, 0, 0, 1);
 
     vcProgram.bind();
 
@@ -120,20 +127,21 @@ void GLWidget::paintGL()
     vcProgram.enableAttributeArray("vertexColor");
     vcProgram.setAttributeBuffer("vertexColor", GL_FLOAT, 0, 3);
 
+    vcProgram.setUniformValue("mvp", mx);
     vcProgram.setUniformValue("fade", fade);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
 
-    ccProgram.bind();
+    // ccProgram.bind();
 
-    vertexBuffer.bind();
-    ccProgram.enableAttributeArray("vertexPosition");
-    ccProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
+    // vertexBuffer.bind();
+    // ccProgram.enableAttributeArray("vertexPosition");
+    // ccProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
 
-    ccProgram.setUniformValue("col", QVector4D(0.0, 0.0, 1.0, 1.0 - fade));
+    // ccProgram.setUniformValue("col", QVector4D(0.0, 0.0, 1.0, 1.0 - fade));
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    // glDrawArrays(GL_TRIANGLES, 0, 3);
 
 
     swapBuffers();
