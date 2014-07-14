@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QMainWindow>
 
+#include <QGLFormat>
 #include <QGLWidget>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
@@ -28,7 +29,11 @@ QString fragmentShaderSource =
     "\n"
     "void main(void)\n"
     "{\n"
-    "     gl_FragColor = vec4(0.0, 0.0, 1.0, 0.0);\n"
+    "    gl_FragColor = vec4(0.0, 0.0, 1.0, 0.0);\n"
+    "    if (mod(gl_FragCoord.y, 30.0) > 15)\n"
+    "        gl_FragColor[3] = 1;\n"
+    "    else\n"
+    "        gl_FragColor[3] = 0.4;\n"
     "}\n";
 
 
@@ -63,12 +68,17 @@ void GLWidget::paintGL()
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     vertexBuffer.bind();
     program.enableAttributeArray("vertexPosition");
     program.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
 
     program.bind();
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    swapBuffers();
 }
 
 
@@ -106,6 +116,13 @@ void GLWidget::initializeGL()
 
 int main(int argc, char **argv)
 {
+    QGLFormat fmt;
+    fmt.setRgba(true);
+    fmt.setAlpha(true);
+    fmt.setDepth(true);
+    fmt.setDoubleBuffer(true);
+    QGLFormat::setDefaultFormat(fmt);
+
     QApplication app(argc, argv);
 
     QMainWindow window;
