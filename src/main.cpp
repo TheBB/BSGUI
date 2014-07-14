@@ -4,7 +4,9 @@
 #include <QtDebug>
 
 #include <QApplication>
+#include <QElapsedTimer>
 #include <QMainWindow>
+#include <QTimer>
 
 #include <QGLFormat>
 #include <QGLWidget>
@@ -18,22 +20,25 @@ QString vertexShaderSource =
     "#version 130\n"
     "\n"
     "in vec2 vertexPosition;\n"
+    "in vec3 vertexColor;\n"
+    "\n"
+    "out vec3 outColor;\n"
     "\n"
     "void main(void)\n"
     "{\n"
+    "    outColor = vertexColor;\n"
     "    gl_Position = vec4(vertexPosition, 0.0, 1.0);\n"
     "}\n";
 
 QString fragmentShaderSource =
     "#version 130\n"
     "\n"
+    "in vec3 outColor;\n"
+    "uniform float fade;\n"
+    "\n"
     "void main(void)\n"
     "{\n"
-    "    gl_FragColor = vec4(0.0, 0.0, 1.0, 0.0);\n"
-    "    if (mod(gl_FragCoord.y, 30.0) > 15)\n"
-    "        gl_FragColor[3] = 1;\n"
-    "    else\n"
-    "        gl_FragColor[3] = 0.4;\n"
+    "    gl_FragColor = vec4(outColor, fade);\n"
     "}\n";
 
 
@@ -53,18 +58,26 @@ protected:
 private:
     QOpenGLShaderProgram program;
     QOpenGLBuffer vertexBuffer;
+    QOpenGLBuffer colorBuffer;
+
+    QTimer timer;
+    QElapsedTimer elapsedTimer;
 };
 
 
 GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
                                       program(),
-                                      vertexBuffer(QOpenGLBuffer::VertexBuffer)
+                                      vertexBuffer(QOpenGLBuffer::VertexBuffer),
+                                      colorBuffer(QOpenGLBuffer::VertexBuffer),
+                                      timer(this)
 {
 }
 
 
 void GLWidget::paintGL()
 {
+    qDebug() << "paintGL " << elapsedTimer.elapsed();
+
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -74,6 +87,14 @@ void GLWidget::paintGL()
     vertexBuffer.bind();
     program.enableAttributeArray("vertexPosition");
     program.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 2);
+
+    colorBuffer.bind();
+    program.enableAttributeArray("vertexColor");
+    program.setAttributeBuffer("vertexColor", GL_FLOAT, 0, 3);
+
+    GLfloat elapsed = (elapsedTimer.elapsed() % 2000) / 1000.0;
+    GLfloat fade = elapsed < 1.0 ? elapsed : 2.0 - elapsed;
+    program.setUniformValue("fade", fade);
 
     program.bind();
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -102,15 +123,31 @@ void GLWidget::initializeGL()
     program.bind();
 
     float vertexData[] = {
-        0.0, 0.8,
-        -0.8, -0.8,
-        0.8, -0.8
+        0.0f, 0.8f,
+        -0.8f, -0.8f,
+        0.8f, -0.8f
     };
 
     vertexBuffer.create();
     vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     vertexBuffer.bind();
     vertexBuffer.allocate(vertexData, 3 * 2 * sizeof(float));
+
+    float colorData[] = {
+        1.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 1.0f,
+        1.0f, 0.0f, 0.0f
+    };
+
+    colorBuffer.create();
+    colorBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    colorBuffer.bind();
+    colorBuffer.allocate(colorData, 3 * 3 * sizeof(float));
+
+    elapsedTimer.start();
+
+    connect(&timer, SIGNAL(timeout()), this, SLOT(updateGL()));
+    timer.start(30);
 }
 
 
