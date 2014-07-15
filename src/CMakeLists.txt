@@ -6,9 +6,9 @@ configure_file(
 include_directories(${PROJECT_BINARY_DIR})
 
 add_executable(BSGUI
-  main.cpp
-  glwidget.cpp
-  dispobject.cpp)
+  main.cpp glwidget.cpp dispobject.cpp)
 
 qt5_use_modules(BSGUI Core Widgets Gui OpenGL)
 target_link_libraries(BSGUI GL)
+
+install(TARGETS BSGUI RUNTIME DESTINATION bin)
