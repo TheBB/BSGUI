@@ -28,6 +28,7 @@ private:
     
     QOpenGLShaderProgram vcProgram;
     QOpenGLShaderProgram ccProgram;
+    QOpenGLShaderProgram lnProgram;
 
     QTimer timer;
     QElapsedTimer elapsedTimer;

@@ -5,7 +5,7 @@
 
 
 GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
-                                      vcProgram(), ccProgram(),
+                                      vcProgram(), ccProgram(), lnProgram(),
                                       obj(),
                                       timer(this)
 {
@@ -27,7 +27,7 @@ void GLWidget::paintGL()
     modelview.lookAt(QVector3D(0, -4, 2), QVector3D(0, 0, 0), QVector3D(0, 0, 1));
     modelview.rotate(360.0 * el / 10, QVector3D(0, 0, 1));
 
-    obj.draw(elapsedTimer.elapsed(), projection, modelview, vcProgram, ccProgram);
+    obj.draw(projection, modelview, vcProgram, ccProgram, lnProgram);
 
     swapBuffers();
 }
@@ -52,11 +52,18 @@ void GLWidget::initializeGL()
     if (!vcProgram.link())
         close();
 
-    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsLines))
+    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsConstantColor))
         close();
-    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsLines))
+    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsConstantColor))
         close();
     if (!ccProgram.link())
+        close();
+
+    if (!lnProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsLines))
+        close();
+    if (!lnProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsLines))
+        close();
+    if (!lnProgram.link())
         close();
 
     obj.init();

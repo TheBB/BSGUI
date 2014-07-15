@@ -28,6 +28,27 @@ QString fsVaryingColor =
     "    gl_FragColor = vec4(outColor, 1.0);\n"
     "}\n";
 
+QString vsConstantColor =
+    "#version 130\n"
+    "\n"
+    "in vec3 vertexPosition;\n"
+    "uniform mat4 mvp;\n"
+    "\n"
+    "void main(void)\n"
+    "{\n"
+    "    gl_Position = mvp * vec4(vertexPosition, 1.0);\n"
+    "}\n";
+
+QString fsConstantColor =
+    "#version 130\n"
+    "\n"
+    "uniform vec4 col;\n"
+    "\n"
+    "void main(void)\n"
+    "{\n"
+    "    gl_FragColor = col;\n"
+    "}\n";
+
 QString vsLines =
     "#version 130\n"
     "\n"
