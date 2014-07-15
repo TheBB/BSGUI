@@ -94,7 +94,7 @@ private:
     inline uint wPbd(uint i, bool posU, bool posV, bool axU)
     {
         if (axU)
-            return 4*(nU+nV) + 4*(nU+nW) + (posU ? 2*(nV+nW) : 0) + (posV ? nW : 0) + i;
+            return 4*(nU+nV) + 4*(nU+nW) + 2*nV + (posU ? 2*(nV+nW) : 0) + (posV ? nW : 0) + i;
         return 4*(nU+nV) + 2*nU + (posU ? nW : 0) + (posV ? 2*(nU+nW) : 0) + i;
     }
 };

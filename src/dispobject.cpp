@@ -233,5 +233,5 @@ void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vp
     patchBndBuffer.bind();
     lprog.setUniformValue("col", QVector4D(0.0, 0.0, 0.0, 1.0));
     glLineWidth(2.0);
-    glDrawElements(GL_LINES, 2 * 4 * (nV + nW), GL_UNSIGNED_INT, (void *)(2 * (4*(nU+nV+nU+nW)) * sizeof(GLuint)));
+    glDrawElements(GL_LINES, 16 * (nU + nV + nW), GL_UNSIGNED_INT, 0);
 }
