@@ -1,3 +1,5 @@
+#include <set>
+
 #include <QElapsedTimer>
 #include <QTimer>
 #include <QVector4D>
@@ -18,7 +20,7 @@ class GLWidget : public QGLWidget
 
 public:
     GLWidget(QWidget *parent = NULL);
-    virtual ~GLWidget() { }
+    virtual ~GLWidget();
 
 protected:
     void initializeGL();
@@ -33,16 +35,16 @@ protected:
     void wheelEvent(QWheelEvent *event);
 
 private:
-    DispObject obj;
-
     QOpenGLShaderProgram vcProgram;
     QOpenGLShaderProgram ccProgram;
     QOpenGLShaderProgram lnProgram;
 
+    std::set<DispObject *> objects;
+
     bool shiftPressed = false;
     bool ctrlPressed = false;
 
-    double camPos = 0.0;
+    double camPos = -5.0;
 
     double fov = 45.0;
 

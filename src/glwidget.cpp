@@ -7,10 +7,16 @@
 
 
 GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
-                                      vcProgram(), ccProgram(), lnProgram(),
-                                      obj()
+                                      vcProgram(), ccProgram(), lnProgram()
 {
     setFocusPolicy(Qt::ClickFocus);
+}
+
+
+GLWidget::~GLWidget()
+{
+    for (auto obj : objects)
+        free(obj);
 }
 
 
@@ -31,7 +37,8 @@ void GLWidget::paintGL()
     modelview.rotate(inclination, QVector3D(1, 0, 0));
     modelview.rotate(azimuth, QVector3D(0, 0, 1));
 
-    obj.draw(projection, modelview, vcProgram, ccProgram, lnProgram);
+    for (auto obj : objects)
+        obj->draw(projection, modelview, vcProgram, ccProgram, lnProgram);
 
     swapBuffers();
 }
@@ -73,7 +80,20 @@ void GLWidget::initializeGL()
     if (!lnProgram.link())
         close();
 
-    obj.init();
+    std::vector<QVector3D> centers = {
+        QVector3D(0, 0, 0),
+        QVector3D(-3, 0, 0),
+        QVector3D(0, -3, 0),
+        QVector3D(6, 0, 0),
+        QVector3D(0, 4, 0),
+    };
+
+    for (QVector3D c : centers)
+    {
+        DispObject *obj = new DispObject();
+        obj->init(c);
+        objects.insert(obj);
+    }
 }
 
 

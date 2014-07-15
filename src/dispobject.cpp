@@ -25,7 +25,7 @@ DispObject::~DispObject()
 }
 
 
-void DispObject::init()
+void DispObject::init(QVector3D center)
 {
     nU =  3; nV =  4; nW =  5;
 
@@ -66,7 +66,7 @@ void DispObject::init()
     elementIdxs[5] = 2*nLinesUV + 2*nLinesUW + nLinesVW;
     elementIdxs[6] = 2*nLinesUV + 2*nLinesUW + 2*nLinesVW;
 
-    mkVertexBuffer();
+    mkVertexBuffer(center);
     mkFaceBuffer();
     mkBoundaryBuffer();
     mkElementBuffer();
@@ -87,7 +87,7 @@ static inline float lpt(uint i, uint N)
 }
 
 
-void DispObject::mkVertexBuffer()
+void DispObject::mkVertexBuffer(QVector3D center)
 {
     uint baseUW = 2*nPtsU*nPtsV;
     uint baseVW = 2*nPtsU*nPtsV + 2*nPtsU*(nPtsW-2);
@@ -98,15 +98,15 @@ void DispObject::mkVertexBuffer()
     {
         for (int i = 0; i < nPtsU; i++)
             for (int j = 0; j < nPtsV; j++)
-                vertexData[uvPt(i,j,b)] = QVector3D(lpt(i,nPtsU), lpt(j,nPtsV), b ? 1.0 : -1.0);
+                vertexData[uvPt(i,j,b)] = center + QVector3D(lpt(i,nPtsU), lpt(j,nPtsV), b ? 1.0 : -1.0);
 
         for (int i = 0; i < nPtsU; i++)
             for (int j = 1; j < nPtsW - 1; j++)
-                vertexData[uwPt(i,j,b)] = QVector3D(lpt(i,nPtsU), b ? 1.0 : -1.0, lpt(j,nPtsW));
+                vertexData[uwPt(i,j,b)] = center + QVector3D(lpt(i,nPtsU), b ? 1.0 : -1.0, lpt(j,nPtsW));
 
         for (int i = 1; i < nPtsV - 1; i++)
             for (int j = 1; j < nPtsW - 1; j++)
-                vertexData[vwPt(i,j,b)] = QVector3D(b ? 1.0 : -1.0, lpt(i,nPtsV), lpt(j,nPtsW));
+                vertexData[vwPt(i,j,b)] = center + QVector3D(b ? 1.0 : -1.0, lpt(i,nPtsV), lpt(j,nPtsW));
     }
 
     createBuffer(vertexBuffer);

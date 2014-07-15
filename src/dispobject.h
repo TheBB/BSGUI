@@ -2,6 +2,7 @@
 
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
+#include <QVector3D>
 
 #ifndef DISPOBJECT_H
 #define DISPOBJECT_H
@@ -16,7 +17,7 @@ public:
     DispObject();
     virtual ~DispObject();
 
-    void init();
+    void init(QVector3D);
     void draw(QMatrix4x4&, QMatrix4x4&, QOpenGLShaderProgram&, QOpenGLShaderProgram&, QOpenGLShaderProgram&);
 
 private:
@@ -28,15 +29,15 @@ private:
     QOpenGLBuffer boundaryBuffer;
     QOpenGLBuffer elementBuffer;
 
-    std::set<uint> visibleFaces = {0,1,4,5};
-    std::set<uint> visibleBoundaries = {0,1,4,5};
+    std::set<uint> visibleFaces = {0,1,2,3,4,5};
+    std::set<uint> visibleBoundaries = {0,1,2,3,4,5};
     std::set<uint> visibleElements = {0,1,2,3,4,5};
     uint faceIdxs[7];
     uint boundaryIdxs[7];
     uint elementIdxs[7];
 
     static void createBuffer(QOpenGLBuffer&);
-    void mkVertexBuffer();
+    void mkVertexBuffer(QVector3D);
     void mkFaceBuffer();
     void mkBoundaryBuffer();
     void mkElementBuffer();
