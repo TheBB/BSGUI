@@ -19,15 +19,18 @@ public:
 
 private:
     ushort nU, nV, nW;
-    uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines;
+    uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
 
     QOpenGLBuffer vertexBuffer;
     QOpenGLBuffer faceBuffer;
-    QOpenGLBuffer patchBndBuffer;
-    QOpenGLBuffer elemBuffer;
+    QOpenGLBuffer boundaryBuffer;
+    QOpenGLBuffer elementBuffer;
 
+    static void createBuffer(QOpenGLBuffer&);
     void mkVertexBuffer();
     void mkFaceBuffer();
+    void mkBoundaryBuffer();
+    void mkElementBuffer();
 
     inline uint uvPt(uint i, uint j, bool posW)
     {
@@ -96,6 +99,27 @@ private:
         if (axU)
             return 4*(nU+nV) + 4*(nU+nW) + 2*nV + (posU ? 2*(nV+nW) : 0) + (posV ? nW : 0) + i;
         return 4*(nU+nV) + 2*nU + (posU ? nW : 0) + (posV ? 2*(nU+nW) : 0) + i;
+    }
+
+    inline uint uEll(uint i, int j, bool posO, bool axV)
+    {
+        if (axV)
+            return 2*nLinesUV + (posO ? nLinesUW : 0) + nU*j + i;
+        return (posO ? nLinesUV : 0) + nU*j + i;
+    }
+
+    inline uint vEll(uint i, int j, bool posO, bool axU)
+    {
+        if (axU)
+            return 2*nLinesUV + 2*nLinesUW + (posO ? nLinesVW : 0) + nV*j + i;
+        return nU*(nV-1) + (posO ? nLinesUV : 0) + nV*j + i;
+    }
+
+    inline uint wEll(uint i, int j, bool posO, bool axU)
+    {
+        if (axU)
+            return 2*nLinesUV + 2*nLinesUW + nV*(nW-1) + (posO ? nLinesVW : 0) + nW*j + i;
+        return 2*nLinesUV + nU*(nW-1) + (posO ? nLinesUW : 0) + nW*j + i;
     }
 };
 
