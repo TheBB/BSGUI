@@ -6,8 +6,7 @@
 
 GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
                                       vcProgram(), ccProgram(), lnProgram(),
-                                      obj(),
-                                      timer(this)
+                                      obj()
 {
 }
 
@@ -17,7 +16,6 @@ void GLWidget::paintGL()
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    float el = elapsedTimer.elapsed() / 1000.0;
     float aspect = (float) width() / height();
 
     QMatrix4x4 projection;
@@ -25,7 +23,7 @@ void GLWidget::paintGL()
 
     QMatrix4x4 modelview;
     modelview.lookAt(QVector3D(0, -4, 2), QVector3D(0, 0, 0), QVector3D(0, 0, 1));
-    modelview.rotate(360.0 * el / 10, QVector3D(0, 0, 1));
+    modelview.rotate(azimuth, QVector3D(0, 0, 1));
 
     obj.draw(projection, modelview, vcProgram, ccProgram, lnProgram);
 
@@ -67,9 +65,32 @@ void GLWidget::initializeGL()
         close();
 
     obj.init();
+}
 
-    elapsedTimer.start();
 
-    connect(&timer, SIGNAL(timeout()), this, SLOT(updateGL()));
-    timer.start(25);
+void GLWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() & Qt::RightButton)
+    {
+        mouseTracking = true;
+        mouseOrig = event->pos();
+        azimuthOrig = azimuth;
+    }
+}
+
+
+void GLWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() & Qt::RightButton)
+        mouseTracking = false;
+}
+
+
+void GLWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    if (mouseTracking)
+    {
+        azimuth = azimuthOrig + 360.0 * (event->pos().x() - mouseOrig.x()) / width();
+        update();
+    }
 }
