@@ -35,6 +35,7 @@ int main(int argc, char **argv)
 
     GLWidget glWidget;
     window.setCentralWidget((QWidget *) &glWidget);
+    glWidget.setFocus();
 
     window.show();
 

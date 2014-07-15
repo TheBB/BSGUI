@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "dispobject.h"
 #include "shaders.h"
 
@@ -8,6 +10,7 @@ GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
                                       vcProgram(), ccProgram(), lnProgram(),
                                       obj()
 {
+    setFocusPolicy(Qt::ClickFocus);
 }
 
 
@@ -19,10 +22,13 @@ void GLWidget::paintGL()
     float aspect = (float) width() / height();
 
     QMatrix4x4 projection;
-    projection.perspective(45.0, aspect, 0.1, 100.0);
+    projection.perspective(fov, aspect, 0.1, 100.0);
 
     QMatrix4x4 modelview;
-    modelview.lookAt(QVector3D(0, -4, 2), QVector3D(0, 0, 0), QVector3D(0, 0, 1));
+    QVector3D eye = QVector3D(0, camPos, 0);
+    modelview.lookAt(eye, eye + QVector3D(0, 1, 0), QVector3D(0, 0, 1));
+    modelview.translate(QVector3D(0, 4, 0));
+    modelview.rotate(inclination, QVector3D(1, 0, 0));
     modelview.rotate(azimuth, QVector3D(0, 0, 1));
 
     obj.draw(projection, modelview, vcProgram, ccProgram, lnProgram);
@@ -68,6 +74,24 @@ void GLWidget::initializeGL()
 }
 
 
+void GLWidget::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() & Qt::Key_Control)
+        ctrlPressed = true;
+    if (event->key() & Qt::Key_Shift)
+        shiftPressed = true;
+}
+
+
+void GLWidget::keyReleaseEvent(QKeyEvent *event)
+{
+    if (event->key() & Qt::Key_Control)
+        ctrlPressed = false;
+    if (event->key() & Qt::Key_Shift)
+        shiftPressed = false;
+}
+
+
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() & Qt::RightButton)
@@ -75,6 +99,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         mouseTracking = true;
         mouseOrig = event->pos();
         azimuthOrig = azimuth;
+        inclinationOrig = inclination;
     }
 }
 
@@ -91,6 +116,21 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     if (mouseTracking)
     {
         azimuth = azimuthOrig + 360.0 * (event->pos().x() - mouseOrig.x()) / width();
+        inclination = inclinationOrig + 180.0 * (event->pos().y() - mouseOrig.y()) / height();
         update();
     }
+}
+
+void GLWidget::wheelEvent(QWheelEvent *event)
+{
+    if (ctrlPressed)
+    {
+        fov /= exp(event->angleDelta().y() / 120.0 / 15.0);
+        if (fov > 135.0)
+            fov = 135.0;
+    }
+    else
+        camPos += event->angleDelta().y() / 120.0 / 5.0;
+
+    update();
 }

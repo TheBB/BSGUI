@@ -5,6 +5,7 @@
 #include <QGLWidget>
 #include <QMouseEvent>
 #include <QOpenGLShaderProgram>
+#include <QWheelEvent>
 
 #include "dispobject.h"
 
@@ -24,9 +25,12 @@ protected:
     void resizeGL(int w, int h);
     void paintGL();
 
+    void keyPressEvent(QKeyEvent *event);
+    void keyReleaseEvent(QKeyEvent *event);
     void mousePressEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+    void wheelEvent(QWheelEvent *event);
 
 private:
     DispObject obj;
@@ -34,6 +38,16 @@ private:
     QOpenGLShaderProgram vcProgram;
     QOpenGLShaderProgram ccProgram;
     QOpenGLShaderProgram lnProgram;
+
+    bool shiftPressed = false;
+    bool ctrlPressed = false;
+
+    double camPos = 0.0;
+
+    double fov = 45.0;
+
+    double inclinationOrig;
+    double inclination = 30.0;
 
     double azimuthOrig = 45.0;
     double azimuth = 45.0;
