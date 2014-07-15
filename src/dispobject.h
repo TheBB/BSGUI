@@ -4,6 +4,7 @@
 #ifndef DISPOBJECT_H
 #define DISPOBJECT_H
 
+typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
 
@@ -21,10 +22,12 @@ private:
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines;
 
     QOpenGLBuffer vertexBuffer;
-    QOpenGLBuffer colorBuffer;
     QOpenGLBuffer faceBuffer;
     QOpenGLBuffer patchBndBuffer;
     QOpenGLBuffer elemBuffer;
+
+    void mkVertexBuffer();
+    void mkFaceBuffer();
 
     inline uint uvPt(uint i, uint j, bool posW)
     {
@@ -67,11 +70,32 @@ private:
             2*nU*nV + nU*j + i;
     }
 
-    inline int vwEl(uint i, uint j, bool posU)
+    inline uint vwEl(uint i, uint j, bool posU)
     {
         return posU ?
             2*nU*nV + 2*nU*nW + nV*nW + nV*j + i :
             2*nU*nV + 2*nU*nW + nV*j + i;
+    }
+
+    inline uint uPbd(uint i, bool posV, bool posW, bool axV)
+    {
+        if (axV)
+            return 4*(nU+nV) + (posV ? 2*(nU+nW) : 0) + (posW ? nU : 0) + i;
+        return (posV ? nU : 0) + (posW ? 2*(nU+nV) : 0) + i;
+    }
+
+    inline uint vPbd(uint i, bool posU, bool posW, bool axU)
+    {
+        if (axU)
+            return 4*(nU+nV) + 4*(nU+nW) + (posU ? 2*(nV+nW) : 0) + (posW ? nV : 0) + i;
+        return 2*nU + (posU ? nV : 0) + (posW ? 2*(nU+nV) : 0) + i;
+    }
+
+    inline uint wPbd(uint i, bool posU, bool posV, bool axU)
+    {
+        if (axU)
+            return 4*(nU+nV) + 4*(nU+nW) + (posU ? 2*(nV+nW) : 0) + (posV ? nW : 0) + i;
+        return 4*(nU+nV) + 2*nU + (posU ? nW : 0) + (posV ? 2*(nU+nW) : 0) + i;
     }
 };
 
