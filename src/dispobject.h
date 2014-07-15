@@ -1,3 +1,5 @@
+#include <set>
+
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
@@ -25,6 +27,13 @@ private:
     QOpenGLBuffer faceBuffer;
     QOpenGLBuffer boundaryBuffer;
     QOpenGLBuffer elementBuffer;
+
+    std::set<uint> visibleFaces = {0,1,4,5};
+    std::set<uint> visibleBoundaries = {0,1,4,5};
+    std::set<uint> visibleElements = {0,1,2,3,4,5};
+    uint faceIdxs[7];
+    uint boundaryIdxs[7];
+    uint elementIdxs[7];
 
     static void createBuffer(QOpenGLBuffer&);
     void mkVertexBuffer();

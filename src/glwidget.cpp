@@ -22,7 +22,7 @@ void GLWidget::paintGL()
     float aspect = (float) width() / height();
 
     QMatrix4x4 projection;
-    projection.perspective(fov, aspect, 0.1, 100.0);
+    projection.perspective(fov, aspect, 0.01, 100.0);
 
     QMatrix4x4 modelview;
     QVector3D eye = QVector3D(0, camPos, 0);
@@ -47,6 +47,9 @@ void GLWidget::initializeGL()
 {
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_LINE_SMOOTH);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     if (!vcProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsVaryingColor))

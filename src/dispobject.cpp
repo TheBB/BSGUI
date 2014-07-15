@@ -36,13 +36,35 @@ void DispObject::init()
 
     nElems = 2*nU*nV + 2*nU*nW + 2*nV*nW;
 
-    nElemLines = 2 * (2*nU*nV - nU - nV +
-                      2*nU*nW - nU - nW +
-                      2*nV*nW - nV - nW);
-
     nLinesUV = 2*nU*nV - nU - nV;
     nLinesUW = 2*nU*nW - nU - nW;
     nLinesVW = 2*nV*nW - nV - nW;
+
+    nElemLines = 2 * (nLinesUV + nLinesUW + nLinesVW);
+
+    faceIdxs[0] = 0;
+    faceIdxs[1] = nU*nV;
+    faceIdxs[2] = 2*nU*nV;
+    faceIdxs[3] = 2*nU*nV + nU*nW;
+    faceIdxs[4] = 2*nU*nV + 2*nU*nW;
+    faceIdxs[5] = 2*nU*nV + 2*nU*nW + nV*nW;
+    faceIdxs[6] = 2*nU*nV + 2*nU*nW + 2*nV*nW;
+
+    boundaryIdxs[0] = 0;
+    boundaryIdxs[1] = 2*(nU+nV);
+    boundaryIdxs[2] = 4*(nU+nV);
+    boundaryIdxs[3] = 4*(nU+nV) + 2*(nU+nW);
+    boundaryIdxs[4] = 4*(nU+nV) + 4*(nU+nW);
+    boundaryIdxs[5] = 4*(nU+nV) + 4*(nU+nW) + 2*(nV+nW);
+    boundaryIdxs[6] = 4*(nU+nV) + 4*(nU+nW) + 4*(nV+nW);
+
+    elementIdxs[0] = 0;
+    elementIdxs[1] = nLinesUV;
+    elementIdxs[2] = 2*nLinesUV;
+    elementIdxs[3] = 2*nLinesUV + nLinesUW;
+    elementIdxs[4] = 2*nLinesUV + 2*nLinesUW;
+    elementIdxs[5] = 2*nLinesUV + 2*nLinesUW + nLinesVW;
+    elementIdxs[6] = 2*nLinesUV + 2*nLinesUW + 2*nLinesVW;
 
     mkVertexBuffer();
     mkFaceBuffer();
@@ -171,11 +193,22 @@ void DispObject::mkElementBuffer()
 }
 
 
+inline void drawCommand(GLenum mode, std::set<uint> &visible, uint *indices)
+{
+    uint mult = mode == GL_LINES ? 2 : 4;
+    if (visible.size() == 6)
+        glDrawElements(mode, mult*indices[6], GL_UNSIGNED_INT, 0);
+    else
+        for (auto i : visible)
+            glDrawElements(mode, mult*(indices[i+1]-indices[i]),
+                           GL_UNSIGNED_INT, (void *)(mult*indices[i]*sizeof(GLuint)));
+}
+
 void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vprog,
                       QOpenGLShaderProgram &cprog, QOpenGLShaderProgram &lprog)
 {
     QMatrix4x4 mvp = proj * mv;
-    
+
 
     cprog.bind();
 
@@ -187,7 +220,7 @@ void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vp
 
     faceBuffer.bind();
     cprog.setUniformValue("col", QVector4D(0.737, 0.929, 1.000, 1.0));
-    glDrawElements(GL_QUADS, nElems * 4, GL_UNSIGNED_INT, 0);
+    drawCommand(GL_QUADS, visibleFaces, faceIdxs);
 
 
     lprog.bind();
@@ -202,10 +235,10 @@ void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vp
     elementBuffer.bind();
     lprog.setUniformValue("col", QVector4D(0.431, 0.663, 0.749, 1.0));
     glLineWidth(1.0);
-    glDrawElements(GL_LINES, 2 * nElemLines, GL_UNSIGNED_INT, 0);
+    drawCommand(GL_LINES, visibleElements, elementIdxs);
 
     boundaryBuffer.bind();
     lprog.setUniformValue("col", QVector4D(0.0, 0.0, 0.0, 1.0));
     glLineWidth(2.0);
-    glDrawElements(GL_LINES, 16 * (nU + nV + nW), GL_UNSIGNED_INT, 0);
+    drawCommand(GL_LINES, visibleBoundaries, boundaryIdxs);
 }
