@@ -9,7 +9,16 @@
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(parent)
     , vcProgram(), ccProgram(), lnProgram()
+    , selectedObject(NULL)
+    , shiftPressed(false)
+    , ctrlPressed(false)
+    , altPressed(false)
+    , _zoom(0.0)
     , worldTrans(0,0,0)
+    , _fov(45.0)
+    , _inclination(30.0)
+    , _azimuth(45.0)
+    , cameraTracking(false)
 {
     setFocusPolicy(Qt::ClickFocus);
 }
@@ -19,6 +28,12 @@ GLWidget::~GLWidget()
 {
     for (auto obj : objects)
         free(obj);
+}
+
+
+QSize GLWidget::sizeHint() const
+{
+    return QSize(640, 480);
 }
 
 
@@ -59,7 +74,7 @@ void GLWidget::initializeGL()
         close();
     if (!vcProgram.link())
         close();
-    
+
     if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsConstantColor))
         close();
     if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsConstantColor))
@@ -93,19 +108,23 @@ void GLWidget::initializeGL()
 
 void GLWidget::keyPressEvent(QKeyEvent *event)
 {
-    if (event->key() & Qt::Key_Control)
+    if (event->key() == Qt::Key_Control)
         ctrlPressed = true;
-    if (event->key() & Qt::Key_Shift)
+    if (event->key() == Qt::Key_Shift)
         shiftPressed = true;
+    if (event->key() == Qt::Key_Alt)
+        altPressed = true;
 }
 
 
 void GLWidget::keyReleaseEvent(QKeyEvent *event)
 {
-    if (event->key() & Qt::Key_Control)
+    if (event->key() == Qt::Key_Control)
         ctrlPressed = false;
-    if (event->key() & Qt::Key_Shift)
+    if (event->key() == Qt::Key_Shift)
         shiftPressed = false;
+    if (event->key() == Qt::Key_Alt)
+        altPressed = false;
 }
 
 
@@ -191,13 +210,9 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 void GLWidget::wheelEvent(QWheelEvent *event)
 {
     if (ctrlPressed)
-    {
-        fov /= exp(event->angleDelta().y() / 120.0 / 15.0);
-        if (fov > 135.0)
-            fov = 135.0;
-    }
+        setFov(fov() / exp((float) event->angleDelta().y() / 120.0 / (shiftPressed ? 150.0 : 15.0)), true);
     else
-        camPos += event->angleDelta().y() / 120.0 / 5.0;
+        setZoom(zoom() + (double) event->angleDelta().y() / 120.0 / (shiftPressed ? 400.0 : 40.0), true);
 
     update();
 }
@@ -227,16 +242,38 @@ void GLWidget::setAzimuth(double val, bool fromMouse)
 }
 
 
+void GLWidget::setFov(double val, bool fromMouse)
+{
+    if (val >= MAX_FOV)
+        val = MAX_FOV;
+    if (val < 0.0)
+        val = 0.0;
+    _fov = val;
+
+    emit fovChanged(val, fromMouse);
+}
+
+
+void GLWidget::setZoom(double val, bool fromMouse)
+{
+    _zoom = val;
+
+    emit zoomChanged(val, fromMouse);
+}
+
+
 void GLWidget::matrices(QMatrix4x4 *proj, QMatrix4x4 *mv)
 {
     float aspect = (float) width() / height();
     proj->setToIdentity();
-    proj->perspective(fov, aspect, 0.01, 100.0);
+    proj->perspective(_fov, aspect, 0.01, 100.0);
 
-    QVector3D eye = QVector3D(0, camPos, 0);
+    QVector3D eye = QVector3D(0, _zoom, 0);
     mv->setToIdentity();
     mv->lookAt(eye, eye + QVector3D(0, 1, 0), QVector3D(0, 0, 1));
-    mv->translate(QVector3D(0, 4, 0));
+    mv->translate(QVector3D(0, 1, 0));
     mv->rotate(_inclination, QVector3D(1, 0, 0));
     mv->rotate(_azimuth, QVector3D(0, 0, 1));
+    mv->scale(1.0/11.0);
+    mv->translate(-worldTrans);
 }

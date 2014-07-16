@@ -22,10 +22,12 @@ public:
 public slots:
     void inclinationChanged(double val, bool fromMouse);
     void azimuthChanged(double val, bool fromMouse);
+    void fovChanged(double val, bool fromMouse);
+    void zoomChanged(double val, bool fromMouse);
 
 private:
-    QLabel *inclinationLabel, *azimuthLabel;
-    QSlider *inclinationSlider, *azimuthSlider;
+    QLabel *inclinationLabel, *azimuthLabel, *fovLabel, *zoomLabel;
+    QSlider *inclinationSlider, *azimuthSlider, *fovSlider, *zoomSlider;
 };
 
 

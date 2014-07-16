@@ -5,6 +5,12 @@
 #include "DispObject.h"
 
 
+const QVector4D FACE_COLOR_NORMAL = QVector4D(0.737, 0.929, 1.000, 1);
+const QVector4D LINE_COLOR_NORMAL = QVector4D(0.431, 0.663, 0.749, 1);
+const QVector4D FACE_COLOR_SELECTED = QVector4D(1.000, 0.867, 0.737, 1);
+const QVector4D LINE_COLOR_SELECTED = QVector4D(0.749, 0.620, 0.431, 1);
+const QVector4D BLACK = QVector4D(0, 0, 0, 1);
+
 typedef struct { GLuint a, b; } pair;
 
 
@@ -13,6 +19,10 @@ DispObject::DispObject()
     , faceBuffer(QOpenGLBuffer::IndexBuffer)
     , boundaryBuffer(QOpenGLBuffer::IndexBuffer)
     , elementBuffer(QOpenGLBuffer::IndexBuffer)
+    , visibleFaces {0,1,2,3,4,5}
+    , visibleBoundaries {0,1,2,3,4,5}
+    , visibleElements {0,1,2,3,4,5}
+    , selected(false)
 {
 }
 
@@ -240,7 +250,7 @@ void DispObject::mkBoundaryBuffer()
 void DispObject::mkElementBuffer()
 {
     std::vector<pair> elementData(nElemLines);
-    
+
     for (bool a : {false, true})
     {
         for (int i = 0; i < nU; i++)

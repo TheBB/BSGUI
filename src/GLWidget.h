@@ -15,6 +15,8 @@
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
+#define MAX_FOV 135.0
+
 class GLWidget : public QGLWidget
 {
     Q_OBJECT
@@ -23,17 +25,25 @@ public:
     GLWidget(QWidget *parent = NULL);
     virtual ~GLWidget();
 
-    QSize sizeHint() const { return QSize(640, 480); }
+    QSize sizeHint() const;
 
-    double inclination() { return _inclination; }
+    inline double inclination() { return _inclination; }
     void setInclination(double val, bool fromMouse);
 
-    double azimuth() { return _azimuth; }
+    inline double azimuth() { return _azimuth; }
     void setAzimuth(double val, bool fromMouse);
+
+    inline double fov() { return _fov; }
+    void setFov(double val, bool fromMouse);
+
+    inline double zoom() { return _zoom; }
+    void setZoom(double val, bool fromMouse);
 
 signals:
     void inclinationChanged(double val, bool fromMouse);
     void azimuthChanged(double val, bool fromMouse);
+    void fovChanged(double val, bool fromMouse);
+    void zoomChanged(double val, bool fromMouse);
 
 protected:
     void initializeGL();
@@ -55,23 +65,24 @@ private:
     QOpenGLShaderProgram lnProgram;
 
     std::set<DispObject *> objects;
-    DispObject *selectedObject = NULL;
+    DispObject *selectedObject;
 
-    bool shiftPressed = false;
-    bool ctrlPressed = false;
+    bool shiftPressed;
+    bool ctrlPressed;
+    bool altPressed;
 
-    double camPos = -8.0;
+    double _zoom;
     QVector3D worldTrans;
 
-    double fov = 45.0;
+    double _fov;
 
     double inclinationOrig;
-    double _inclination = 30.0;
+    double _inclination;
 
-    double azimuthOrig = 45.0;
-    double _azimuth = 45.0;
+    double azimuthOrig;
+    double _azimuth;
 
-    bool cameraTracking = false;
+    bool cameraTracking;
     QPoint cameraOrig;
 };
 
