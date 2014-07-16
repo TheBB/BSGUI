@@ -3,6 +3,7 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 #include <QVector3D>
+#include <QVector4D>
 
 #ifndef DISPOBJECT_H
 #define DISPOBJECT_H
@@ -10,6 +11,13 @@
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
+typedef struct { GLuint a, b, c, d; } quad;
+
+const QVector4D FACE_COLOR_NORMAL = QVector4D(0.737, 0.929, 1.000, 1);
+const QVector4D LINE_COLOR_NORMAL = QVector4D(0.431, 0.663, 0.749, 1);
+const QVector4D FACE_COLOR_SELECTED = QVector4D(0.947, 0.986, 1.000, 1);
+const QVector4D LINE_COLOR_SELECTED = QVector4D(0.431, 0.663, 0.749, 1);
+const QVector4D BLACK = QVector4D(0, 0, 0, 1);
 
 class DispObject
 {
@@ -19,10 +27,16 @@ public:
 
     void init(QVector3D);
     void draw(QMatrix4x4&, QMatrix4x4&, QOpenGLShaderProgram&, QOpenGLShaderProgram&, QOpenGLShaderProgram&);
+    void intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param);
+
+    bool selected = false;
 
 private:
     ushort nU, nV, nW;
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
+
+    std::vector<QVector3D> vertexData;
+    std::vector<quad> faceData;
 
     QOpenGLBuffer vertexBuffer;
     QOpenGLBuffer faceBuffer;
@@ -41,6 +55,8 @@ private:
     void mkFaceBuffer();
     void mkBoundaryBuffer();
     void mkElementBuffer();
+
+    void triangleIntersect(QVector3D &, QVector3D &, uint, uint, uint, bool *, float *);
 
     inline uint uvPt(uint i, uint j, bool posW)
     {

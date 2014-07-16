@@ -11,9 +11,12 @@ set(CMAKE_AUTOMOC ON)
 
 add_definitions(-std=c++11)
 
-find_package(Qt5Core)
-find_package(Qt5Widgets)
-find_package(Qt5Gui)
-find_package(Qt5OpenGL)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 add_subdirectory(src)

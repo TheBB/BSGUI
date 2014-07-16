@@ -1,10 +1,10 @@
 #include <set>
 
-#include <QElapsedTimer>
-#include <QTimer>
+#include <QVector3D>
 #include <QVector4D>
 
 #include <QGLWidget>
+#include <QMatrix4x4>
 #include <QMouseEvent>
 #include <QOpenGLShaderProgram>
 #include <QWheelEvent>
@@ -35,16 +35,20 @@ protected:
     void wheelEvent(QWheelEvent *event);
 
 private:
+    void matrices(QMatrix4x4 *, QMatrix4x4 *);
+
     QOpenGLShaderProgram vcProgram;
     QOpenGLShaderProgram ccProgram;
     QOpenGLShaderProgram lnProgram;
 
     std::set<DispObject *> objects;
+    DispObject *selectedObject = NULL;
 
     bool shiftPressed = false;
     bool ctrlPressed = false;
 
     double camPos = -5.0;
+    QVector3D worldTrans;
 
     double fov = 45.0;
 
@@ -54,8 +58,8 @@ private:
     double azimuthOrig = 45.0;
     double azimuth = 45.0;
 
-    bool mouseTracking = false;
-    QPoint mouseOrig;
+    bool cameraTracking = false;
+    QPoint cameraOrig;
 };
 
 #endif /* GLWIDGET_H */

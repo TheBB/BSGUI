@@ -4,6 +4,7 @@ configure_file(
   )
 
 include_directories(${PROJECT_BINARY_DIR})
+include_directories(${EIGEN3_INCLUDE_DIR})
 
 add_executable(BSGUI
   main.cpp glwidget.cpp dispobject.cpp)

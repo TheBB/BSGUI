@@ -1,11 +1,11 @@
 #include <QVector4D>
 
+#include <Eigen/Dense>
+
 #include "dispobject.h"
 
 
-typedef struct { GLuint a, b, c, d; } quad;
 typedef struct { GLuint a, b; } pair;
-
 
 
 DispObject::DispObject() : vertexBuffer(QOpenGLBuffer::VertexBuffer),
@@ -73,6 +73,87 @@ void DispObject::init(QVector3D center)
 }
 
 
+inline void drawCommand(GLenum mode, std::set<uint> &visible, uint *indices)
+{
+    uint mult = mode == GL_LINES ? 2 : 4;
+    if (visible.size() == 6)
+        glDrawElements(mode, mult*indices[6], GL_UNSIGNED_INT, 0);
+    else
+        for (auto i : visible)
+            glDrawElements(mode, mult*(indices[i+1]-indices[i]),
+                           GL_UNSIGNED_INT, (void *)(mult*indices[i]*sizeof(GLuint)));
+}
+
+
+void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vprog,
+                      QOpenGLShaderProgram &cprog, QOpenGLShaderProgram &lprog)
+{
+    QMatrix4x4 mvp = proj * mv;
+
+
+    cprog.bind();
+
+    vertexBuffer.bind();
+    cprog.enableAttributeArray("vertexPosition");
+    cprog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
+
+    cprog.setUniformValue("mvp", mvp);
+
+    faceBuffer.bind();
+    cprog.setUniformValue("col", selected ? FACE_COLOR_SELECTED : FACE_COLOR_NORMAL );
+    drawCommand(GL_QUADS, visibleFaces, faceIdxs);
+
+
+    lprog.bind();
+
+    vertexBuffer.bind();
+    lprog.enableAttributeArray("vertexPosition");
+    lprog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
+
+    lprog.setUniformValue("proj", proj);
+    lprog.setUniformValue("mv", mv);
+
+    elementBuffer.bind();
+    lprog.setUniformValue("col", selected ? LINE_COLOR_SELECTED : LINE_COLOR_NORMAL);
+    glLineWidth(1.0);
+    drawCommand(GL_LINES, visibleElements, elementIdxs);
+
+    boundaryBuffer.bind();
+    lprog.setUniformValue("col", BLACK);
+    glLineWidth(2.0);
+    drawCommand(GL_LINES, visibleBoundaries, boundaryIdxs);
+}
+
+
+void DispObject::intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param)
+{
+    bool trIntersect = false;
+    float trParam = std::numeric_limits<float>::infinity();
+
+    for (auto q : faceData)
+    {
+        triangleIntersect(a, b, q.a, q.b, q.c, &trIntersect, &trParam);
+        if (trIntersect && trParam >= 0.0)
+        {
+            *intersect = true;
+            *param = trParam;
+            return;
+        }
+
+        triangleIntersect(a, b, q.a, q.c, q.d, &trIntersect, &trParam);
+        if (trIntersect && trParam >= 0.0)
+        {
+            *intersect = true;
+            *param = trParam;
+            return;
+        }
+    }
+
+    *intersect = false;
+    return;
+}
+
+
 void DispObject::createBuffer(QOpenGLBuffer& buffer)
 {
     buffer.create();
@@ -92,18 +173,16 @@ void DispObject::mkVertexBuffer(QVector3D center)
     uint baseUW = 2*nPtsU*nPtsV;
     uint baseVW = 2*nPtsU*nPtsV + 2*nPtsU*(nPtsW-2);
 
-    std::vector<QVector3D> vertexData(nPts);
+    vertexData.resize(nPts);
 
     for (bool b : {true, false})
     {
         for (int i = 0; i < nPtsU; i++)
             for (int j = 0; j < nPtsV; j++)
                 vertexData[uvPt(i,j,b)] = center + QVector3D(lpt(i,nPtsU), lpt(j,nPtsV), b ? 1.0 : -1.0);
-
         for (int i = 0; i < nPtsU; i++)
             for (int j = 1; j < nPtsW - 1; j++)
                 vertexData[uwPt(i,j,b)] = center + QVector3D(lpt(i,nPtsU), b ? 1.0 : -1.0, lpt(j,nPtsW));
-
         for (int i = 1; i < nPtsV - 1; i++)
             for (int j = 1; j < nPtsW - 1; j++)
                 vertexData[vwPt(i,j,b)] = center + QVector3D(b ? 1.0 : -1.0, lpt(i,nPtsV), lpt(j,nPtsW));
@@ -116,18 +195,16 @@ void DispObject::mkVertexBuffer(QVector3D center)
 
 void DispObject::mkFaceBuffer()
 {
-    std::vector<quad> faceData(nElems);
+    faceData.resize(nElems);
 
     for (bool b : {true, false})
     {
         for (int i = 0; i < nU; i++)
             for (int j = 0; j < nV; j++)
                 faceData[uvEl(i,j,b)] = { uvPt(i,j,b), uvPt(i+1,j,b), uvPt(i+1,j+1,b), uvPt(i,j+1,b) };
-
         for (int i = 0; i < nU; i++)
             for (int j = 0; j < nW; j++)
                 faceData[uwEl(i,j,b)] = { uwPt(i,j,b), uwPt(i+1,j,b), uwPt(i+1,j+1,b), uwPt(i,j+1,b) };
-
         for (int i = 0; i < nV; i++)
             for (int j = 0; j < nW; j++)
                 faceData[vwEl(i,j,b)] = { vwPt(i,j,b), vwPt(i+1,j,b), vwPt(i+1,j+1,b), vwPt(i,j+1,b) };
@@ -193,52 +270,30 @@ void DispObject::mkElementBuffer()
 }
 
 
-inline void drawCommand(GLenum mode, std::set<uint> &visible, uint *indices)
+void DispObject::triangleIntersect(QVector3D &a, QVector3D &b, uint i, uint j, uint k,
+                                   bool *intersect, float *param)
 {
-    uint mult = mode == GL_LINES ? 2 : 4;
-    if (visible.size() == 6)
-        glDrawElements(mode, mult*indices[6], GL_UNSIGNED_INT, 0);
-    else
-        for (auto i : visible)
-            glDrawElements(mode, mult*(indices[i+1]-indices[i]),
-                           GL_UNSIGNED_INT, (void *)(mult*indices[i]*sizeof(GLuint)));
-}
+    Eigen::Matrix3f mx;
+    mx(0,0) = vertexData[i].x() - vertexData[k].x();
+    mx(1,0) = vertexData[i].y() - vertexData[k].y();
+    mx(2,0) = vertexData[i].z() - vertexData[k].z();
+    mx(0,1) = vertexData[j].x() - vertexData[k].x();
+    mx(1,1) = vertexData[j].y() - vertexData[k].y();
+    mx(2,1) = vertexData[j].z() - vertexData[k].z();
+    mx(0,2) = a.x() - b.x();
+    mx(1,2) = a.y() - b.y();
+    mx(2,2) = a.z() - b.z();
 
-void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vprog,
-                      QOpenGLShaderProgram &cprog, QOpenGLShaderProgram &lprog)
-{
-    QMatrix4x4 mvp = proj * mv;
+    Eigen::Vector3f vec;
+    vec(0) = a.x() - vertexData[k].x();
+    vec(1) = a.y() - vertexData[k].y();
+    vec(2) = a.z() - vertexData[k].z();
 
+    Eigen::Vector3f sol = mx.colPivHouseholderQr().solve(vec);
 
-    cprog.bind();
-
-    vertexBuffer.bind();
-    cprog.enableAttributeArray("vertexPosition");
-    cprog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
-
-    cprog.setUniformValue("mvp", mvp);
-
-    faceBuffer.bind();
-    cprog.setUniformValue("col", QVector4D(0.737, 0.929, 1.000, 1.0));
-    drawCommand(GL_QUADS, visibleFaces, faceIdxs);
-
-
-    lprog.bind();
-
-    vertexBuffer.bind();
-    lprog.enableAttributeArray("vertexPosition");
-    lprog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
-
-    lprog.setUniformValue("proj", proj);
-    lprog.setUniformValue("mv", mv);
-
-    elementBuffer.bind();
-    lprog.setUniformValue("col", QVector4D(0.431, 0.663, 0.749, 1.0));
-    glLineWidth(1.0);
-    drawCommand(GL_LINES, visibleElements, elementIdxs);
-
-    boundaryBuffer.bind();
-    lprog.setUniformValue("col", QVector4D(0.0, 0.0, 0.0, 1.0));
-    glLineWidth(2.0);
-    drawCommand(GL_LINES, visibleBoundaries, boundaryIdxs);
+    if (sol(0) >= 0.0 && sol(1) >= 0.0 && sol(0) + sol(1) <= 1.0 && sol(2) >= 0.0)
+    {
+        *intersect = true;
+        *param = sol(2);
+    }
 }
