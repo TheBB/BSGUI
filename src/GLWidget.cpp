@@ -1,9 +1,9 @@
 #include <cmath>
 
-#include "dispobject.h"
+#include "DispObject.h"
 #include "shaders.h"
 
-#include "glwidget.h"
+#include "GLWidget.h"
 
 
 GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),

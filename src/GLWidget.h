@@ -9,7 +9,7 @@
 #include <QOpenGLShaderProgram>
 #include <QWheelEvent>
 
-#include "dispobject.h"
+#include "DispObject.h"
 
 #ifndef GLWIDGET_H
 #define GLWIDGET_H

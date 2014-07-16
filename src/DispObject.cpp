@@ -2,7 +2,7 @@
 
 #include <Eigen/Dense>
 
-#include "dispobject.h"
+#include "DispObject.h"
 
 
 typedef struct { GLuint a, b; } pair;

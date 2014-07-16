@@ -9,7 +9,7 @@
 
 #include <QGLFormat>
 
-#include "glwidget.h"
+#include "GLWidget.h"
 #include "main.h"
 
 
