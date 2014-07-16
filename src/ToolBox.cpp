@@ -151,6 +151,22 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     row++;
 
 
+    QPushButton *centerBtn = new QPushButton("Center on selected patch");
+    centerBtn->setEnabled(false);
+    layout->addWidget(centerBtn, row, 0, 1, 3);
+
+    QObject::connect(glWidget, &GLWidget::singlePatchSelected,
+                     [centerBtn] (bool val) { centerBtn->setEnabled(val); });
+
+    QObject::connect(centerBtn, &QPushButton::clicked,
+                     [glWidget] (bool val) {
+                         glWidget->centerOnSelected();
+                         glWidget->update();
+                     });
+
+    row++;
+
+
     QGroupBox *upPanel = new QGroupBox("Up is...");
     layout->addWidget(upPanel, row, 0, 1, 3);
     QGridLayout *upLayout = new QGridLayout();

@@ -23,11 +23,14 @@ public:
     void draw(QMatrix4x4&, QMatrix4x4&, QOpenGLShaderProgram&, QOpenGLShaderProgram&, QOpenGLShaderProgram&);
     void intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param);
 
+    QVector3D center();
+
     bool selected;
 
 private:
     ushort nU, nV, nW;
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
+    QVector3D _center;
 
     std::vector<QVector3D> vertexData;
     std::vector<quad> faceData;

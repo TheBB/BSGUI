@@ -1,6 +1,7 @@
 #include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QSize>
 #include <QSlider>
 #include <QWidget>

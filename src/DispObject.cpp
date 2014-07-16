@@ -38,6 +38,8 @@ DispObject::~DispObject()
 
 void DispObject::init(QVector3D center)
 {
+    _center = center;
+
     nU =  3; nV =  4; nW =  5;
 
     nPtsU = nU + 1;
@@ -162,6 +164,12 @@ void DispObject::intersect(QVector3D &a, QVector3D &b, bool *intersect, float *p
 
     *intersect = false;
     return;
+}
+
+
+QVector3D DispObject::center()
+{
+    return _center;
 }
 
 

@@ -14,7 +14,7 @@ GLWidget::GLWidget(QWidget *parent)
     , ctrlPressed(false)
     , altPressed(false)
     , _zoom(0.0)
-    , _lookAt(0,0,0)
+    , _lookAt(1.5,0,0)
     , _fov(45.0)
     , _inclination(30.0)
     , _azimuth(45.0)
@@ -36,6 +36,16 @@ GLWidget::~GLWidget()
 QSize GLWidget::sizeHint() const
 {
     return QSize(640, 480);
+}
+
+
+void GLWidget::centerOnSelected()
+{
+    if (selectedObject)
+    {
+        _lookAt = selectedObject->center();
+        emit lookAtChanged(_lookAt, true);
+    }
 }
 
 
@@ -116,6 +126,11 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
         shiftPressed = true;
     if (event->key() == Qt::Key_Alt)
         altPressed = true;
+    if (event->key() == Qt::Key_C)
+    {
+        centerOnSelected();
+        update();
+    }
 }
 
 
@@ -183,6 +198,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 
         if (needsUpdate)
             update();
+
+        emit singlePatchSelected(selected);
     }
 }
 
@@ -327,7 +344,7 @@ void GLWidget::multiplyDir(QMatrix4x4 *mv)
         case NEGX: (*mv) *= QMatrix4x4(0,0,1,0,0,1,0,0,-1,0,0,0,0,0,0,1); break;
         case POSY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,-1,0,0,1,0,0,0,0,0,1); break;
         case NEGY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,1,0,0,-1,0,0,0,0,0,1); break;
-        case NEGZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1);
+        case NEGZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1); break;
         }
     else
         switch (_dir)
@@ -337,6 +354,6 @@ void GLWidget::multiplyDir(QMatrix4x4 *mv)
         case POSY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1); break;
         case NEGY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,-1,0,0,-1,0,0,0,0,0,1); break;
         case POSZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1); break;
-        case NEGZ: (*mv) *= QMatrix4x4(1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1);
+        case NEGZ: (*mv) *= QMatrix4x4(1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1); break;
         }
 }

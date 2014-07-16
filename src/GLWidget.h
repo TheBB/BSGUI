@@ -30,6 +30,8 @@ public:
 
     QSize sizeHint() const;
 
+    void centerOnSelected();
+
     inline double inclination() { return _inclination; }
     void setInclination(double val, bool fromMouse);
 
@@ -59,6 +61,8 @@ signals:
     void lookAtChanged(QVector3D pt, bool fromMouse);
     void dirChanged(direction val);
     void rightHandedChanged(bool val);
+
+    void singlePatchSelected(bool val);
 
 protected:
     void initializeGL();
