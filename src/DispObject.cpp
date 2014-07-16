@@ -8,10 +8,11 @@
 typedef struct { GLuint a, b; } pair;
 
 
-DispObject::DispObject() : vertexBuffer(QOpenGLBuffer::VertexBuffer),
-                           faceBuffer(QOpenGLBuffer::IndexBuffer),
-                           boundaryBuffer(QOpenGLBuffer::IndexBuffer),
-                           elementBuffer(QOpenGLBuffer::IndexBuffer)
+DispObject::DispObject()
+    : vertexBuffer(QOpenGLBuffer::VertexBuffer)
+    , faceBuffer(QOpenGLBuffer::IndexBuffer)
+    , boundaryBuffer(QOpenGLBuffer::IndexBuffer)
+    , elementBuffer(QOpenGLBuffer::IndexBuffer)
 {
 }
 

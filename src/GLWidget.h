@@ -7,6 +7,7 @@
 #include <QMatrix4x4>
 #include <QMouseEvent>
 #include <QOpenGLShaderProgram>
+#include <QSize>
 #include <QWheelEvent>
 
 #include "DispObject.h"
@@ -21,6 +22,18 @@ class GLWidget : public QGLWidget
 public:
     GLWidget(QWidget *parent = NULL);
     virtual ~GLWidget();
+
+    QSize sizeHint() const { return QSize(640, 480); }
+
+    double inclination() { return _inclination; }
+    void setInclination(double val, bool fromMouse);
+
+    double azimuth() { return _azimuth; }
+    void setAzimuth(double val, bool fromMouse);
+
+signals:
+    void inclinationChanged(double val, bool fromMouse);
+    void azimuthChanged(double val, bool fromMouse);
 
 protected:
     void initializeGL();
@@ -47,16 +60,16 @@ private:
     bool shiftPressed = false;
     bool ctrlPressed = false;
 
-    double camPos = -5.0;
+    double camPos = -8.0;
     QVector3D worldTrans;
 
     double fov = 45.0;
 
     double inclinationOrig;
-    double inclination = 30.0;
+    double _inclination = 30.0;
 
     double azimuthOrig = 45.0;
-    double azimuth = 45.0;
+    double _azimuth = 45.0;
 
     bool cameraTracking = false;
     QPoint cameraOrig;

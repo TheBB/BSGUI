@@ -6,9 +6,10 @@
 #include "GLWidget.h"
 
 
-GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent),
-                                      vcProgram(), ccProgram(), lnProgram(),
-                                      worldTrans(0,0,0)
+GLWidget::GLWidget(QWidget *parent)
+    : QGLWidget(parent)
+    , vcProgram(), ccProgram(), lnProgram()
+    , worldTrans(0,0,0)
 {
     setFocusPolicy(Qt::ClickFocus);
 }
@@ -114,8 +115,8 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     {
         cameraTracking = true;
         cameraOrig = event->pos();
-        azimuthOrig = azimuth;
-        inclinationOrig = inclination;
+        azimuthOrig = _azimuth;
+        inclinationOrig = _inclination;
     }
     else if (event->button() & Qt::LeftButton)
     {
@@ -180,8 +181,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (cameraTracking)
     {
-        azimuth = azimuthOrig + 360.0 * (event->pos().x() - cameraOrig.x()) / width();
-        inclination = inclinationOrig + 180.0 * (event->pos().y() - cameraOrig.y()) / height();
+        setAzimuth(azimuthOrig + 360.0 * (event->pos().x() - cameraOrig.x()) / width(), true);
+        setInclination(inclinationOrig + 180.0 * (event->pos().y() - cameraOrig.y()) / height(), true);
         update();
     }
 }
@@ -202,6 +203,30 @@ void GLWidget::wheelEvent(QWheelEvent *event)
 }
 
 
+void GLWidget::setInclination(double val, bool fromMouse)
+{
+    if (val >= 90.0)
+        val = 90.0;
+    if (val <= -90.0)
+        val = -90.0;
+    _inclination = val;
+
+    emit inclinationChanged(val, fromMouse);
+}
+
+
+void GLWidget::setAzimuth(double val, bool fromMouse)
+{
+    while (val > 360.0)
+        val -= 360.0;
+    while (val < 0.0)
+        val += 360.0;
+    _azimuth = val;
+
+    emit azimuthChanged(val, fromMouse);
+}
+
+
 void GLWidget::matrices(QMatrix4x4 *proj, QMatrix4x4 *mv)
 {
     float aspect = (float) width() / height();
@@ -212,6 +237,6 @@ void GLWidget::matrices(QMatrix4x4 *proj, QMatrix4x4 *mv)
     mv->setToIdentity();
     mv->lookAt(eye, eye + QVector3D(0, 1, 0), QVector3D(0, 0, 1));
     mv->translate(QVector3D(0, 4, 0));
-    mv->rotate(inclination, QVector3D(1, 0, 0));
-    mv->rotate(azimuth, QVector3D(0, 0, 1));
+    mv->rotate(_inclination, QVector3D(1, 0, 0));
+    mv->rotate(_azimuth, QVector3D(0, 0, 1));
 }

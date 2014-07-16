@@ -7,7 +7,12 @@ include_directories(${PROJECT_BINARY_DIR})
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 add_executable(BSGUI
-  main.cpp GLWidget.cpp DispObject.cpp)
+  main.cpp
+  DispObject.cpp
+  GLWidget.cpp
+  MainWindow.cpp
+  ToolBox.cpp
+  )
 
 qt5_use_modules(BSGUI Core Widgets Gui OpenGL)
 target_link_libraries(BSGUI GL)
