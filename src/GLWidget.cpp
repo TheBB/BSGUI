@@ -14,10 +14,12 @@ GLWidget::GLWidget(QWidget *parent)
     , ctrlPressed(false)
     , altPressed(false)
     , _zoom(0.0)
-    , worldTrans(0,0,0)
+    , _lookAt(0,0,0)
     , _fov(45.0)
     , _inclination(30.0)
     , _azimuth(45.0)
+    , _dir(POSZ)
+    , _rightHanded(true)
     , cameraTracking(false)
 {
     setFocusPolicy(Qt::ClickFocus);
@@ -90,7 +92,7 @@ void GLWidget::initializeGL()
         close();
 
     std::vector<QVector3D> centers = {
-        QVector3D(0, 0, 0),
+        QVector3D(0, 0, 1),
         QVector3D(-3, 0, 0),
         QVector3D(0, -3, 0),
         QVector3D(6, 0, 0),
@@ -136,6 +138,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         cameraOrig = event->pos();
         azimuthOrig = _azimuth;
         inclinationOrig = _inclination;
+        lookAtOrig = _lookAt;
     }
     else if (event->button() & Qt::LeftButton)
     {
@@ -144,14 +147,9 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
                                      0, 1);
         QVector4D point = origin; point.setZ(1);
 
-        QMatrix4x4 proj, mv;
+        QMatrix4x4 proj, mv, inv;
         matrices(&proj, &mv);
-
-        bool inverted;
-        QMatrix4x4 inv = (proj * mv).inverted(&inverted);
-
-        if (!inverted)
-            qDebug() << "Couldn't invert matrix";
+        inv = (proj * mv).inverted();
 
         QVector3D a = (inv * origin).toVector3DAffine();
         QVector3D b = (inv * point).toVector3DAffine();
@@ -200,8 +198,28 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (cameraTracking)
     {
-        setAzimuth(azimuthOrig + 360.0 * (event->pos().x() - cameraOrig.x()) / width(), true);
-        setInclination(inclinationOrig + 180.0 * (event->pos().y() - cameraOrig.y()) / height(), true);
+        if (ctrlPressed)
+        {
+            QMatrix4x4 proj, mv, inv;
+            matrices(&proj, &mv);
+            inv = (proj * mv).inverted();
+
+            QVector3D right = -(inv * QVector4D(1,0,0,0)).toVector3D(); right.normalize();
+            QVector3D up = (inv * QVector4D(0,1,0,0)).toVector3D(); up.normalize();
+
+            setLookAt(lookAtOrig + (shiftPressed ? 1.0 : 10.0) * (
+                          right * (event->pos().x() - cameraOrig.x()) / width() +
+                          up    * (event->pos().y() - cameraOrig.y()) / height()),
+                      true);
+        }
+        else
+        {
+            setAzimuth(azimuthOrig + (shiftPressed ? 36.0 : 360.0) *
+                       (event->pos().x() - cameraOrig.x()) / width(), true);
+            setInclination(inclinationOrig + (shiftPressed ? 18.0 : 180.0) *
+                           (event->pos().y() - cameraOrig.y()) / height(), true);
+        }
+
         update();
     }
 }
@@ -257,8 +275,28 @@ void GLWidget::setFov(double val, bool fromMouse)
 void GLWidget::setZoom(double val, bool fromMouse)
 {
     _zoom = val;
-
     emit zoomChanged(val, fromMouse);
+}
+
+
+void GLWidget::setLookAt(QVector3D pt, bool fromMouse)
+{
+    _lookAt = pt;
+    emit lookAtChanged(pt, fromMouse);
+}
+
+
+void GLWidget::setDir(direction val)
+{
+    _dir = val;
+    emit dirChanged(val);
+}
+
+
+void GLWidget::setRightHanded(bool val)
+{
+    _rightHanded = val;
+    emit rightHandedChanged(val);
 }
 
 
@@ -275,5 +313,30 @@ void GLWidget::matrices(QMatrix4x4 *proj, QMatrix4x4 *mv)
     mv->rotate(_inclination, QVector3D(1, 0, 0));
     mv->rotate(_azimuth, QVector3D(0, 0, 1));
     mv->scale(1.0/11.0);
-    mv->translate(-worldTrans);
+    multiplyDir(mv);
+    mv->translate(-_lookAt);
+}
+
+
+void GLWidget::multiplyDir(QMatrix4x4 *mv)
+{
+    if (_rightHanded)
+        switch (_dir)
+        {
+        case POSX: (*mv) *= QMatrix4x4(0,0,-1,0,0,1,0,0,1,0,0,0,0,0,0,1); break;
+        case NEGX: (*mv) *= QMatrix4x4(0,0,1,0,0,1,0,0,-1,0,0,0,0,0,0,1); break;
+        case POSY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,-1,0,0,1,0,0,0,0,0,1); break;
+        case NEGY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,1,0,0,-1,0,0,0,0,0,1); break;
+        case NEGZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1);
+        }
+    else
+        switch (_dir)
+        {
+        case POSX: (*mv) *= QMatrix4x4(0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1); break;
+        case NEGX: (*mv) *= QMatrix4x4(0,0,-1,0,0,1,0,0,-1,0,0,0,0,0,0,1); break;
+        case POSY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1); break;
+        case NEGY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,-1,0,0,-1,0,0,0,0,0,1); break;
+        case POSZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1); break;
+        case NEGZ: (*mv) *= QMatrix4x4(1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1);
+        }
 }

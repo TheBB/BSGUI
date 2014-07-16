@@ -1,4 +1,5 @@
 #include <QDockWidget>
+#include <QDoubleSpinBox>
 #include <QLabel>
 #include <QSize>
 #include <QSlider>
@@ -24,10 +25,15 @@ public slots:
     void azimuthChanged(double val, bool fromMouse);
     void fovChanged(double val, bool fromMouse);
     void zoomChanged(double val, bool fromMouse);
+    void lookAtChanged(QVector3D pt, bool fromMouse);
+    void updateLookAt(double t);
 
 private:
+    GLWidget *glWidget;
+
     QLabel *inclinationLabel, *azimuthLabel, *fovLabel, *zoomLabel;
     QSlider *inclinationSlider, *azimuthSlider, *fovSlider, *zoomSlider;
+    QDoubleSpinBox *lookAtX, *lookAtY, *lookAtZ;
 };
 
 

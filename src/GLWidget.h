@@ -17,6 +17,9 @@
 
 #define MAX_FOV 135.0
 
+enum direction { POSX, NEGX, POSY, NEGY, POSZ, NEGZ };
+
+
 class GLWidget : public QGLWidget
 {
     Q_OBJECT
@@ -39,11 +42,23 @@ public:
     inline double zoom() { return _zoom; }
     void setZoom(double val, bool fromMouse);
 
+    inline QVector3D lookAt() { return _lookAt; }
+    void setLookAt(QVector3D pt, bool fromMouse);
+
+    inline direction dir() { return _dir; }
+    void setDir(direction val);
+
+    inline bool rightHanded() { return _rightHanded; }
+    void setRightHanded(bool val);
+
 signals:
     void inclinationChanged(double val, bool fromMouse);
     void azimuthChanged(double val, bool fromMouse);
     void fovChanged(double val, bool fromMouse);
     void zoomChanged(double val, bool fromMouse);
+    void lookAtChanged(QVector3D pt, bool fromMouse);
+    void dirChanged(direction val);
+    void rightHandedChanged(bool val);
 
 protected:
     void initializeGL();
@@ -59,6 +74,7 @@ protected:
 
 private:
     void matrices(QMatrix4x4 *, QMatrix4x4 *);
+    void multiplyDir(QMatrix4x4 *);
 
     QOpenGLShaderProgram vcProgram;
     QOpenGLShaderProgram ccProgram;
@@ -72,18 +88,18 @@ private:
     bool altPressed;
 
     double _zoom;
-    QVector3D worldTrans;
-
+    QVector3D _lookAt;
     double _fov;
-
-    double inclinationOrig;
     double _inclination;
-
-    double azimuthOrig;
     double _azimuth;
+    direction _dir;
+    bool _rightHanded;
 
     bool cameraTracking;
     QPoint cameraOrig;
+    double inclinationOrig;
+    double azimuthOrig;
+    QVector3D lookAtOrig;
 };
 
 #endif /* GLWIDGET_H */

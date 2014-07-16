@@ -1,6 +1,9 @@
 #include <cmath>
 
 #include <QGridLayout>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QRadioButton>
 #include <QToolBox>
 #include <QTreeView>
 #include <QVBoxLayout>
@@ -11,6 +14,48 @@
 #define AZMSLIDER_FACTOR 10
 #define FOVSLIDER_FACTOR 200
 #define ZOOMSLIDER_FACTOR 500
+
+
+template <typename T, typename V>
+void blockAndSet(T *obj, V val)
+{
+    bool prev = obj->blockSignals(true);
+    obj->setValue(val);
+    obj->blockSignals(prev);
+}
+
+
+void newLabelSet(QLabel **label, QGridLayout *layout, QString title, int row)
+{
+    *label = new QLabel();
+    layout->addWidget(new QLabel(title), row, 0, 1, 2, Qt::AlignLeft);
+    layout->addWidget(*label, row, 2, 1, 1, Qt::AlignRight);
+}
+
+
+void newSlider(QSlider **slider, QGridLayout *layout, int min, int max, int row)
+{
+    *slider = new QSlider(Qt::Horizontal);
+    (*slider)->setMinimum(min);
+    (*slider)->setMaximum(max);
+    layout->addWidget(*slider, row, 0, 1, 3);
+}
+
+
+void newUpRadioButton(QString title, QGridLayout *layout, int row, int col, GLWidget *glWidget, direction dir)
+{
+    QRadioButton *btn = new QRadioButton(title);
+    layout->addWidget(btn, row, col, 1, 1);
+    btn->setChecked(glWidget->dir() == dir);
+    QObject::connect(btn, &QRadioButton::toggled,
+                     [glWidget, dir] (bool checked) {
+                         if (checked)
+                         {
+                             glWidget->setDir(dir);
+                             glWidget->update();
+                         }
+                     });
+}
 
 
 TreePanel::TreePanel(QWidget *parent, Qt::WindowFlags flags)
@@ -27,23 +72,15 @@ TreePanel::TreePanel(QWidget *parent, Qt::WindowFlags flags)
 
 CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags)
+    , glWidget(glWidget)
 {
     QGridLayout *layout = new QGridLayout();
 
     int row = 0;
 
 
-
-    inclinationLabel = new QLabel();
-    layout->addWidget(new QLabel("Inclination"), row, 0, 1, 1, Qt::AlignLeft);
-    layout->addWidget(inclinationLabel, row, 1, 1, 1, Qt::AlignRight);
-
-    inclinationSlider = new QSlider(Qt::Horizontal);
-    inclinationSlider->setMinimum(-90 * INCSLIDER_FACTOR);
-    inclinationSlider->setMaximum(90 * INCSLIDER_FACTOR);
-    layout->addWidget(inclinationSlider, row+1, 0, 1, 2);
-
-    inclinationChanged(glWidget->inclination(), true);
+    newLabelSet(&inclinationLabel, layout, "Inclination", row);
+    newSlider(&inclinationSlider, layout, -90*INCSLIDER_FACTOR, 90*INCSLIDER_FACTOR, row+1);
 
     QObject::connect(glWidget, &GLWidget::inclinationChanged, this, &CameraPanel::inclinationChanged);
     QObject::connect(inclinationSlider, &QSlider::valueChanged,
@@ -55,16 +92,8 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     row += 2;
 
 
-    azimuthLabel = new QLabel();
-    layout->addWidget(new QLabel("Azimuth"), row, 0, 1, 1, Qt::AlignLeft);
-    layout->addWidget(azimuthLabel, row, 1, 1, 1, Qt::AlignRight);
-
-    azimuthSlider = new QSlider(Qt::Horizontal);
-    azimuthSlider->setMinimum(0);
-    azimuthSlider->setMaximum(360 * AZMSLIDER_FACTOR);
-    layout->addWidget(azimuthSlider, row+1, 0, 1, 2);
-
-    azimuthChanged(glWidget->azimuth(), true);
+    newLabelSet(&azimuthLabel, layout, "Azimuth", row);
+    newSlider(&azimuthSlider, layout, 0, 360*AZMSLIDER_FACTOR, row+1);
 
     QObject::connect(glWidget, &GLWidget::azimuthChanged, this, &CameraPanel::azimuthChanged);
     QObject::connect(azimuthSlider, &QSlider::valueChanged,
@@ -76,16 +105,8 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     row += 2;
 
 
-    fovLabel = new QLabel();
-    layout->addWidget(new QLabel("Optical zoom"), row, 0, 1, 1, Qt::AlignLeft);
-    layout->addWidget(fovLabel, row, 1, 1, 1, Qt::AlignRight);
-
-    fovSlider = new QSlider(Qt::Horizontal);
-    fovSlider->setMinimum(-5 * FOVSLIDER_FACTOR);
-    fovSlider->setMaximum(0);
-    layout->addWidget(fovSlider, row+1, 0, 1, 2);
-
-    fovChanged(glWidget->fov(), true);
+    newLabelSet(&fovLabel, layout, "Optical zoom", row);
+    newSlider(&fovSlider, layout, -5*FOVSLIDER_FACTOR, 0, row+1);
 
     QObject::connect(glWidget, &GLWidget::fovChanged, this, &CameraPanel::fovChanged);
     QObject::connect(fovSlider, &QSlider::valueChanged,
@@ -96,16 +117,9 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
 
     row += 2;
 
-    zoomLabel = new QLabel();
-    layout->addWidget(new QLabel("Physical zoom"), row, 0, 1, 1, Qt::AlignLeft);
-    layout->addWidget(zoomLabel, row, 1, 1, 1, Qt::AlignRight);
 
-    zoomSlider = new QSlider(Qt::Horizontal);
-    zoomSlider->setMinimum(-1 * ZOOMSLIDER_FACTOR);
-    zoomSlider->setMaximum(2 * ZOOMSLIDER_FACTOR);
-    layout->addWidget(zoomSlider, row+1, 0, 1, 2);
-
-    zoomChanged(glWidget->zoom(), true);
+    newLabelSet(&zoomLabel, layout, "Physical zoom", row);
+    newSlider(&zoomSlider, layout, -2*ZOOMSLIDER_FACTOR, 2*ZOOMSLIDER_FACTOR, row+1);
 
     QObject::connect(glWidget, &GLWidget::zoomChanged, this, &CameraPanel::zoomChanged);
     QObject::connect(zoomSlider, &QSlider::valueChanged,
@@ -115,6 +129,70 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
                      });
 
     row += 2;
+
+
+    QGroupBox *lookAtPanel = new QGroupBox("Look at");
+    layout->addWidget(lookAtPanel, row, 0, 1, 3);
+    QHBoxLayout *lookAtLayout = new QHBoxLayout();
+    lookAtPanel->setLayout(lookAtLayout);
+
+    std::vector<QDoubleSpinBox **> lookAts = {&lookAtX, &lookAtY, &lookAtZ};
+    for (auto lookAt : lookAts)
+    {
+        *lookAt = new QDoubleSpinBox();
+        lookAtLayout->addWidget(*lookAt);
+        (*lookAt)->setMinimum(-std::numeric_limits<double>::infinity());
+        (*lookAt)->setMaximum(std::numeric_limits<double>::infinity());
+        QObject::connect(*lookAt, SIGNAL(valueChanged(double)), this, SLOT(updateLookAt(double)));
+    }
+
+    QObject::connect(glWidget, &GLWidget::lookAtChanged, this, &CameraPanel::lookAtChanged);
+
+    row++;
+
+
+    QGroupBox *upPanel = new QGroupBox("Up is...");
+    layout->addWidget(upPanel, row, 0, 1, 3);
+    QGridLayout *upLayout = new QGridLayout();
+    upPanel->setLayout(upLayout);
+
+    newUpRadioButton("positive X", upLayout, 0, 0, glWidget, POSX);
+    newUpRadioButton("negative X", upLayout, 0, 1, glWidget, NEGX);
+    newUpRadioButton("positive Y", upLayout, 1, 0, glWidget, POSY);
+    newUpRadioButton("negative Y", upLayout, 1, 1, glWidget, NEGY);
+    newUpRadioButton("positive Z", upLayout, 2, 0, glWidget, POSZ);
+    newUpRadioButton("negative Z", upLayout, 2, 1, glWidget, NEGZ);
+
+    row++;
+
+
+    QGroupBox *coordPanel = new QGroupBox("Coordinate system is...");
+    layout->addWidget(coordPanel, row, 0, 1, 3);
+    QHBoxLayout *coordLayout = new QHBoxLayout();
+    coordPanel->setLayout(coordLayout);
+
+    QRadioButton *rightHanded = new QRadioButton("right handed");
+    coordLayout->addWidget(rightHanded);
+    rightHanded->setChecked(glWidget->rightHanded());
+
+    QRadioButton *leftHanded = new QRadioButton("left handed");
+    coordLayout->addWidget(leftHanded);
+    leftHanded->setChecked(!glWidget->rightHanded());
+
+    QObject::connect(rightHanded, &QRadioButton::toggled,
+                     [glWidget] (bool checked) {
+                         glWidget->setRightHanded(checked);
+                         glWidget->update();
+                     });
+
+    row++;
+
+
+    inclinationChanged(glWidget->inclination(), true);
+    fovChanged(glWidget->fov(), true);
+    azimuthChanged(glWidget->azimuth(), true);
+    zoomChanged(glWidget->zoom(), true);
+    lookAtChanged(glWidget->lookAt(), true);
 
 
     QWidget *fill = new QWidget();
@@ -130,11 +208,7 @@ void CameraPanel::inclinationChanged(double val, bool fromMouse)
 {
     inclinationLabel->setText(QString::number(val, 'f', 1));
     if (fromMouse)
-    {
-        bool prev = inclinationSlider->blockSignals(true);
-        inclinationSlider->setValue((int) round(val * INCSLIDER_FACTOR));
-        inclinationSlider->blockSignals(prev);
-    }
+        blockAndSet<QSlider, int>(inclinationSlider, (int) round(val * INCSLIDER_FACTOR));
 }
 
 
@@ -142,11 +216,7 @@ void CameraPanel::azimuthChanged(double val, bool fromMouse)
 {
     azimuthLabel->setText(QString::number(val, 'f', 1));
     if (fromMouse)
-    {
-        bool prev = azimuthSlider->blockSignals(true);
-        azimuthSlider->setValue((int) round(val * AZMSLIDER_FACTOR));
-        azimuthSlider->blockSignals(prev);
-    }
+        blockAndSet<QSlider, int>(azimuthSlider, (int) round(val * AZMSLIDER_FACTOR));
 }
 
 
@@ -154,11 +224,7 @@ void CameraPanel::fovChanged(double val, bool fromMouse)
 {
     fovLabel->setText(QString::number(val, 'f', 1));
     if (fromMouse)
-    {
-        bool prev = fovSlider->blockSignals(true);
-        fovSlider->setValue((int) round(FOVSLIDER_FACTOR * log(val / MAX_FOV)));
-        fovSlider->blockSignals(prev);
-    }
+        blockAndSet<QSlider, int>(fovSlider, (int) round(FOVSLIDER_FACTOR * log(val / MAX_FOV)));
 }
 
 
@@ -166,11 +232,25 @@ void CameraPanel::zoomChanged(double val, bool fromMouse)
 {
     zoomLabel->setText(QString::number(val, 'f', 2));
     if (fromMouse)
+        blockAndSet<QSlider, int>(zoomSlider, (int) round(ZOOMSLIDER_FACTOR * val));
+}
+
+
+void CameraPanel::lookAtChanged(QVector3D pt, bool fromMouse)
+{
+    if (fromMouse)
     {
-        bool prev = zoomSlider->blockSignals(true);
-        zoomSlider->setValue((int) round(ZOOMSLIDER_FACTOR * val));
-        zoomSlider->blockSignals(prev);
+        blockAndSet<QDoubleSpinBox, double>(lookAtX, pt.x());
+        blockAndSet<QDoubleSpinBox, double>(lookAtY, pt.y());
+        blockAndSet<QDoubleSpinBox, double>(lookAtZ, pt.z());
     }
+}
+
+
+void CameraPanel::updateLookAt(double t)
+{
+    glWidget->setLookAt(QVector3D(lookAtX->value(), lookAtY->value(), lookAtZ->value()), false);
+    glWidget->update();
 }
 
 
