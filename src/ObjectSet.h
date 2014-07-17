@@ -1,73 +1,77 @@
 #include <vector>
-
 #include <QAbstractItemModel>
+#include <QFileInfo>
 #include <QModelIndex>
 #include <QString>
-
-#include "DispObject.h"
-
 
 #ifndef _OBJECTSET_H_
 #define _OBJECTSET_H_
 
-typedef struct File
+#include "DispObject.h"
+
+enum NodeType { NT_ROOT, NT_FILE, NT_PATCH };
+
+
+class Node
 {
-    QString fileName;
+public:
+    Node(Node *parent = NULL);
+    ~Node();
 
-    File (QString fn) : fileName(fn) { }
-} File;
+    virtual NodeType type() { return NT_ROOT; }
+    virtual QString displayString() { return "###"; }
 
-typedef struct Node 
+    void addChild(Node *child);
+    Node *getChild(int idx);
+    int indexOfChild(Node *child);
+    int numberOfChildren();
+
+    inline Node *parent() { return _parent; }
+
+    inline std::vector<Node *> children() { return _children; }
+
+protected:
+    Node *_parent;
+    std::vector<Node *> _children;
+};
+
+
+class File : public Node
 {
-    enum NodeType { RootNode, FileNode, VolumeNode } type;
+public:
+    File(QString fn, Node *parent = NULL);
+    ~File() { }
 
-    union
+    NodeType type() { return NT_FILE; }
+    QString displayString();
+
+    inline bool matches(QString fn)
     {
-        void *root;
-        File *file;
-        DispObject *volume;
-    } data;
-
-    Node *parent;
-    std::vector<Node *> children;
-
-    Node(NodeType type, Node *parent = NULL, void *data = NULL)
-    {
-        this->type = type;
-
-        this->parent = parent;
-        if (parent)
-            parent->children.push_back(this);
-
-        switch (type)
-        {
-        case RootNode: this->data.root = NULL;
-        case FileNode: this->data.file = static_cast<File *>(data);
-        case VolumeNode: this->data.volume = static_cast<DispObject *>(data);
-        }
+        return fn == "" && absolutePath == "" || QFileInfo(fn).absoluteFilePath() == absolutePath;
     }
 
-    ~Node()
-    {
-        switch (type)
-        {
-        case FileNode: delete data.file; break;
-        case VolumeNode: delete data.volume; break;
-        }
+    inline QString fn() { return fileName; }
 
-        for (auto child : children)
-            delete child;
-    }
+private:
+    QString fileName, absolutePath;
+};
 
-    int indexOf(Node *child)
-    {
-        for (int i = 0; i < children.size(); i++)
-            if (child == children[i])
-                return i;
-        return -1;
-    }
 
-} Node;
+class Patch : public Node
+{
+public:
+    Patch(DispObject *obj, Node *parent = NULL);
+    ~Patch();
+
+    NodeType type() { return NT_PATCH; }
+    QString displayString();
+
+    inline DispObject *obj() { return _obj; }
+
+private:
+    DispObject *_obj;
+};
+
 
 class ObjectSet : public QAbstractItemModel
 {
@@ -77,6 +81,7 @@ public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
 
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const;
     QVariant data(const QModelIndex &index, int role) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
@@ -84,8 +89,12 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
+    void addPatch(QString fileName, DispObject *dispObject);
+
 private:
     Node *root;
+
+    Node *getFileNode(QString fileName);
 };
 
 #endif /* _OBJECTSET_H_ */

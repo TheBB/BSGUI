@@ -9,6 +9,7 @@
 GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(parent)
     , vcProgram(), ccProgram(), lnProgram()
+    , _objectSet(this)
     , selectedObject(NULL)
     , shiftPressed(false)
     , ctrlPressed(false)
@@ -31,8 +32,6 @@ GLWidget::GLWidget(QWidget *parent)
 
 GLWidget::~GLWidget()
 {
-    for (auto obj : objects)
-        free(obj);
 }
 
 
@@ -117,6 +116,7 @@ void GLWidget::initializeGL()
         DispObject *obj = new DispObject();
         obj->init(c);
         objects.insert(obj);
+        _objectSet.addPatch("", obj);
     }
 }
 

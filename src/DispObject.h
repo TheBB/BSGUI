@@ -5,8 +5,8 @@
 #include <QVector3D>
 #include <QVector4D>
 
-#ifndef DISPOBJECT_H
-#define DISPOBJECT_H
+#ifndef _DISPOBJECT_H_
+#define _DISPOBJECT_H_
 
 typedef unsigned char uchar;
 typedef unsigned short ushort;
@@ -146,4 +146,4 @@ private:
     }
 };
 
-#endif /* DISPOBJECT_H */
+#endif /* _DISPOBJECT_H_ */

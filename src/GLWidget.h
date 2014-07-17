@@ -10,6 +10,8 @@
 #include <QSize>
 #include <QWheelEvent>
 
+#include "ObjectSet.h"
+
 #include "DispObject.h"
 
 #ifndef GLWIDGET_H
@@ -31,6 +33,7 @@ public:
     QSize sizeHint() const;
 
     void centerOnSelected();
+    ObjectSet *objectSet() { return &_objectSet; }
 
     inline double inclination() { return _inclination; }
     void setInclination(double val, bool fromMouse);
@@ -95,6 +98,7 @@ private:
     QOpenGLShaderProgram ccProgram;
     QOpenGLShaderProgram lnProgram;
 
+    ObjectSet _objectSet;
     std::set<DispObject *> objects;
     DispObject *selectedObject;
 

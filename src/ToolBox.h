@@ -49,7 +49,7 @@ class TreePanel : public QWidget
     Q_OBJECT
 
 public:
-    TreePanel(QWidget *parent = NULL, Qt::WindowFlags flags = 0);
+    TreePanel(GLWidget *glWidget, QWidget *parent = NULL, Qt::WindowFlags flags = 0);
     ~TreePanel() { }
 
     QSize sizeHint() const { return QSize(300, 100); }
