@@ -134,6 +134,8 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
         centerOnSelected();
         update();
     }
+    if (event->key() == Qt::Key_P && !_fixed)
+        setPerspective(!_perspective);
     if (event->key() == Qt::Key_QuoteLeft)
         usePreset(VIEW_FREE);
     if (event->key() == Qt::Key_1)

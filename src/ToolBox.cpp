@@ -1,12 +1,17 @@
 #include <cmath>
 
+#include <QAbstractItemModel>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QRadioButton>
+#include <QTime>
+#include <QTimer>
 #include <QToolBox>
 #include <QTreeView>
 #include <QVBoxLayout>
+
+#include "ObjectSet.h"
 
 #include "ToolBox.h"
 
@@ -15,6 +20,21 @@
 #define ROLLSLIDER_FACTOR 10
 #define FOVSLIDER_FACTOR 200
 #define ZOOMSLIDER_FACTOR 500
+
+
+TreePanel::TreePanel(QWidget *parent, Qt::WindowFlags flags)
+    : QWidget(parent, flags)
+{
+    QVBoxLayout *layout = new QVBoxLayout();
+
+    QTreeView *treeView = new QTreeView();
+    layout->addWidget(treeView);
+
+    ObjectSet *objectSet = new ObjectSet(NULL);
+    treeView->setModel(objectSet);
+
+    setLayout(layout);
+}
 
 
 template <typename T, typename V>
@@ -77,18 +97,6 @@ void newPresetsRadioButton(QString title, QGridLayout *layout, int row, int col,
                      });
     QObject::connect(glWidget, &GLWidget::fixedChanged,
                      [btn, val] (bool fixed, preset view) {btn->setChecked(view == val); });
-}
-
-
-TreePanel::TreePanel(QWidget *parent, Qt::WindowFlags flags)
-    : QWidget(parent, flags)
-{
-    QVBoxLayout *layout = new QVBoxLayout();
-
-    QTreeView *treeView = new QTreeView();
-    layout->addWidget(treeView);
-
-    setLayout(layout);
 }
 
 
@@ -391,7 +399,7 @@ ToolBox::ToolBox(GLWidget *glWidget, const QString &title, QWidget *parent, Qt::
     CameraPanel *cameraPanel = new CameraPanel(glWidget);
     toolBox->addItem(cameraPanel, "Camera");
 
-    toolBox->setCurrentIndex(1);
+    toolBox->setCurrentIndex(0);
 
     setWidget(toolBox);
 }

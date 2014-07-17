@@ -11,6 +11,7 @@ add_executable(BSGUI
   DispObject.cpp
   GLWidget.cpp
   MainWindow.cpp
+  ObjectSet.cpp
   ToolBox.cpp
   )
 
