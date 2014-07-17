@@ -188,7 +188,11 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         QVector3D b = (inv * point).toVector3DAffine();
 
         if (!_perspective)
-            a.setZ(-a.z());
+        {
+            QVector3D diff = 2*(a - b);
+            a += diff;
+            b += diff;
+        }
 
         DispObject *selected = NULL;
         float param, minParam = std::numeric_limits<float>::infinity();
@@ -361,6 +365,9 @@ void GLWidget::usePreset(preset val)
 {
     if (val == VIEW_FREE)
     {
+        if (!_fixed)
+            return;
+
         setInclination(fixedOrigInclination, true);
         setAzimuth(fixedOrigAzimuth, true);
         setRoll(fixedOrigRoll, true);
@@ -370,7 +377,7 @@ void GLWidget::usePreset(preset val)
         setPerspective(fixedOrigPerspective);
 
         _fixed = false;
-        emit fixedChanged(_fixed);
+        emit fixedChanged(_fixed, val);
 
         return;
     }
@@ -414,7 +421,7 @@ void GLWidget::usePreset(preset val)
     }
 
     _fixed = true;
-    emit fixedChanged(_fixed);
+    emit fixedChanged(_fixed, val);
 
     update();
 }

@@ -69,7 +69,7 @@ signals:
     void zoomChanged(double val, bool fromMouse);
     void lookAtChanged(QVector3D pt, bool fromMouse);
     void perspectiveChanged(bool val);
-    void fixedChanged(bool val);
+    void fixedChanged(bool val, preset view);
     void dirChanged(direction val);
     void rightHandedChanged(bool val);
 
