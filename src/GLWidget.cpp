@@ -187,6 +187,9 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         QVector3D a = (inv * origin).toVector3DAffine();
         QVector3D b = (inv * point).toVector3DAffine();
 
+        if (!_perspective)
+            a.setZ(-a.z());
+
         DispObject *selected = NULL;
         float param, minParam = std::numeric_limits<float>::infinity();
         bool intersect;

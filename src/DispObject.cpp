@@ -304,6 +304,9 @@ void DispObject::triangleIntersect(QVector3D &a, QVector3D &b, uint i, uint j, u
     mx(1,2) = a.y() - b.y();
     mx(2,2) = a.z() - b.z();
 
+    if (abs(mx.determinant()) < 1e-4)
+        return;
+
     Eigen::Vector3f vec;
     vec(0) = a.x() - vertexData[k].x();
     vec(1) = a.y() - vertexData[k].y();
