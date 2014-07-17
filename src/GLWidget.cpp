@@ -134,6 +134,20 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
         centerOnSelected();
         update();
     }
+    if (event->key() == Qt::Key_QuoteLeft)
+        usePreset(VIEW_FREE);
+    if (event->key() == Qt::Key_1)
+        usePreset(VIEW_TOP);
+    if (event->key() == Qt::Key_2)
+        usePreset(VIEW_BOTTOM);
+    if (event->key() == Qt::Key_3)
+        usePreset(VIEW_LEFT);
+    if (event->key() == Qt::Key_4)
+        usePreset(VIEW_RIGHT);
+    if (event->key() == Qt::Key_5)
+        usePreset(VIEW_FRONT);
+    if (event->key() == Qt::Key_6)
+        usePreset(VIEW_BACK);
 }
 
 
@@ -217,35 +231,35 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if (cameraTracking)
+    if (!cameraTracking)
+        return;
+
+    if (ctrlPressed && !_fixed || !ctrlPressed && _fixed)
     {
-        if (ctrlPressed)
-        {
-            QMatrix4x4 proj, mv, inv;
-            matrices(&proj, &mv);
-            inv = (proj * mv).inverted();
+        QMatrix4x4 proj, mv, inv;
+        matrices(&proj, &mv);
+        inv = (proj * mv).inverted();
 
-            QVector3D right = -(inv * QVector4D(1,0,0,0)).toVector3D(); right.normalize();
-            QVector3D up = (inv * QVector4D(0,1,0,0)).toVector3D(); up.normalize();
+        QVector3D right = -(inv * QVector4D(1,0,0,0)).toVector3D(); right.normalize();
+        QVector3D up = (inv * QVector4D(0,1,0,0)).toVector3D(); up.normalize();
 
-            setLookAt(mouseOrigLookAt + (shiftPressed ? 1.0 : 10.0) * (
-                          right * (event->pos().x() - mouseOrig.x()) / width() +
-                          up    * (event->pos().y() - mouseOrig.y()) / height()),
-                      true);
-        }
-        else if (!_fixed)
-        {
-            setAzimuth(mouseOrigAzimuth + (shiftPressed ? 36.0 : 360.0) *
-                       (event->pos().x() - mouseOrig.x()) / width(), true);
-            setInclination(mouseOrigInclination + (shiftPressed ? 18.0 : 180.0) *
-                           (event->pos().y() - mouseOrig.y()) / height(), true);
-        }
-        else
-            setRoll(mouseOrigRoll + (shiftPressed ? 36.0 : 360.0) *
-                    (event->pos().x() - mouseOrig.x()) / width(), true);
-
-        update();
+        setLookAt(mouseOrigLookAt + (shiftPressed ? 1.0 : 10.0) * (
+                      right * (event->pos().x() - mouseOrig.x()) / width() +
+                      up    * (event->pos().y() - mouseOrig.y()) / height()),
+                  true);
     }
+    else if (!_fixed)
+    {
+        setAzimuth(mouseOrigAzimuth + (shiftPressed ? 36.0 : 360.0) *
+                   (event->pos().x() - mouseOrig.x()) / width(), true);
+        setInclination(mouseOrigInclination + (shiftPressed ? 18.0 : 180.0) *
+                       (event->pos().y() - mouseOrig.y()) / height(), true);
+    }
+    else
+        setRoll(mouseOrigRoll + (shiftPressed ? 36.0 : 360.0) *
+                (event->pos().x() - mouseOrig.x()) / width(), true);
+
+    update();
 }
 
 
