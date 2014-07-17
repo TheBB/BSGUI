@@ -2,6 +2,7 @@
 #include <QDoubleSpinBox>
 #include <QLabel>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QSize>
 #include <QSlider>
 #include <QWidget>
@@ -24,17 +25,22 @@ public:
 public slots:
     void inclinationChanged(double val, bool fromMouse);
     void azimuthChanged(double val, bool fromMouse);
+    void rollChanged(double val, bool fromMouse);
     void fovChanged(double val, bool fromMouse);
     void zoomChanged(double val, bool fromMouse);
     void lookAtChanged(QVector3D pt, bool fromMouse);
     void updateLookAt(double t);
+    void perspectiveChanged(bool val);
+    void fixedChanged(bool val);
 
 private:
     GLWidget *glWidget;
 
-    QLabel *inclinationLabel, *azimuthLabel, *fovLabel, *zoomLabel;
-    QSlider *inclinationSlider, *azimuthSlider, *fovSlider, *zoomSlider;
+    QLabel *inclinationLabel, *azimuthLabel, *fovLabel, *zoomLabel, *rollLabel;
+    QSlider *inclinationSlider, *azimuthSlider, *fovSlider, *zoomSlider, *rollSlider;
     QDoubleSpinBox *lookAtX, *lookAtY, *lookAtZ;
+
+    QRadioButton *perspectiveBtn, *orthographicBtn;
 };
 
 

@@ -12,6 +12,7 @@
 
 #define INCSLIDER_FACTOR 10
 #define AZMSLIDER_FACTOR 10
+#define ROLLSLIDER_FACTOR 10
 #define FOVSLIDER_FACTOR 200
 #define ZOOMSLIDER_FACTOR 500
 
@@ -52,6 +53,23 @@ void newUpRadioButton(QString title, QGridLayout *layout, int row, int col, GLWi
                          if (checked)
                          {
                              glWidget->setDir(dir);
+                             glWidget->update();
+                         }
+                     });
+}
+
+
+void newPresetsRadioButton(QString title, QGridLayout *layout, int row, int col,
+                           GLWidget *glWidget, preset val, bool checked=false)
+{
+    QRadioButton *btn = new QRadioButton(title);
+    btn->setChecked(checked);
+    layout->addWidget(btn, row, col, 1, 1);
+    QObject::connect(btn, &QRadioButton::toggled,
+                     [glWidget, val] (bool checked) {
+                         if (checked)
+                         {
+                             glWidget->usePreset(val);
                              glWidget->update();
                          }
                      });
@@ -99,6 +117,19 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     QObject::connect(azimuthSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
                          glWidget->setAzimuth((float) val / AZMSLIDER_FACTOR, false);
+                         glWidget->update();
+                     });
+
+    row += 2;
+
+
+    newLabelSet(&rollLabel, layout, "Roll", row);
+    newSlider(&rollSlider, layout, 0, 360*ROLLSLIDER_FACTOR, row+1);
+
+    QObject::connect(glWidget, &GLWidget::rollChanged, this, &CameraPanel::rollChanged);
+    QObject::connect(rollSlider, &QSlider::valueChanged,
+                     [glWidget] (int val) {
+                         glWidget->setRoll((float) val / ROLLSLIDER_FACTOR, false);
                          glWidget->update();
                      });
 
@@ -157,7 +188,6 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
 
     QObject::connect(glWidget, &GLWidget::singlePatchSelected,
                      [centerBtn] (bool val) { centerBtn->setEnabled(val); });
-
     QObject::connect(centerBtn, &QPushButton::clicked,
                      [glWidget] (bool val) {
                          glWidget->centerOnSelected();
@@ -167,17 +197,56 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     row++;
 
 
+    QGroupBox *projPanel = new QGroupBox("Projection");
+    layout->addWidget(projPanel, row, 0, 1, 3);
+    QHBoxLayout *projLayout = new QHBoxLayout();
+    projPanel->setLayout(projLayout);
+
+    perspectiveBtn = new QRadioButton("Perspective");
+    projLayout->addWidget(perspectiveBtn);
+    perspectiveBtn->setChecked(glWidget->perspective());
+
+    orthographicBtn = new QRadioButton("Orthographic");
+    projLayout->addWidget(orthographicBtn);
+    orthographicBtn->setChecked(!glWidget->perspective());
+
+    QObject::connect(glWidget, &GLWidget::perspectiveChanged, this, &CameraPanel::perspectiveChanged);
+    QObject::connect(perspectiveBtn, &QRadioButton::toggled,
+                     [glWidget] (bool checked) {
+                         glWidget->setPerspective(checked);
+                         glWidget->update();
+                     });
+
+    row++;
+
+
+    QGroupBox *presetsPanel = new QGroupBox("Presets");
+    layout->addWidget(presetsPanel, row, 0, 1, 3);
+    QGridLayout *presetsLayout = new QGridLayout();
+    presetsPanel->setLayout(presetsLayout);
+
+    newPresetsRadioButton("Top", presetsLayout, 0, 0, glWidget, VIEW_TOP);
+    newPresetsRadioButton("Left", presetsLayout, 0, 1, glWidget, VIEW_LEFT);
+    newPresetsRadioButton("Front", presetsLayout, 0, 2, glWidget, VIEW_FRONT);
+    newPresetsRadioButton("Bottom", presetsLayout, 1, 0, glWidget, VIEW_BOTTOM);
+    newPresetsRadioButton("Right", presetsLayout, 1, 1, glWidget, VIEW_RIGHT);
+    newPresetsRadioButton("Back", presetsLayout, 1, 2, glWidget, VIEW_BACK);
+    newPresetsRadioButton("Free", presetsLayout, 2, 1, glWidget, VIEW_FREE, true);
+
+    row++;
+
+
     QGroupBox *upPanel = new QGroupBox("Up is...");
     layout->addWidget(upPanel, row, 0, 1, 3);
     QGridLayout *upLayout = new QGridLayout();
     upPanel->setLayout(upLayout);
 
-    newUpRadioButton("positive X", upLayout, 0, 0, glWidget, POSX);
-    newUpRadioButton("negative X", upLayout, 0, 1, glWidget, NEGX);
-    newUpRadioButton("positive Y", upLayout, 1, 0, glWidget, POSY);
-    newUpRadioButton("negative Y", upLayout, 1, 1, glWidget, NEGY);
-    newUpRadioButton("positive Z", upLayout, 2, 0, glWidget, POSZ);
-    newUpRadioButton("negative Z", upLayout, 2, 1, glWidget, NEGZ);
+    newUpRadioButton("Positive X", upLayout, 0, 0, glWidget, POSX);
+    newUpRadioButton("Negative X", upLayout, 0, 1, glWidget, NEGX);
+    newUpRadioButton("Positive Y", upLayout, 1, 0, glWidget, POSY);
+    newUpRadioButton("Negative Y", upLayout, 1, 1, glWidget, NEGY);
+    newUpRadioButton("Positive Z", upLayout, 2, 0, glWidget, POSZ);
+    newUpRadioButton("Negative Z", upLayout, 2, 1, glWidget, NEGZ);
 
     row++;
 
@@ -187,11 +256,11 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     QHBoxLayout *coordLayout = new QHBoxLayout();
     coordPanel->setLayout(coordLayout);
 
-    QRadioButton *rightHanded = new QRadioButton("right handed");
+    QRadioButton *rightHanded = new QRadioButton("Right handed");
     coordLayout->addWidget(rightHanded);
     rightHanded->setChecked(glWidget->rightHanded());
 
-    QRadioButton *leftHanded = new QRadioButton("left handed");
+    QRadioButton *leftHanded = new QRadioButton("Left handed");
     coordLayout->addWidget(leftHanded);
     leftHanded->setChecked(!glWidget->rightHanded());
 
@@ -204,9 +273,13 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     row++;
 
 
+    QObject::connect(glWidget, &GLWidget::fixedChanged, this, &CameraPanel::fixedChanged);
+
+
     inclinationChanged(glWidget->inclination(), true);
-    fovChanged(glWidget->fov(), true);
     azimuthChanged(glWidget->azimuth(), true);
+    rollChanged(glWidget->roll(), true);
+    fovChanged(glWidget->fov(), true);
     zoomChanged(glWidget->zoom(), true);
     lookAtChanged(glWidget->lookAt(), true);
 
@@ -233,6 +306,14 @@ void CameraPanel::azimuthChanged(double val, bool fromMouse)
     azimuthLabel->setText(QString::number(val, 'f', 1));
     if (fromMouse)
         blockAndSet<QSlider, int>(azimuthSlider, (int) round(val * AZMSLIDER_FACTOR));
+}
+
+
+void CameraPanel::rollChanged(double val, bool fromMouse)
+{
+    rollLabel->setText(QString::number(val, 'f', 1));
+    if (fromMouse)
+        blockAndSet<QSlider, int>(rollSlider, (int) round(val * ROLLSLIDER_FACTOR));
 }
 
 
@@ -267,6 +348,23 @@ void CameraPanel::updateLookAt(double t)
 {
     glWidget->setLookAt(QVector3D(lookAtX->value(), lookAtY->value(), lookAtZ->value()), false);
     glWidget->update();
+}
+
+
+void CameraPanel::perspectiveChanged(bool val)
+{
+    zoomSlider->setEnabled(val);
+    perspectiveBtn->setChecked(val);
+    orthographicBtn->setChecked(!val);
+}
+
+
+void CameraPanel::fixedChanged(bool val)
+{
+    inclinationSlider->setEnabled(!val);
+    azimuthSlider->setEnabled(!val);
+    perspectiveBtn->setEnabled(!val);
+    orthographicBtn->setEnabled(!val);
 }
 
 

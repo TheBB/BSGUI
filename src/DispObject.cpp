@@ -1,14 +1,15 @@
 #include <QVector4D>
 
+
 #include <Eigen/Dense>
 
 #include "DispObject.h"
 
 
 const QVector4D FACE_COLOR_NORMAL = QVector4D(0.737, 0.929, 1.000, 1);
-const QVector4D LINE_COLOR_NORMAL = QVector4D(0.431, 0.663, 0.749, 1);
+const QVector4D LINE_COLOR_NORMAL = QVector4D(0.431, 0.663, 0.749, 0.5);
 const QVector4D FACE_COLOR_SELECTED = QVector4D(1.000, 0.867, 0.737, 1);
-const QVector4D LINE_COLOR_SELECTED = QVector4D(0.749, 0.620, 0.431, 1);
+const QVector4D LINE_COLOR_SELECTED = QVector4D(0.749, 0.620, 0.431, 0.5);
 const QVector4D BLACK = QVector4D(0, 0, 0, 1);
 
 typedef struct { GLuint a, b; } pair;
@@ -128,7 +129,7 @@ void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vp
 
     elementBuffer.bind();
     lprog.setUniformValue("col", selected ? LINE_COLOR_SELECTED : LINE_COLOR_NORMAL);
-    glLineWidth(1.0);
+    glLineWidth(2.1);
     drawCommand(GL_LINES, visibleElements, elementIdxs);
 
     boundaryBuffer.bind();

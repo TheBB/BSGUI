@@ -59,7 +59,7 @@ QString vsLines =
     "void main(void)\n"
     "{\n"
     "    vec4 v = mv * vec4(vertexPosition, 1.0);\n"
-    "    v.xyz = v.xyz * 0.999;\n"
+    "    v.xyz = v.xyz * 0.9999;\n"
     "    gl_Position = proj * v;\n"
     "}\n";
 

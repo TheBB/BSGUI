@@ -13,11 +13,14 @@ GLWidget::GLWidget(QWidget *parent)
     , shiftPressed(false)
     , ctrlPressed(false)
     , altPressed(false)
-    , _zoom(0.0)
-    , _lookAt(1.5,0,0)
-    , _fov(45.0)
     , _inclination(30.0)
     , _azimuth(45.0)
+    , _fov(45.0)
+    , _roll(0.0)
+    , _zoom(0.0)
+    , _lookAt(1.5,0,0)
+    , _perspective(true)
+    , _fixed(false)
     , _dir(POSZ)
     , _rightHanded(true)
     , cameraTracking(false)
@@ -150,10 +153,11 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     if (event->button() & Qt::RightButton)
     {
         cameraTracking = true;
-        cameraOrig = event->pos();
-        azimuthOrig = _azimuth;
-        inclinationOrig = _inclination;
-        lookAtOrig = _lookAt;
+        mouseOrig = event->pos();
+        mouseOrigAzimuth = _azimuth;
+        mouseOrigInclination = _inclination;
+        mouseOrigRoll = _roll;
+        mouseOrigLookAt = _lookAt;
     }
     else if (event->button() & Qt::LeftButton)
     {
@@ -224,18 +228,21 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
             QVector3D right = -(inv * QVector4D(1,0,0,0)).toVector3D(); right.normalize();
             QVector3D up = (inv * QVector4D(0,1,0,0)).toVector3D(); up.normalize();
 
-            setLookAt(lookAtOrig + (shiftPressed ? 1.0 : 10.0) * (
-                          right * (event->pos().x() - cameraOrig.x()) / width() +
-                          up    * (event->pos().y() - cameraOrig.y()) / height()),
+            setLookAt(mouseOrigLookAt + (shiftPressed ? 1.0 : 10.0) * (
+                          right * (event->pos().x() - mouseOrig.x()) / width() +
+                          up    * (event->pos().y() - mouseOrig.y()) / height()),
                       true);
         }
-        else
+        else if (!_fixed)
         {
-            setAzimuth(azimuthOrig + (shiftPressed ? 36.0 : 360.0) *
-                       (event->pos().x() - cameraOrig.x()) / width(), true);
-            setInclination(inclinationOrig + (shiftPressed ? 18.0 : 180.0) *
-                           (event->pos().y() - cameraOrig.y()) / height(), true);
+            setAzimuth(mouseOrigAzimuth + (shiftPressed ? 36.0 : 360.0) *
+                       (event->pos().x() - mouseOrig.x()) / width(), true);
+            setInclination(mouseOrigInclination + (shiftPressed ? 18.0 : 180.0) *
+                           (event->pos().y() - mouseOrig.y()) / height(), true);
         }
+        else
+            setRoll(mouseOrigRoll + (shiftPressed ? 36.0 : 360.0) *
+                    (event->pos().x() - mouseOrig.x()) / width(), true);
 
         update();
     }
@@ -244,7 +251,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void GLWidget::wheelEvent(QWheelEvent *event)
 {
-    if (ctrlPressed)
+    if (ctrlPressed || !_perspective)
         setFov(fov() / exp((float) event->angleDelta().y() / 120.0 / (shiftPressed ? 150.0 : 15.0)), true);
     else
         setZoom(zoom() + (double) event->angleDelta().y() / 120.0 / (shiftPressed ? 400.0 : 40.0), true);
@@ -277,6 +284,18 @@ void GLWidget::setAzimuth(double val, bool fromMouse)
 }
 
 
+void GLWidget::setRoll(double val, bool fromMouse)
+{
+    while (val > 360.0)
+        val -= 360.0;
+    while (val < 0.0)
+        val += 360.0;
+    _roll = val;
+
+    emit rollChanged(val, fromMouse);
+}
+
+
 void GLWidget::setFov(double val, bool fromMouse)
 {
     if (val >= MAX_FOV)
@@ -303,6 +322,87 @@ void GLWidget::setLookAt(QVector3D pt, bool fromMouse)
 }
 
 
+void GLWidget::setPerspective(bool val)
+{
+    _perspective = val;
+
+    if (val)
+    {
+        _zoom = 1.0 - (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0) / tan(orthoOrigFov * 3.14159265 / 360.0);
+        _fov = orthoOrigFov;
+        emit zoomChanged(_zoom, true);
+        emit fovChanged(_fov, true);
+    }
+    else
+        orthoOrigFov = _fov;
+
+    emit perspectiveChanged(val);
+}
+
+
+void GLWidget::usePreset(preset val)
+{
+    if (val == VIEW_FREE)
+    {
+        setInclination(fixedOrigInclination, true);
+        setAzimuth(fixedOrigAzimuth, true);
+        setRoll(fixedOrigRoll, true);
+        setFov(fixedOrigFov, true);
+        setZoom(fixedOrigZoom, true);
+
+        setPerspective(fixedOrigPerspective);
+
+        _fixed = false;
+        emit fixedChanged(_fixed);
+
+        return;
+    }
+    
+    if (!_fixed)
+    {
+        fixedOrigInclination = _inclination;
+        fixedOrigAzimuth = _azimuth;
+        fixedOrigRoll = _roll;
+        fixedOrigFov = _fov;
+        fixedOrigZoom = _zoom;
+        fixedOrigPerspective = _perspective;
+    }
+
+    setPerspective(false);
+    setRoll(0.0, true);
+
+    switch (val)
+    {
+    case VIEW_TOP:
+        setInclination(90.0, true); break;
+    case VIEW_BOTTOM:
+        setInclination(-90.0, true); break;
+    default:
+        setInclination(0.0, true);
+    }
+
+    switch (val)
+    {
+    case VIEW_TOP:
+    case VIEW_BOTTOM:
+        setAzimuth(0.0, true); break;
+    case VIEW_LEFT:
+        setAzimuth(0.0, true); break;
+    case VIEW_RIGHT:
+        setAzimuth(180.0, true); break;
+    case VIEW_FRONT:
+        setAzimuth(90.0, true); break;
+    case VIEW_BACK:
+        setAzimuth(270.0, true);
+    }
+
+    _fixed = true;
+    emit fixedChanged(_fixed);
+
+    update();
+}
+
+
 void GLWidget::setDir(direction val)
 {
     _dir = val;
@@ -321,12 +421,19 @@ void GLWidget::matrices(QMatrix4x4 *proj, QMatrix4x4 *mv)
 {
     float aspect = (float) width() / height();
     proj->setToIdentity();
-    proj->perspective(_fov, aspect, 0.01, 100.0);
+    if (_perspective)
+        proj->perspective(_fov, aspect, 0.01, 100.0);
+    else
+    {
+        float h = (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0);
+        proj->ortho(-aspect * h, aspect * h, -h, h, 0.01, 100.0);
+    }
 
-    QVector3D eye = QVector3D(0, _zoom, 0);
+    QVector3D eye = QVector3D(0, (_perspective ? _zoom : 0.0), 0);
     mv->setToIdentity();
     mv->lookAt(eye, eye + QVector3D(0, 1, 0), QVector3D(0, 0, 1));
     mv->translate(QVector3D(0, 1, 0));
+    mv->rotate(_roll, QVector3D(0, 1, 0));
     mv->rotate(_inclination, QVector3D(1, 0, 0));
     mv->rotate(_azimuth, QVector3D(0, 0, 1));
     mv->scale(1.0/11.0);
@@ -344,7 +451,7 @@ void GLWidget::multiplyDir(QMatrix4x4 *mv)
         case NEGX: (*mv) *= QMatrix4x4(0,0,1,0,0,1,0,0,-1,0,0,0,0,0,0,1); break;
         case POSY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,-1,0,0,1,0,0,0,0,0,1); break;
         case NEGY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,1,0,0,-1,0,0,0,0,0,1); break;
-        case NEGZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1); break;
+        case NEGZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1);
         }
     else
         switch (_dir)
@@ -354,6 +461,6 @@ void GLWidget::multiplyDir(QMatrix4x4 *mv)
         case POSY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1); break;
         case NEGY: (*mv) *= QMatrix4x4(1,0,0,0,0,0,-1,0,0,-1,0,0,0,0,0,1); break;
         case POSZ: (*mv) *= QMatrix4x4(-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1); break;
-        case NEGZ: (*mv) *= QMatrix4x4(1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1); break;
+        case NEGZ: (*mv) *= QMatrix4x4(1,0,0,0,0,1,0,0,0,0,-1,0,0,0,0,1);
         }
 }
