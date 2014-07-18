@@ -79,8 +79,18 @@ public:
 private:
     bool _initialized;
 
+    // Pre refinement
+    ushort ntU, ntV, ntW;
+    uint ntPtsU, ntPtsV, ntPtsW, ntPts;
+    uint ntElems;
+
+    // Refinement
+    ushort rU, rV, rW;
+
+    // Post refinement
     ushort nU, nV, nW;
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
+
     QVector3D _center;
 
     std::vector<QVector3D> vertexData;
@@ -189,14 +199,14 @@ private:
     {
         if (axU)
             return 2*nLinesUV + 2*nLinesUW + (posO ? nLinesVW : 0) + nV*j + i;
-        return nU*(nV-1) + (posO ? nLinesUV : 0) + nV*j + i;
+        return nU*(ntV-1) + (posO ? nLinesUV : 0) + nV*j + i;
     }
 
     inline uint wEll(uint i, int j, bool posO, bool axU)
     {
         if (axU)
-            return 2*nLinesUV + 2*nLinesUW + nV*(nW-1) + (posO ? nLinesVW : 0) + nW*j + i;
-        return 2*nLinesUV + nU*(nW-1) + (posO ? nLinesUW : 0) + nW*j + i;
+            return 2*nLinesUV + 2*nLinesUW + nV*(ntW-1) + (posO ? nLinesVW : 0) + nW*j + i;
+        return 2*nLinesUV + nU*(ntW-1) + (posO ? nLinesUW : 0) + nW*j + i;
     }
 };
 

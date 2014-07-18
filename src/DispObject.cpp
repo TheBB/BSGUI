@@ -1,6 +1,4 @@
 #include <QVector4D>
-
-
 #include <Eigen/Dense>
 
 #include "DispObject.h"
@@ -30,7 +28,23 @@ DispObject::DispObject(QVector3D center)
     , _center(center)
     , _initialized(false)
 {
-    nU =  3; nV =  4; nW =  5;
+    // Pre refinement
+    ntU = 3; ntV = 4; ntW = 5;
+
+    ntPtsU = ntU + 1;
+    ntPtsV = ntV + 1;
+    ntPtsW = ntW + 1;
+    ntPts = 2*ntPtsU*ntPtsV + 2*ntPtsU*(ntPtsW-2) + 2*(ntPtsV-2)*(ntPtsW-2);
+
+    ntElems = 2*ntU*ntV + 2*ntU*ntW + 2*ntV*ntW;
+
+    // Refinement
+    rU = 2; rV = 2; rW = 2;
+
+    // Post refinement
+    nU = rU * ntU;
+    nV = rV * ntV;
+    nW = rW * ntW;
 
     nPtsU = nU + 1;
     nPtsV = nV + 1;
@@ -39,12 +53,13 @@ DispObject::DispObject(QVector3D center)
 
     nElems = 2*nU*nV + 2*nU*nW + 2*nV*nW;
 
-    nLinesUV = 2*nU*nV - nU - nV;
-    nLinesUW = 2*nU*nW - nU - nW;
-    nLinesVW = 2*nV*nW - nV - nW;
+    nLinesUV = nU*(ntV-1) + nV*(ntU-1);
+    nLinesUW = nU*(ntW-1) + nW*(ntU-1);
+    nLinesVW = nV*(ntW-1) + nW*(ntV-1);
 
     nElemLines = 2 * (nLinesUV + nLinesUW + nLinesVW);
 
+    // Limits
     faceIdxs[0] = 0;
     faceIdxs[1] = nU*nV;
     faceIdxs[2] = 2*nU*nV;
@@ -76,10 +91,13 @@ DispObject::DispObject(QVector3D center)
 
 DispObject::~DispObject()
 {
-    vertexBuffer.destroy();
-    faceBuffer.destroy();
-    boundaryBuffer.destroy();
-    elementBuffer.destroy();
+    if (_initialized)
+    {
+        vertexBuffer.destroy();
+        faceBuffer.destroy();
+        boundaryBuffer.destroy();
+        elementBuffer.destroy();
+    }
 }
 
 
@@ -241,6 +259,7 @@ void DispObject::mkFaceData()
 
 void DispObject::mkVertexBuffer()
 {
+    qDebug() << QString("Vertexbuffer with %1 points").arg(nPts);
     createBuffer(vertexBuffer);
     vertexBuffer.allocate(&vertexData[0], nPts * 3 * sizeof(float));
 }
@@ -282,24 +301,24 @@ void DispObject::mkElementBuffer()
     {
         for (int i = 0; i < nU; i++)
         {
-            for (int j = 1; j < nV; j++)
-                elementData[uEll(i, j-1, a, false)] = { uvPt(i, j, a), uvPt(i+1, j, a) };
-            for (int j = 1; j < nW; j++)
-                elementData[uEll(i, j-1, a, true)] = { uwPt(i, j, a), uwPt(i+1, j, a) };
+            for (int j = 1; j < ntV; j++)
+                elementData[uEll(i, j-1, a, false)] = { uvPt(i, rV*j, a), uvPt(i+1, rV*j, a) };
+            for (int j = 1; j < ntW; j++)
+                elementData[uEll(i, j-1, a, true)] = { uwPt(i, rW*j, a), uwPt(i+1, rW*j, a) };
         }
         for (int i = 0; i < nV; i++)
         {
-            for (int j = 1; j < nU; j++)
-                elementData[vEll(i, j-1, a, false)] = { uvPt(j, i, a), uvPt(j, i+1, a) };
-            for (int j = 1; j < nW; j++)
-                elementData[vEll(i, j-1, a, true)] = { vwPt(i, j, a), vwPt(i+1, j, a) };
+            for (int j = 1; j < ntU; j++)
+                elementData[vEll(i, j-1, a, false)] = { uvPt(rU*j, i, a), uvPt(rU*j, i+1, a) };
+            for (int j = 1; j < ntW; j++)
+                elementData[vEll(i, j-1, a, true)] = { vwPt(i, rW*j, a), vwPt(i+1, rW*j, a) };
         }
         for (int i = 0; i < nW; i++)
         {
-            for (int j = 1; j < nU; j++)
-                elementData[wEll(i, j-1, a, false)] = { uwPt(j, i, a), uwPt(j, i+1, a) };
-            for (int j = 1; j < nV; j++)
-                elementData[wEll(i, j-1, a, true)] = { vwPt(j, i, a), vwPt(j, i+1, a) };
+            for (int j = 1; j < ntU; j++)
+                elementData[wEll(i, j-1, a, false)] = { uwPt(rU*j, i, a), uwPt(rU*j, i+1, a) };
+            for (int j = 1; j < ntV; j++)
+                elementData[wEll(i, j-1, a, true)] = { vwPt(rV*j, i, a), vwPt(rV*j, i+1, a) };
         }
     }
 

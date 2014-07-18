@@ -19,7 +19,14 @@ Node::Node(Node *parent)
 Node::~Node()
 {
     for (auto c : _children)
-        delete c;
+    {
+        switch (c->type())
+        {
+        case NT_ROOT: delete static_cast<Node *>(c); break;
+        case NT_FILE: delete static_cast<File *>(c); break;
+        case NT_PATCH: delete static_cast<Patch *>(c); break;
+        }
+    }
 }
 
 
@@ -77,6 +84,12 @@ Patch::Patch(DispObject *obj, Node *parent)
     : Node(parent)
 {
     _obj = obj;
+}
+
+
+Patch::~Patch()
+{
+    delete _obj;
 }
 
 
