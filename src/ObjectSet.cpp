@@ -1,3 +1,4 @@
+#include <thread>
 #include <QFileInfo>
 
 #include <GoTools/geometry/ObjectHeader.h>
@@ -173,38 +174,51 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
     DispObject *obj = new DispObject(center);
     emit requestInitialization(obj);
 
+    while (!obj->initialized())
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
     if (!obj->initialized())
     {
-        qDebug() << "Failed to initialize display object!";
-        delete obj;
+        qDebug() << "Failed to initialize display object! (This should never happen.)";
         return;
     }
 
     m.lock();
 
-    Node *fileNode = getFileNode("");
-    if (!fileNode)
-        fileNode = new File("", root);
+    Node *fileNode = getOrCreateFileNode("");
+
+    QModelIndex index = createIndex(fileNode->parent()->indexOfChild(fileNode), 0, fileNode);
+    beginInsertRows(index, fileNode->numberOfChildren(), fileNode->numberOfChildren());
     Patch *patch = new Patch(obj, fileNode);
+    endInsertRows();
+
     dispObjects.insert(obj);
 
     m.unlock();
 
-    QModelIndex index = createIndex(fileNode->indexOfChild(patch), 0, patch);
-    emit dataChanged(index, index);
     emit update();
 }
 
 
-Node *ObjectSet::getFileNode(QString fileName)
+Node *ObjectSet::getOrCreateFileNode(QString fileName)
 {
-    for (auto node : root->children())
+    Node *node = NULL;
+
+    for (auto searchNode : root->children())
     {
-        if (!node->type() == NT_FILE)
+        if (!searchNode->type() == NT_FILE)
             continue;
-        if (static_cast<File *>(node)->matches(fileName))
-            return node;
+        if (static_cast<File *>(searchNode)->matches(fileName))
+            node = searchNode;
     }
 
-    return NULL;
+    if (!node)
+    {
+        int row = root->numberOfChildren();
+        beginInsertRows(QModelIndex(), row, row);
+        node = new File(fileName, root);
+        endInsertRows();
+    }
+
+    return node;
 }

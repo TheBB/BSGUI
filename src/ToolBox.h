@@ -13,6 +13,8 @@
 #ifndef _TOOLBOX_H_
 #define _TOOLBOX_H_
 
+typedef QVector<int> QVecInt;
+
 class CameraPanel : public QWidget
 {
     Q_OBJECT

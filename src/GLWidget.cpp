@@ -454,10 +454,8 @@ void GLWidget::setRightHanded(bool val)
 void GLWidget::initializeDispObject(DispObject *obj)
 {
     m.lock();
-
     makeCurrent();
     obj->init();
-
     m.unlock();
 }
 

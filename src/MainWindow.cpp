@@ -1,4 +1,5 @@
 #include <sstream>
+#include <thread>
 
 #include <QVector3D>
 
@@ -8,6 +9,26 @@
 #include "main.h"
 
 #include "MainWindow.h"
+
+
+void makeCubes(ObjectSet *objectSet)
+{
+    std::vector<QVector3D> centers = {
+        QVector3D(0, 0, 1),
+        QVector3D(-3, 0, 0),
+        QVector3D(0, -3, 0),
+        QVector3D(6, 0, 0),
+        QVector3D(0, 4, 0),
+    };
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    for (auto c : centers)
+    {
+        objectSet->addCubeFromCenter(c);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+}
 
 
 MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
@@ -30,16 +51,7 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     toolbox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, toolbox);
 
-    std::vector<QVector3D> centers = {
-        QVector3D(0, 0, 1),
-        QVector3D(-3, 0, 0),
-        QVector3D(0, -3, 0),
-        QVector3D(6, 0, 0),
-        QVector3D(0, 4, 0),
-    };
-
-    for (auto c : centers)
-        objectSet->addCubeFromCenter(c);
+    std::thread *thread = new std::thread(makeCubes, objectSet);
 }
 
 

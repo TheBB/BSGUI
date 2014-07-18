@@ -109,7 +109,7 @@ signals:
 
 private:
     Node *root;
-    Node *getFileNode(QString fileName);
+    Node *getOrCreateFileNode(QString fileName);
 
     std::set<DispObject *> dispObjects;
 };

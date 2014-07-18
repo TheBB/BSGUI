@@ -392,6 +392,7 @@ ToolBox::ToolBox(GLWidget *glWidget, ObjectSet *objectSet,
 {
     QToolBox *toolBox = new QToolBox();
 
+    qRegisterMetaType<QVecInt>("QVecInt");
     TreePanel *treePanel = new TreePanel(glWidget, objectSet);
     toolBox->addItem(treePanel, "Objects");
 
