@@ -1,4 +1,6 @@
 #include <cmath>
+#include <QRect>
+#include <QDesktopWidget>
 
 #include "DispObject.h"
 #include "shaders.h"
@@ -248,6 +250,9 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     if (!cameraTracking)
         return;
 
+    QDesktopWidget widget;
+    QRect screen = widget.availableGeometry();
+
     if (ctrlPressed && !_fixed || !ctrlPressed && _fixed)
     {
         QMatrix4x4 proj, mv, inv;
@@ -258,20 +263,20 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
         QVector3D up = (inv * QVector4D(0,1,0,0)).toVector3D(); up.normalize();
 
         setLookAt(mouseOrigLookAt + (shiftPressed ? 1.0 : 10.0) * (
-                      right * (event->pos().x() - mouseOrig.x()) / width() +
-                      up    * (event->pos().y() - mouseOrig.y()) / height()),
+                      right * (event->pos().x() - mouseOrig.x()) / screen.width() +
+                      up    * (event->pos().y() - mouseOrig.y()) / screen.height()),
                   true);
     }
     else if (!_fixed)
     {
         setAzimuth(mouseOrigAzimuth + (shiftPressed ? 36.0 : 360.0) *
-                   (event->pos().x() - mouseOrig.x()) / width(), true);
+                   (event->pos().x() - mouseOrig.x()) / screen.width(), true);
         setInclination(mouseOrigInclination + (shiftPressed ? 18.0 : 180.0) *
-                       (event->pos().y() - mouseOrig.y()) / height(), true);
+                       (event->pos().y() - mouseOrig.y()) / screen.height(), true);
     }
     else
         setRoll(mouseOrigRoll + (shiftPressed ? 36.0 : 360.0) *
-                (event->pos().x() - mouseOrig.x()) / width(), true);
+                (event->pos().x() - mouseOrig.x()) / screen.width(), true);
 
     update();
 }
