@@ -1,5 +1,9 @@
 #include <QFileInfo>
 
+#include <GoTools/geometry/ObjectHeader.h>
+
+#include "GLWidget.h"
+
 #include "ObjectSet.h"
 
 
@@ -43,7 +47,6 @@ int Node::numberOfChildren()
 {
     return _children.size();
 }
-
 
 
 File::File(QString fn, Node *parent)
@@ -165,13 +168,27 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
 }
 
 
-void ObjectSet::addPatch(QString fileName, DispObject *dispObject)
+void ObjectSet::addCubeFromCenter(QVector3D center)
 {
-    qDebug() << "add patch";
-    Node *fileNode = getFileNode(fileName);
+    DispObject *obj = new DispObject(center);
+    emit requestInitialization(obj);
+
+    if (!obj->initialized())
+    {
+        qDebug() << "Failed to initialize display object!";
+        delete obj;
+        return;
+    }
+
+    m.lock();
+
+    Node *fileNode = getFileNode("");
     if (!fileNode)
-        fileNode = new File(fileName, root);
-    new Patch(dispObject, fileNode);
+        fileNode = new File("", root);
+    new Patch(obj, fileNode);
+    dispObjects.insert(obj);
+
+    m.unlock();
 }
 
 

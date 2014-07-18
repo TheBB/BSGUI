@@ -22,14 +22,14 @@
 #define ZOOMSLIDER_FACTOR 500
 
 
-TreePanel::TreePanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags flags)
+TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags)
 {
     QVBoxLayout *layout = new QVBoxLayout();
 
     QTreeView *treeView = new QTreeView();
     layout->addWidget(treeView);
-    treeView->setModel(glWidget->objectSet());
+    treeView->setModel(objectSet);
 
     setLayout(layout);
 }
@@ -386,12 +386,13 @@ void CameraPanel::fixedChanged(bool val)
 }
 
 
-ToolBox::ToolBox(GLWidget *glWidget, const QString &title, QWidget *parent, Qt::WindowFlags flags)
+ToolBox::ToolBox(GLWidget *glWidget, ObjectSet *objectSet,
+                 const QString &title, QWidget *parent, Qt::WindowFlags flags)
     : QDockWidget(title, parent, flags)
 {
     QToolBox *toolBox = new QToolBox();
 
-    TreePanel *treePanel = new TreePanel(glWidget);
+    TreePanel *treePanel = new TreePanel(glWidget, objectSet);
     toolBox->addItem(treePanel, "Objects");
 
     CameraPanel *cameraPanel = new CameraPanel(glWidget);

@@ -18,5 +18,6 @@ find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(GoTools REQUIRED)
 
 add_subdirectory(src)

@@ -6,10 +6,10 @@
 #include "GLWidget.h"
 
 
-GLWidget::GLWidget(QWidget *parent)
+GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     : QGLWidget(parent)
     , vcProgram(), ccProgram(), lnProgram()
-    , _objectSet(this)
+    , objectSet(oSet)
     , selectedObject(NULL)
     , shiftPressed(false)
     , ctrlPressed(false)
@@ -27,6 +27,7 @@ GLWidget::GLWidget(QWidget *parent)
     , cameraTracking(false)
 {
     setFocusPolicy(Qt::ClickFocus);
+    QObject::connect(oSet, &ObjectSet::requestInitialization, this, &GLWidget::initializeDispObject);
 }
 
 
@@ -51,29 +52,45 @@ void GLWidget::centerOnSelected()
 }
 
 
+void GLWidget::initializeObject(DispObject *obj)
+{
+    makeCurrent();
+    obj->init();
+}
+
+
 void GLWidget::paintGL()
 {
+    std::lock(m, objectSet->m);
+
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     QMatrix4x4 proj, mv;
     matrices(&proj, &mv);
 
-    for (auto obj : objects)
+    for (auto obj : *objectSet)
         obj->draw(proj, mv, vcProgram, ccProgram, lnProgram);
 
     swapBuffers();
+
+    m.unlock();
+    objectSet->m.unlock();
 }
 
 
 void GLWidget::resizeGL(int w, int h)
 {
+    m.lock();
     glViewport(0, 0, w, h);
+    m.unlock();
 }
 
 
 void GLWidget::initializeGL()
 {
+    m.lock();
+
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
@@ -103,22 +120,9 @@ void GLWidget::initializeGL()
     if (!lnProgram.link())
         close();
 
-    std::vector<QVector3D> centers = {
-        QVector3D(0, 0, 1),
-        QVector3D(-3, 0, 0),
-        QVector3D(0, -3, 0),
-        QVector3D(6, 0, 0),
-        QVector3D(0, 4, 0),
-    };
-
-    for (QVector3D c : centers)
-    {
-        DispObject *obj = new DispObject();
-        obj->init(c);
-        objects.insert(obj);
-        _objectSet.addPatch("", obj);
-    }
+    m.unlock();
 }
+
 
 
 void GLWidget::keyPressEvent(QKeyEvent *event)
@@ -199,7 +203,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         DispObject *selected = NULL;
         float param, minParam = std::numeric_limits<float>::infinity();
         bool intersect;
-        for (auto obj : objects)
+        for (auto obj : *objectSet)
         {
             obj->intersect(a, b, &intersect, &param);
             if (intersect && param < minParam && param >= 0.0)
@@ -274,6 +278,9 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void GLWidget::wheelEvent(QWheelEvent *event)
 {
+    if (abs(event->angleDelta().y()) > 1000)
+        return;
+
     if (ctrlPressed || !_perspective)
         setFov(fov() / exp((float) event->angleDelta().y() / 120.0 / (shiftPressed ? 150.0 : 15.0)), true);
     else
@@ -440,6 +447,17 @@ void GLWidget::setRightHanded(bool val)
 {
     _rightHanded = val;
     emit rightHandedChanged(val);
+}
+
+
+void GLWidget::initializeDispObject(DispObject *obj)
+{
+    m.lock();
+
+    makeCurrent();
+    obj->init();
+
+    m.unlock();
 }
 
 

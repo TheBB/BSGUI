@@ -1,16 +1,17 @@
+#include <mutex>
 #include <vector>
 #include <QAbstractItemModel>
 #include <QFileInfo>
 #include <QModelIndex>
 #include <QString>
+#include <QVector3D>
+
+#include "DispObject.h"
 
 #ifndef _OBJECTSET_H_
 #define _OBJECTSET_H_
 
-#include "DispObject.h"
-
 enum NodeType { NT_ROOT, NT_FILE, NT_PATCH };
-
 
 class Node
 {
@@ -81,6 +82,8 @@ public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
 
+    std::mutex m;
+
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
     QVariant data(const QModelIndex &index, int role) const;
     Qt::ItemFlags flags(const QModelIndex &index) const;
@@ -89,12 +92,25 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
-    void addPatch(QString fileName, DispObject *dispObject);
+    void addCubeFromCenter(QVector3D center);
+
+    typedef typename std::set<DispObject *>::iterator iterator;
+    typedef typename std::set<DispObject *>::const_iterator const_iterator;
+    iterator begin() { return dispObjects.begin(); }
+    const_iterator begin() const { return dispObjects.begin(); }
+    const_iterator cbegin() const { return dispObjects.cbegin(); }
+    iterator end() { return dispObjects.end(); }
+    const_iterator end() const { return dispObjects.end(); }
+    const_iterator cend() const { return dispObjects.cend(); }
+
+signals:
+    void requestInitialization(DispObject *obj);
 
 private:
     Node *root;
-
     Node *getFileNode(QString fileName);
+
+    std::set<DispObject *> dispObjects;
 };
 
 #endif /* _OBJECTSET_H_ */

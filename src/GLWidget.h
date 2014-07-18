@@ -1,3 +1,4 @@
+#include <mutex>
 #include <set>
 
 #include <QVector3D>
@@ -11,7 +12,6 @@
 #include <QWheelEvent>
 
 #include "ObjectSet.h"
-
 #include "DispObject.h"
 
 #ifndef GLWIDGET_H
@@ -27,13 +27,15 @@ class GLWidget : public QGLWidget
     Q_OBJECT
 
 public:
-    GLWidget(QWidget *parent = NULL);
+    GLWidget(ObjectSet *oSet, QWidget *parent = NULL);
     virtual ~GLWidget();
+
+    std::mutex m;
 
     QSize sizeHint() const;
 
     void centerOnSelected();
-    ObjectSet *objectSet() { return &_objectSet; }
+    void initializeObject(DispObject *obj);
 
     inline double inclination() { return _inclination; }
     void setInclination(double val, bool fromMouse);
@@ -63,6 +65,9 @@ public:
 
     inline bool rightHanded() { return _rightHanded; }
     void setRightHanded(bool val);
+
+public slots:
+    void initializeDispObject(DispObject *obj);
 
 signals:
     void inclinationChanged(double val, bool fromMouse);
@@ -98,8 +103,7 @@ private:
     QOpenGLShaderProgram ccProgram;
     QOpenGLShaderProgram lnProgram;
 
-    ObjectSet _objectSet;
-    std::set<DispObject *> objects;
+    ObjectSet *objectSet;
     DispObject *selectedObject;
 
     bool shiftPressed;

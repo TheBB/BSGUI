@@ -15,7 +15,7 @@ const QVector4D BLACK = QVector4D(0, 0, 0, 1);
 typedef struct { GLuint a, b; } pair;
 
 
-DispObject::DispObject()
+DispObject::DispObject(QVector3D center)
     : vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , faceBuffer(QOpenGLBuffer::IndexBuffer)
     , boundaryBuffer(QOpenGLBuffer::IndexBuffer)
@@ -24,23 +24,9 @@ DispObject::DispObject()
     , visibleBoundaries {0,1,2,3,4,5}
     , visibleElements {0,1,2,3,4,5}
     , selected(false)
+    , _center(center)
+    , _initialized(false)
 {
-}
-
-
-DispObject::~DispObject()
-{
-    vertexBuffer.destroy();
-    faceBuffer.destroy();
-    boundaryBuffer.destroy();
-    elementBuffer.destroy();
-}
-
-
-void DispObject::init(QVector3D center)
-{
-    _center = center;
-
     nU =  3; nV =  4; nW =  5;
 
     nPtsU = nU + 1;
@@ -80,10 +66,28 @@ void DispObject::init(QVector3D center)
     elementIdxs[5] = 2*nLinesUV + 2*nLinesUW + nLinesVW;
     elementIdxs[6] = 2*nLinesUV + 2*nLinesUW + 2*nLinesVW;
 
-    mkVertexBuffer(center);
+    mkVertexData(_center);
+    mkFaceData();
+}
+
+
+DispObject::~DispObject()
+{
+    vertexBuffer.destroy();
+    faceBuffer.destroy();
+    boundaryBuffer.destroy();
+    elementBuffer.destroy();
+}
+
+
+void DispObject::init()
+{
+    mkVertexBuffer();
     mkFaceBuffer();
     mkBoundaryBuffer();
     mkElementBuffer();
+
+    _initialized = true;
 }
 
 
@@ -102,6 +106,9 @@ inline void drawCommand(GLenum mode, std::set<uint> &visible, uint *indices)
 void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vprog,
                       QOpenGLShaderProgram &cprog, QOpenGLShaderProgram &lprog)
 {
+    if (!_initialized)
+        return;
+
     QMatrix4x4 mvp = proj * mv;
 
 
@@ -188,7 +195,7 @@ static inline float lpt(uint i, uint N)
 }
 
 
-void DispObject::mkVertexBuffer(QVector3D center)
+void DispObject::mkVertexData(QVector3D center)
 {
     uint baseUW = 2*nPtsU*nPtsV;
     uint baseVW = 2*nPtsU*nPtsV + 2*nPtsU*(nPtsW-2);
@@ -207,13 +214,10 @@ void DispObject::mkVertexBuffer(QVector3D center)
             for (int j = 1; j < nPtsW - 1; j++)
                 vertexData[vwPt(i,j,b)] = center + QVector3D(b ? 1.0 : -1.0, lpt(i,nPtsV), lpt(j,nPtsW));
     }
-
-    createBuffer(vertexBuffer);
-    vertexBuffer.allocate(&vertexData[0], nPts * 3 * sizeof(float));
 }
 
 
-void DispObject::mkFaceBuffer()
+void DispObject::mkFaceData()
 {
     faceData.resize(nElems);
 
@@ -229,7 +233,18 @@ void DispObject::mkFaceBuffer()
             for (int j = 0; j < nW; j++)
                 faceData[vwEl(i,j,b)] = { vwPt(i,j,b), vwPt(i+1,j,b), vwPt(i+1,j+1,b), vwPt(i,j+1,b) };
     }
+}
 
+
+void DispObject::mkVertexBuffer()
+{
+    createBuffer(vertexBuffer);
+    vertexBuffer.allocate(&vertexData[0], nPts * 3 * sizeof(float));
+}
+
+
+void DispObject::mkFaceBuffer()
+{
     createBuffer(faceBuffer);
     faceBuffer.allocate(&faceData[0], nElems * 4 * sizeof(GLuint));
 }

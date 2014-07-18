@@ -16,10 +16,12 @@ typedef struct { GLuint a, b, c, d; } quad;
 class DispObject
 {
 public:
-    DispObject();
+    DispObject(QVector3D);
     virtual ~DispObject();
 
-    void init(QVector3D);
+    bool initialized() { return _initialized; };
+
+    void init();
     void draw(QMatrix4x4&, QMatrix4x4&, QOpenGLShaderProgram&, QOpenGLShaderProgram&, QOpenGLShaderProgram&);
     void intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param);
 
@@ -28,6 +30,8 @@ public:
     bool selected;
 
 private:
+    bool _initialized;
+
     ushort nU, nV, nW;
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
     QVector3D _center;
@@ -47,8 +51,11 @@ private:
     uint boundaryIdxs[7];
     uint elementIdxs[7];
 
+    void mkVertexData(QVector3D);
+    void mkFaceData();
+
     static void createBuffer(QOpenGLBuffer&);
-    void mkVertexBuffer(QVector3D);
+    void mkVertexBuffer();
     void mkFaceBuffer();
     void mkBoundaryBuffer();
     void mkElementBuffer();
