@@ -28,6 +28,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
 {
     setFocusPolicy(Qt::ClickFocus);
     QObject::connect(oSet, &ObjectSet::requestInitialization, this, &GLWidget::initializeDispObject);
+    QObject::connect(oSet, SIGNAL(update()), this, SLOT(update()));
 }
 
 

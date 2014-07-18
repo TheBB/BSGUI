@@ -105,6 +105,7 @@ public:
 
 signals:
     void requestInitialization(DispObject *obj);
+    void update();
 
 private:
     Node *root;

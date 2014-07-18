@@ -185,10 +185,14 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
     Node *fileNode = getFileNode("");
     if (!fileNode)
         fileNode = new File("", root);
-    new Patch(obj, fileNode);
+    Patch *patch = new Patch(obj, fileNode);
     dispObjects.insert(obj);
 
     m.unlock();
+
+    QModelIndex index = createIndex(fileNode->indexOfChild(patch), 0, patch);
+    emit dataChanged(index, index);
+    emit update();
 }
 
 
