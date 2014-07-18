@@ -13,21 +13,68 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef struct { GLuint a, b, c, d; } quad;
 
+//! \brief Represents a drawable 3D object.
+//!
+//! This class owns its own OpenGL buffer objects, and draws them when the `draw()` method is called.
+//! It also maintains its own state (selected, etc.), and will draw itself accordingly.
 class DispObject
 {
 public:
+    //! \brief Create and prepare a display object.
+    //!
+    //! This computes all the vertex and face data and stores them in normal memory. It should perform
+    //! as many expensive computations as possible, so that the `init()` call is correspondingly cheap.
     DispObject(QVector3D);
+
     virtual ~DispObject();
 
+    //! \brief Check if the display object has been initialized.
+    //!
+    //! In this context, 'initialized' means having created the necessary OpenGL buffer objects.
+    //! This has to happen after construction with the OpenGL context set. See `init()`.
     bool initialized() { return _initialized; };
 
+
+    //! \brief Initializes the display object in the current OpenGL context.
+    //!
+    //! This method creates all the buffer objects necessary to draw this object. To make this as cheap
+    //! as possible, the relevant information should have been pre-computed in the constructor so far
+    //! as possible.
+    //!
+    //! It is assumed that the OpenGL context has been set before this method is called!
     void init();
-    void draw(QMatrix4x4&, QMatrix4x4&, QOpenGLShaderProgram&, QOpenGLShaderProgram&, QOpenGLShaderProgram&);
+
+
+    //! \brief Draws the object to the current OpenGL context.
+    //!
+    //! \param proj Projection matrix.
+    //! \param mv Model-view matrix.
+    //! \param vprog OpenGL shader program used to render variable-colored polygons.
+    //! \param cprog OpenGL shader program used to render constant-colored polygons.
+    //! \param lprog OpenGL shader program used to render mesh lines.
+    //!
+    //! It is assumed that the OpenGL context has been set before this method is called!
+    void draw(QMatrix4x4& proj, QMatrix4x4& mv,
+              QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog, QOpenGLShaderProgram& lprog);
+
+
+    //! \brief Checks whether the object intersects the line defined by the points `a` and `b`.
+    //!
+    //! \param a Origin.
+    //! \param b Direction.
+    //! \param intersect Output: set to true if the line intersects this object.
+    //! \param param Output: set to the parameter value t for the point `p(t) = a + t*b` that
+    //!              intersects this object, if it does.
     void intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param);
 
+
+    //! Returns the center of the minimal bounding sphere of the object.
     QVector3D center();
 
+
+    //! Set to true if this object is currently selected.
     bool selected;
+
 
 private:
     bool _initialized;

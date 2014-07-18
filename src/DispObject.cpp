@@ -5,13 +5,16 @@
 
 #include "DispObject.h"
 
-
 const QVector4D FACE_COLOR_NORMAL = QVector4D(0.737, 0.929, 1.000, 1);
 const QVector4D LINE_COLOR_NORMAL = QVector4D(0.431, 0.663, 0.749, 0.5);
 const QVector4D FACE_COLOR_SELECTED = QVector4D(1.000, 0.867, 0.737, 1);
 const QVector4D LINE_COLOR_SELECTED = QVector4D(0.749, 0.620, 0.431, 0.5);
 const QVector4D BLACK = QVector4D(0, 0, 0, 1);
 
+//! \brief Convenience struct used to build the OpenGL element index buffers.
+//!
+//! Allows us to work with a vector of pairs instead of having a separate
+//! index for each element of a pair.
 typedef struct { GLuint a, b; } pair;
 
 

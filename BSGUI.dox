@@ -1,0 +1,119 @@
+//==============================================================================
+//!
+//! \file BSGUI.dox
+//!
+//! \date July 2014
+//!
+//! \author Eivind Fonn / SINTEF
+//!
+//! \brief File containing the main page of the BSGUI documentation.
+//!
+//==============================================================================
+
+/*! 
+
+\mainpage (Another) GUI for GoTools splines
+
+\author Eivind Fonn, Sintef ICT, Trondheim
+
+\section intro Introduction
+
+This project is an attempted improvement on the Spline GUI tool ("Fenris") originally 
+written by Kjetil Johannessen. The following shortcomings in Fenris serve as motivation.
+
+- Fenris uses the old fixed function pipeline of OpenGL. This is fine for small models,
+  but prohibitively slow for larger ones. BSGUI will use the programmable OpenGL
+  pipeline.
+- Fenris uses GLUT, a very limited OpenGL windowing system. To enable more sophisticated
+  interaction, BSGUI will use Qt, a well-supported and popular GUI toolkit.
+- Fenris has poor or non-existent support for persistent sessions. It can only parse
+  files and display their contents, it cannot wait for updates and refresh automatically.
+  BSGUI will support this workflow.
+- Loading large models is time consuming. BSGUI will support multithreaded loading
+  without sacrificing application responsiveness more than necessary.
+
+Beyond this, the intended role is the same as for Fenris: spline object visualization
+and very basic manipulation.
+
+\section overview Overview
+
+The code is heavily integrated with Qt.
+
+The `MainWindow` class subclasses `QMainWindow` and contains two primary widgets: a
+`GLWidget` object (subclasss of `QGLWidget`), and a `ToolBox` object (subclass of
+`QDockWidget`). The `GLWidget` owns most of the screen space and is used for rendering.
+The dockable toolbox is used for all other kinds of widgets.
+
+In addition, there is an `ObjectSet` object created. This object maintains ownership
+of all the open spline objects. It is a subclass of `QAbstractItemModel`, which allows
+the `QTreeView` widget in the toolbox to display the state of the application.
+
+The `ObjectSet` is responsible for creating, updating and destroying objects. It emits
+signals to which the `GLWidget` and the toolbox subwidgets should listen.
+
+There are two important mutexes used for multithreading. One belongs to the `ObjectSet`,
+and the other to the `GLWidget`. Any behaviour that takes place in the OpenGL context
+should first lock the `GLWidget`. This is:
+
+- The three basic context-sensitive member methods of `GLWidget`: `GLWidget::initializeGL`,
+  `GLWidget::resizeGL` and `GLWidget::paintGL`. The context is set automatically before
+  these methods are called.
+- The `GLWidget::initializeDispObject` slot. This initializes a displayable object within
+  the relevant OpenGL context (i.e. it copies memory from RAM to GPU). This method has to
+  explicitly set the context.
+
+Any behaviour that modifies the `ObjectSet`, or requires it to remain constant, should
+also lock the `ObjectSet` mutex.
+
+\section controls Controls
+
+Keyboard controls:
+
+- 1-6: Set a fixed preset orthographic camera (top, bottom, left, right, front, back).
+- \`: Set a free camera.
+- P: Switch between perspective and orthographic projections.
+- C: Center the camera on the selected patch.
+
+These require the `GLWidget` to have focus.
+
+In free mode:
+
+- Right mouse button + drag: Rotate.
+- Ctrl + right mouse button + drag: Pan (orthogonal to the camera axis).
+- Scroll wheel: zoom physically (in perspective mode) or optically (in orthographic mode).
+- Ctrl + scroll wheel: zoom optically (in perspective mode).
+
+By physical zoom we mean a genuine movement of the camera. It is possible to occlude and
+move behind objects using physical zoom. By optical zoom we mean a wider or narrower
+field of view. This zoom mode cannot move behind objects.
+
+Physical zoom is disabled in orthographic mode.
+
+When switching between projections, the application will attempt to maintain a roughly
+equal view area. This is sometimes not possible. Use the sliders in the camera panel
+to reset the view if necessary.
+
+In fixed mode:
+
+- Right mouse button + drag: Pan.
+- Ctrl + right mouse button + drag: Roll.
+- Scroll wheel: zoom optically.
+
+In fixed mode, the azimuth and inclination are locked.
+
+For all mouse controls, hold shift to get finer control.
+
+The camera look-at point is persistent throughout. If you move in fixed mode, you will
+also have moved the camera in free mode. Except for this, the free mode camera state
+will be saved.
+
+\section requirements Library requirements
+
+- Qt 5
+- Eigen3
+- OpenGL
+
+The developer uses rather cutting-edge libraries, but one may hope the implementation
+still works with older ones.
+
+*/
