@@ -131,7 +131,6 @@ void DispObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &vprog, QOpenGLShade
     if (!_initialized)
         return;
 
-
     cprog.bind();
 
     vertexBuffer.bind();

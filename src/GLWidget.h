@@ -103,6 +103,9 @@ private:
     QOpenGLShaderProgram vcProgram;
     QOpenGLShaderProgram ccProgram;
     QOpenGLShaderProgram lnProgram;
+    QOpenGLBuffer auxBuffer;
+    QOpenGLBuffer axesBuffer;
+    QOpenGLBuffer auxCBuffer;
 
     ObjectSet *objectSet;
     DispObject *selectedObject;

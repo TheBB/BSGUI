@@ -11,6 +11,9 @@
 GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     : QGLWidget(parent)
     , vcProgram(), ccProgram()
+    , auxBuffer(QOpenGLBuffer::VertexBuffer)
+    , axesBuffer(QOpenGLBuffer::IndexBuffer)
+    , auxCBuffer(QOpenGLBuffer::VertexBuffer)
     , objectSet(oSet)
     , selectedObject(NULL)
     , shiftPressed(false)
@@ -85,6 +88,23 @@ void GLWidget::paintGL()
 
 void GLWidget::drawAxes(QMatrix4x4 &mvp)
 {
+    vcProgram.bind();
+
+    auxBuffer.bind();
+    vcProgram.enableAttributeArray("vertexPosition");
+    vcProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
+
+    auxCBuffer.bind();
+    vcProgram.enableAttributeArray("vertexColor");
+    vcProgram.setAttributeBuffer("vertexColor", GL_FLOAT, 0, 3);
+
+    QMatrix4x4 sc_mvp = mvp;
+    sc_mvp.scale(3.0 * (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0));
+    vcProgram.setUniformValue("mvp", sc_mvp);
+
+    axesBuffer.bind();
+    glLineWidth(3.0);
+    glDrawElements(GL_LINES, 2 * 3, GL_UNSIGNED_INT, 0);
 }
 
 
@@ -121,6 +141,32 @@ void GLWidget::initializeGL()
         close();
     if (!ccProgram.link())
         close();
+
+    std::vector<QVector3D> auxData = {
+        QVector3D(0,0,0), QVector3D(1,0,0),
+        QVector3D(0,0,0), QVector3D(0,1,0),
+        QVector3D(0,0,0), QVector3D(0,0,1),
+    };
+    auxBuffer.create();
+    auxBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    auxBuffer.bind();
+    auxBuffer.allocate(&auxData[0], 6 * 3 * sizeof(float));
+
+    std::vector<GLuint> axesData = {0, 1, 2, 3, 4, 5};
+    axesBuffer.create();
+    axesBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    axesBuffer.bind();
+    axesBuffer.allocate(&axesData[0], 3 * 2 * sizeof(GLuint));
+
+    std::vector<QVector3D> auxColors = {
+        QVector3D(1,0,0), QVector3D(1,0,0),
+        QVector3D(0,1,0), QVector3D(0,1,0),
+        QVector3D(0,0,1), QVector3D(0,0,1),
+    };
+    auxCBuffer.create();
+    auxCBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    auxCBuffer.bind();
+    auxCBuffer.allocate(&auxColors[0], 6 * 3 * sizeof(float));
 
     m.unlock();
 }
