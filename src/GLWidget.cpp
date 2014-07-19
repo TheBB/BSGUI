@@ -69,16 +69,22 @@ void GLWidget::paintGL()
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    QMatrix4x4 proj, mv;
-    matrices(&proj, &mv);
+    QMatrix4x4 mvp;
+    matrix(&mvp);
 
+    drawAxes(mvp);
     for (auto obj : *objectSet)
-        obj->draw(proj, mv, vcProgram, ccProgram);
+        obj->draw(mvp, vcProgram, ccProgram);
 
     swapBuffers();
 
     m.unlock();
     objectSet->m.unlock();
+}
+
+
+void GLWidget::drawAxes(QMatrix4x4 &mvp)
+{
 }
 
 
@@ -182,9 +188,9 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
                                      0, 1);
         QVector4D point = origin; point.setZ(1);
 
-        QMatrix4x4 proj, mv, inv;
-        matrices(&proj, &mv);
-        inv = (proj * mv).inverted();
+        QMatrix4x4 mvp, inv;
+        matrix(&mvp);
+        inv = mvp.inverted();
 
         QVector3D a = (inv * origin).toVector3DAffine();
         QVector3D b = (inv * point).toVector3DAffine();
@@ -248,9 +254,9 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
     if (ctrlPressed && !_fixed || !ctrlPressed && _fixed)
     {
-        QMatrix4x4 proj, mv, inv;
-        matrices(&proj, &mv);
-        inv = (proj * mv).inverted();
+        QMatrix4x4 mvp, inv;
+        matrix(&mvp);
+        inv = mvp.inverted();
 
         QVector3D right = -(inv * QVector4D(1,0,0,0)).toVector3D(); right.normalize();
         QVector3D up = (inv * QVector4D(0,1,0,0)).toVector3D(); up.normalize();
@@ -458,28 +464,27 @@ void GLWidget::initializeDispObject(DispObject *obj)
 }
 
 
-void GLWidget::matrices(QMatrix4x4 *proj, QMatrix4x4 *mv)
+void GLWidget::matrix(QMatrix4x4 *mvp)
 {
     float aspect = (float) width() / height();
-    proj->setToIdentity();
+    mvp->setToIdentity();
     if (_perspective)
-        proj->perspective(_fov, aspect, 0.01, 100.0);
+        mvp->perspective(_fov, aspect, 0.01, 100.0);
     else
     {
         float h = (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0);
-        proj->ortho(-aspect * h, aspect * h, -h, h, 0.01, 100.0);
+        mvp->ortho(-aspect * h, aspect * h, -h, h, 0.01, 100.0);
     }
 
     QVector3D eye = QVector3D(0, (_perspective ? _zoom : 0.0), 0);
-    mv->setToIdentity();
-    mv->lookAt(eye, eye + QVector3D(0, 1, 0), QVector3D(0, 0, 1));
-    mv->translate(QVector3D(0, 1, 0));
-    mv->rotate(_roll, QVector3D(0, 1, 0));
-    mv->rotate(_inclination, QVector3D(1, 0, 0));
-    mv->rotate(_azimuth, QVector3D(0, 0, 1));
-    mv->scale(1.0/11.0);
-    multiplyDir(mv);
-    mv->translate(-_lookAt);
+    mvp->lookAt(eye, eye + QVector3D(0, 1, 0), QVector3D(0, 0, 1));
+    mvp->translate(QVector3D(0, 1, 0));
+    mvp->rotate(_roll, QVector3D(0, 1, 0));
+    mvp->rotate(_inclination, QVector3D(1, 0, 0));
+    mvp->rotate(_azimuth, QVector3D(0, 0, 1));
+    mvp->scale(1.0/11.0);
+    multiplyDir(mvp);
+    mvp->translate(-_lookAt);
 }
 
 

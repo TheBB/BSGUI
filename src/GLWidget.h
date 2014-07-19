@@ -14,8 +14,8 @@
 #include "ObjectSet.h"
 #include "DispObject.h"
 
-#ifndef GLWIDGET_H
-#define GLWIDGET_H
+#ifndef _GLWIDGET_H_
+#define _GLWIDGET_H_
 
 #define MAX_FOV 135.0
 
@@ -96,7 +96,8 @@ protected:
     void wheelEvent(QWheelEvent *event);
 
 private:
-    void matrices(QMatrix4x4 *, QMatrix4x4 *);
+    void drawAxes(QMatrix4x4 &);
+    void matrix(QMatrix4x4 *);
     void multiplyDir(QMatrix4x4 *);
 
     QOpenGLShaderProgram vcProgram;
@@ -132,4 +133,4 @@ private:
     bool fixedOrigPerspective;
 };
 
-#endif /* GLWIDGET_H */
+#endif /* _GLWIDGET_H_ */

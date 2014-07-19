@@ -126,13 +126,10 @@ inline void drawCommand(GLenum mode, std::set<uint> &visible, uint *indices)
 }
 
 
-void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv,
-                      QOpenGLShaderProgram &vprog, QOpenGLShaderProgram &cprog)
+void DispObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &vprog, QOpenGLShaderProgram &cprog)
 {
     if (!_initialized)
         return;
-
-    QMatrix4x4 mvp = proj * mv;
 
 
     cprog.bind();

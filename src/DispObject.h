@@ -47,14 +47,12 @@ public:
 
     //! \brief Draws the object to the current OpenGL context.
     //!
-    //! \param proj Projection matrix.
-    //! \param mv Model-view matrix.
+    //! \param mvp Model-view-projection matrix.
     //! \param vprog OpenGL shader program used to render variable-colored data.
     //! \param cprog OpenGL shader program used to render constant-colored data.
     //!
     //! It is assumed that the OpenGL context has been set before this method is called!
-    void draw(QMatrix4x4& proj, QMatrix4x4& mv,
-              QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog);
+    void draw(QMatrix4x4& mvp, QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog);
 
 
     //! \brief Checks whether the object intersects the line defined by the points `a` and `b`.
