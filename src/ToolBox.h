@@ -1,3 +1,4 @@
+#include <QCheckBox>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QLabel>
@@ -35,6 +36,7 @@ public slots:
     void updateLookAt(double t);
     void perspectiveChanged(bool val);
     void fixedChanged(bool val);
+    void showAxesChanged(bool val, bool fromMouse);
 
 private:
     GLWidget *glWidget;
@@ -44,6 +46,7 @@ private:
     QDoubleSpinBox *lookAtX, *lookAtY, *lookAtZ;
 
     QRadioButton *perspectiveBtn, *orthographicBtn;
+    QCheckBox *showAxes;
 };
 
 

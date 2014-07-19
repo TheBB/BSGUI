@@ -29,6 +29,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , _fixed(false)
     , _dir(POSZ)
     , _rightHanded(true)
+    , _showAxes(true)
     , cameraTracking(false)
 {
     setFocusPolicy(Qt::ClickFocus);
@@ -75,7 +76,9 @@ void GLWidget::paintGL()
     QMatrix4x4 mvp;
     matrix(&mvp);
 
-    drawAxes(mvp);
+    if (_showAxes)
+        drawAxes();
+
     for (auto obj : *objectSet)
         obj->draw(mvp, vcProgram, ccProgram);
 
@@ -86,7 +89,7 @@ void GLWidget::paintGL()
 }
 
 
-void GLWidget::drawAxes(QMatrix4x4 &mvp)
+void GLWidget::drawAxes()
 {
     vcProgram.bind();
 
@@ -98,9 +101,9 @@ void GLWidget::drawAxes(QMatrix4x4 &mvp)
     vcProgram.enableAttributeArray("vertexColor");
     vcProgram.setAttributeBuffer("vertexColor", GL_FLOAT, 0, 3);
 
-    QMatrix4x4 sc_mvp = mvp;
-    sc_mvp.scale(3.0 * (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0));
-    vcProgram.setUniformValue("mvp", sc_mvp);
+    QMatrix4x4 mvp;
+    axesMatrix(&mvp);
+    vcProgram.setUniformValue("mvp", mvp);
 
     axesBuffer.bind();
     glLineWidth(3.0);
@@ -176,16 +179,25 @@ void GLWidget::initializeGL()
 void GLWidget::keyPressEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Control)
-        ctrlPressed = true;
-    if (event->key() == Qt::Key_Shift)
-        shiftPressed = true;
-    if (event->key() == Qt::Key_Alt)
-        altPressed = true;
-    if (event->key() == Qt::Key_C)
     {
-        centerOnSelected();
-        update();
+        ctrlPressed = true;
+        return;
     }
+    if (event->key() == Qt::Key_Shift)
+    {
+        shiftPressed = true;
+        return;
+    }
+    if (event->key() == Qt::Key_Alt)
+    {
+        altPressed = true;
+        return;
+    }
+
+    if (event->key() == Qt::Key_C)
+        centerOnSelected();
+    if (event->key() == Qt::Key_A)
+        setShowAxes(!_showAxes, true);
     if (event->key() == Qt::Key_P && !_fixed)
         setPerspective(!_perspective);
     if (event->key() == Qt::Key_QuoteLeft)
@@ -202,6 +214,8 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
         usePreset(VIEW_FRONT);
     if (event->key() == Qt::Key_6)
         usePreset(VIEW_BACK);
+
+    update();
 }
 
 
@@ -439,6 +453,8 @@ void GLWidget::usePreset(preset val)
         _fixed = false;
         emit fixedChanged(_fixed, val);
 
+        update();
+
         return;
     }
     
@@ -501,6 +517,13 @@ void GLWidget::setRightHanded(bool val)
 }
 
 
+void GLWidget::setShowAxes(bool val, bool fromMouse)
+{
+    _showAxes = val;
+    emit showAxesChanged(val, fromMouse);
+}
+
+
 void GLWidget::initializeDispObject(DispObject *obj)
 {
     m.lock();
@@ -512,8 +535,9 @@ void GLWidget::initializeDispObject(DispObject *obj)
 
 void GLWidget::matrix(QMatrix4x4 *mvp)
 {
-    float aspect = (float) width() / height();
     mvp->setToIdentity();
+
+    float aspect = (float) width() / height();
     if (_perspective)
         mvp->perspective(_fov, aspect, 0.01, 100.0);
     else
@@ -531,6 +555,24 @@ void GLWidget::matrix(QMatrix4x4 *mvp)
     mvp->scale(1.0/11.0);
     multiplyDir(mvp);
     mvp->translate(-_lookAt);
+}
+
+
+void GLWidget::axesMatrix(QMatrix4x4 *mvp)
+{
+    mvp->setToIdentity();
+
+    float aspect = (float) width() / height();
+    mvp->translate(QVector3D(1.0 - 0.12/aspect, -0.88, -1));
+    mvp->perspective(45.0, aspect, 0.01, 100.0);
+
+    mvp->lookAt(QVector3D(0, 0, 0), QVector3D(0, 1, 0), QVector3D(0, 0, 1));
+    mvp->translate(QVector3D(0, 1, 0));
+    mvp->rotate(_roll, QVector3D(0, 1, 0));
+    mvp->rotate(_inclination, QVector3D(1, 0, 0));
+    mvp->rotate(_azimuth, QVector3D(0, 0, 1));
+    mvp->scale(0.04);
+    multiplyDir(mvp);
 }
 
 

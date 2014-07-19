@@ -66,6 +66,9 @@ public:
     inline bool rightHanded() { return _rightHanded; }
     void setRightHanded(bool val);
 
+    inline bool showAxes() { return _showAxes; }
+    void setShowAxes(bool val, bool fromMouse);
+
 public slots:
     void initializeDispObject(DispObject *obj);
 
@@ -80,6 +83,7 @@ signals:
     void fixedChanged(bool val, preset view);
     void dirChanged(direction val);
     void rightHandedChanged(bool val);
+    void showAxesChanged(bool val, bool fromMouse);
 
     void singlePatchSelected(bool val);
 
@@ -96,8 +100,9 @@ protected:
     void wheelEvent(QWheelEvent *event);
 
 private:
-    void drawAxes(QMatrix4x4 &);
+    void drawAxes();
     void matrix(QMatrix4x4 *);
+    void axesMatrix(QMatrix4x4 *);
     void multiplyDir(QMatrix4x4 *);
 
     QOpenGLShaderProgram vcProgram;
@@ -124,6 +129,7 @@ private:
     bool _fixed;
     direction _dir;
     bool _rightHanded;
+    bool _showAxes;
 
     bool cameraTracking;
     QPoint mouseOrig;

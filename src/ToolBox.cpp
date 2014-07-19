@@ -291,6 +291,21 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     row++;
 
 
+    showAxes = new QCheckBox("Show axes");
+    layout->addWidget(showAxes, row, 0, 1, 3);
+    showAxes->setChecked(glWidget->showAxes());
+
+    row++;
+
+    QObject::connect(showAxes, &QCheckBox::toggled,
+                     [glWidget] (bool checked)
+                     {
+                         glWidget->setShowAxes(checked, false);
+                         glWidget->update();
+                     });
+    QObject::connect(glWidget, &GLWidget::showAxesChanged, this, &CameraPanel::showAxesChanged);
+
+
     QObject::connect(glWidget, &GLWidget::fixedChanged, this, &CameraPanel::fixedChanged);
 
 
@@ -383,6 +398,17 @@ void CameraPanel::fixedChanged(bool val)
     azimuthSlider->setEnabled(!val);
     perspectiveBtn->setEnabled(!val);
     orthographicBtn->setEnabled(!val);
+}
+
+
+void CameraPanel::showAxesChanged(bool val, bool fromMouse)
+{
+    if (fromMouse)
+    {
+        bool prev = showAxes->blockSignals(true);
+        showAxes->setChecked(val);
+        showAxes->blockSignals(prev);
+    }
 }
 
 
