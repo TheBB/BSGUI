@@ -49,13 +49,12 @@ public:
     //!
     //! \param proj Projection matrix.
     //! \param mv Model-view matrix.
-    //! \param vprog OpenGL shader program used to render variable-colored polygons.
-    //! \param cprog OpenGL shader program used to render constant-colored polygons.
-    //! \param lprog OpenGL shader program used to render mesh lines.
+    //! \param vprog OpenGL shader program used to render variable-colored data.
+    //! \param cprog OpenGL shader program used to render constant-colored data.
     //!
     //! It is assumed that the OpenGL context has been set before this method is called!
     void draw(QMatrix4x4& proj, QMatrix4x4& mv,
-              QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog, QOpenGLShaderProgram& lprog);
+              QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog);
 
 
     //! \brief Checks whether the object intersects the line defined by the points `a` and `b`.
@@ -94,9 +93,11 @@ private:
     QVector3D _center;
 
     std::vector<QVector3D> vertexData;
+    std::vector<QVector3D> vertexDataLines;
     std::vector<quad> faceData;
 
     QOpenGLBuffer vertexBuffer;
+    QOpenGLBuffer vertexBufferLines;
     QOpenGLBuffer faceBuffer;
     QOpenGLBuffer boundaryBuffer;
     QOpenGLBuffer elementBuffer;
@@ -146,6 +147,33 @@ private:
             2*nPtsU*nPtsV + 2*nPtsU*(nPtsW-2) + (nPtsV-2)*(j-1) + (i-1);
     }
 
+    inline uint uvtPt(uint i, uint j, bool posW)
+    {
+        return posW ?
+            ntPtsU*ntPtsV + ntPtsU*j + i :
+            ntPtsU*j + i;
+    }
+
+    inline uint uwtPt(uint i, uint j, bool posV)
+    {
+        if (j == 0 || j == ntW)
+            return uvtPt(i, posV ? ntV : 0, j != 0);
+        return posV ?
+            2*ntPtsU*ntPtsV + ntPtsU*(ntPtsW-2) + ntPtsU*(j-1) + i :
+            2*ntPtsU*ntPtsV + ntPtsU*(j-1) + i;
+    }
+
+    inline uint vwtPt(uint i, uint j, bool posU)
+    {
+        if (j == 0 || j == ntW)
+            return uvtPt(posU ? ntU : 0, i, j != 0);
+        if (i == 0 || i == ntV)
+            return uwtPt(posU ? ntU : 0, j, i != 0);
+        return posU ?
+            2*ntPtsU*ntPtsV + 2*ntPtsU*(ntPtsW-2) + (ntPtsV-2)*(ntPtsW-2) + (ntPtsV-2)*(j-1) + (i-1) :
+            2*ntPtsU*ntPtsV + 2*ntPtsU*(ntPtsW-2) + (ntPtsV-2)*(j-1) + (i-1);
+    }
+
     inline uint uvEl(uint i, uint j, bool posW)
     {
         return posW ?
@@ -170,43 +198,43 @@ private:
     inline uint uPbd(uint i, bool posV, bool posW, bool axV)
     {
         if (axV)
-            return 4*(nU+nV) + (posV ? 2*(nU+nW) : 0) + (posW ? nU : 0) + i;
-        return (posV ? nU : 0) + (posW ? 2*(nU+nV) : 0) + i;
+            return 4*(ntU+ntV) + (posV ? 2*(ntU+ntW) : 0) + (posW ? ntU : 0) + i;
+        return (posV ? ntU : 0) + (posW ? 2*(ntU+ntV) : 0) + i;
     }
 
     inline uint vPbd(uint i, bool posU, bool posW, bool axU)
     {
         if (axU)
-            return 4*(nU+nV) + 4*(nU+nW) + (posU ? 2*(nV+nW) : 0) + (posW ? nV : 0) + i;
-        return 2*nU + (posU ? nV : 0) + (posW ? 2*(nU+nV) : 0) + i;
+            return 4*(ntU+ntV) + 4*(ntU+ntW) + (posU ? 2*(ntV+ntW) : 0) + (posW ? ntV : 0) + i;
+        return 2*ntU + (posU ? nV : 0) + (posW ? 2*(ntU+ntV) : 0) + i;
     }
 
     inline uint wPbd(uint i, bool posU, bool posV, bool axU)
     {
         if (axU)
-            return 4*(nU+nV) + 4*(nU+nW) + 2*nV + (posU ? 2*(nV+nW) : 0) + (posV ? nW : 0) + i;
-        return 4*(nU+nV) + 2*nU + (posU ? nW : 0) + (posV ? 2*(nU+nW) : 0) + i;
+            return 4*(ntU+ntV) + 4*(ntU+ntW) + 2*ntV + (posU ? 2*(ntV+ntW) : 0) + (posV ? ntW : 0) + i;
+        return 4*(ntU+ntV) + 2*ntU + (posU ? ntW : 0) + (posV ? 2*(ntU+ntW) : 0) + i;
     }
 
     inline uint uEll(uint i, int j, bool posO, bool axV)
     {
         if (axV)
-            return 2*nLinesUV + (posO ? nLinesUW : 0) + nU*j + i;
-        return (posO ? nLinesUV : 0) + nU*j + i;
+            return 2*nLinesUV + (posO ? nLinesUW : 0) + ntU*j + i;
+        return (posO ? nLinesUV : 0) + ntU*j + i;
     }
 
     inline uint vEll(uint i, int j, bool posO, bool axU)
     {
         if (axU)
-            return 2*nLinesUV + 2*nLinesUW + (posO ? nLinesVW : 0) + nV*j + i;
-        return nU*(ntV-1) + (posO ? nLinesUV : 0) + nV*j + i;
+            return 2*nLinesUV + 2*nLinesUW + (posO ? nLinesVW : 0) + ntV*j + i;
+        return ntU*(ntV-1) + (posO ? nLinesUV : 0) + ntV*j + i;
     }
 
     inline uint wEll(uint i, int j, bool posO, bool axU)
     {
         if (axU)
-            return 2*nLinesUV + 2*nLinesUW + nV*(ntW-1) + (posO ? nLinesVW : 0) + nW*j + i;
-        return 2*nLinesUV + nU*(ntW-1) + (posO ? nLinesUW : 0) + nW*j + i;
+            return 2*nLinesUV + 2*nLinesUW + ntV*(ntW-1) + (posO ? nLinesVW : 0) + ntW*j + i;
+        return 2*nLinesUV + ntU*(ntW-1) + (posO ? nLinesUW : 0) + ntW*j + i;
     }
 };
 

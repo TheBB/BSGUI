@@ -18,6 +18,7 @@ typedef struct { GLuint a, b; } pair;
 
 DispObject::DispObject(QVector3D center)
     : vertexBuffer(QOpenGLBuffer::VertexBuffer)
+    , vertexBufferLines(QOpenGLBuffer::VertexBuffer)
     , faceBuffer(QOpenGLBuffer::IndexBuffer)
     , boundaryBuffer(QOpenGLBuffer::IndexBuffer)
     , elementBuffer(QOpenGLBuffer::IndexBuffer)
@@ -53,9 +54,9 @@ DispObject::DispObject(QVector3D center)
 
     nElems = 2*nU*nV + 2*nU*nW + 2*nV*nW;
 
-    nLinesUV = nU*(ntV-1) + nV*(ntU-1);
-    nLinesUW = nU*(ntW-1) + nW*(ntU-1);
-    nLinesVW = nV*(ntW-1) + nW*(ntV-1);
+    nLinesUV = ntU*(ntV-1) + ntV*(ntU-1);
+    nLinesUW = ntU*(ntW-1) + ntW*(ntU-1);
+    nLinesVW = ntV*(ntW-1) + ntW*(ntV-1);
 
     nElemLines = 2 * (nLinesUV + nLinesUW + nLinesVW);
 
@@ -69,12 +70,12 @@ DispObject::DispObject(QVector3D center)
     faceIdxs[6] = 2*nU*nV + 2*nU*nW + 2*nV*nW;
 
     boundaryIdxs[0] = 0;
-    boundaryIdxs[1] = 2*(nU+nV);
-    boundaryIdxs[2] = 4*(nU+nV);
-    boundaryIdxs[3] = 4*(nU+nV) + 2*(nU+nW);
-    boundaryIdxs[4] = 4*(nU+nV) + 4*(nU+nW);
-    boundaryIdxs[5] = 4*(nU+nV) + 4*(nU+nW) + 2*(nV+nW);
-    boundaryIdxs[6] = 4*(nU+nV) + 4*(nU+nW) + 4*(nV+nW);
+    boundaryIdxs[1] = 2*(ntU+ntV);
+    boundaryIdxs[2] = 4*(ntU+ntV);
+    boundaryIdxs[3] = 4*(ntU+ntV) + 2*(ntU+ntW);
+    boundaryIdxs[4] = 4*(ntU+ntV) + 4*(ntU+ntW);
+    boundaryIdxs[5] = 4*(ntU+ntV) + 4*(ntU+ntW) + 2*(ntV+ntW);
+    boundaryIdxs[6] = 4*(ntU+ntV) + 4*(ntU+ntW) + 4*(ntV+ntW);
 
     elementIdxs[0] = 0;
     elementIdxs[1] = nLinesUV;
@@ -94,6 +95,7 @@ DispObject::~DispObject()
     if (_initialized)
     {
         vertexBuffer.destroy();
+        vertexBufferLines.destroy();
         faceBuffer.destroy();
         boundaryBuffer.destroy();
         elementBuffer.destroy();
@@ -124,8 +126,8 @@ inline void drawCommand(GLenum mode, std::set<uint> &visible, uint *indices)
 }
 
 
-void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vprog,
-                      QOpenGLShaderProgram &cprog, QOpenGLShaderProgram &lprog)
+void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv,
+                      QOpenGLShaderProgram &vprog, QOpenGLShaderProgram &cprog)
 {
     if (!_initialized)
         return;
@@ -146,22 +148,19 @@ void DispObject::draw(QMatrix4x4 &proj, QMatrix4x4 &mv, QOpenGLShaderProgram &vp
     drawCommand(GL_QUADS, visibleFaces, faceIdxs);
 
 
-    lprog.bind();
+    vertexBufferLines.bind();
+    cprog.enableAttributeArray("vertexPosition");
+    cprog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
 
-    vertexBuffer.bind();
-    lprog.enableAttributeArray("vertexPosition");
-    lprog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
-
-    lprog.setUniformValue("proj", proj);
-    lprog.setUniformValue("mv", mv);
+    cprog.setUniformValue("mvp", mvp);
 
     elementBuffer.bind();
-    lprog.setUniformValue("col", selected ? LINE_COLOR_SELECTED : LINE_COLOR_NORMAL);
-    glLineWidth(2.1);
+    cprog.setUniformValue("col", selected ? LINE_COLOR_SELECTED : LINE_COLOR_NORMAL);
+    glLineWidth(1.1);
     drawCommand(GL_LINES, visibleElements, elementIdxs);
 
     boundaryBuffer.bind();
-    lprog.setUniformValue("col", BLACK);
+    cprog.setUniformValue("col", BLACK);
     glLineWidth(2.0);
     drawCommand(GL_LINES, visibleBoundaries, boundaryIdxs);
 }
@@ -235,6 +234,27 @@ void DispObject::mkVertexData(QVector3D center)
             for (int j = 1; j < nPtsW - 1; j++)
                 vertexData[vwPt(i,j,b)] = center + QVector3D(b ? 1.0 : -1.0, lpt(i,nPtsV), lpt(j,nPtsW));
     }
+
+    vertexDataLines.resize(ntPts);
+
+    for (bool b : {true, false})
+    {
+        for (int i = 0; i < ntPtsU; i++)
+            for (int j = 0; j < ntPtsV; j++)
+                vertexDataLines[uvtPt(i,j,b)] = center + 1.001 * QVector3D(lpt(i,ntPtsU),
+                                                                           lpt(j,ntPtsV),
+                                                                           b ? 1.0 : -1.0);
+        for (int i = 0; i < ntPtsU; i++)
+            for (int j = 1; j < ntPtsW - 1; j++)
+                vertexDataLines[uwtPt(i,j,b)] = center + 1.001 * QVector3D(lpt(i,ntPtsU),
+                                                                           b ? 1.0 : -1.0,
+                                                                           lpt(j,ntPtsW));
+        for (int i = 1; i < ntPtsV - 1; i++)
+            for (int j = 1; j < ntPtsW - 1; j++)
+                vertexDataLines[vwtPt(i,j,b)] = center + 1.001 * QVector3D(b ? 1.0 : -1.0,
+                                                                           lpt(i,ntPtsV),
+                                                                           lpt(j,ntPtsW));
+    }
 }
 
 
@@ -259,9 +279,11 @@ void DispObject::mkFaceData()
 
 void DispObject::mkVertexBuffer()
 {
-    qDebug() << QString("Vertexbuffer with %1 points").arg(nPts);
     createBuffer(vertexBuffer);
     vertexBuffer.allocate(&vertexData[0], nPts * 3 * sizeof(float));
+
+    createBuffer(vertexBufferLines);
+    vertexBuffer.allocate(&vertexDataLines[0], ntPts * 3 * sizeof(float));
 }
 
 
@@ -274,22 +296,22 @@ void DispObject::mkFaceBuffer()
 
 void DispObject::mkBoundaryBuffer()
 {
-    std::vector<pair> patchBndData(8 * (nU + nV + nW));
+    std::vector<pair> patchBndData(8 * (ntU + ntV + ntW));
 
     for (bool a : {true, false})
         for (bool b : {true, false})
             for (bool c : {true, false})
             {
-                for (int i = 0; i < nU; i++)
-                    patchBndData[uPbd(i,a,b,c)] = { uvPt(i, a ? nV : 0, b), uvPt(i+1, a ? nV : 0, b) };
-                for (int i = 0; i < nV; i++)
-                    patchBndData[vPbd(i,a,b,c)] = { uvPt(a ? nU : 0, i, b), uvPt(a ? nU : 0, i+1, b) };
-                for (int i = 0; i < nW; i++)
-                    patchBndData[wPbd(i,a,b,c)] = { uwPt(a ? nU : 0, i, b), uwPt(a ? nU : 0, i+1, b) };
+                for (int i = 0; i < ntU; i++)
+                    patchBndData[uPbd(i,a,b,c)] = { uvtPt(i, a ? ntV : 0, b), uvtPt(i+1, a ? ntV : 0, b) };
+                for (int i = 0; i < ntV; i++)
+                    patchBndData[vPbd(i,a,b,c)] = { uvtPt(a ? ntU : 0, i, b), uvtPt(a ? ntU : 0, i+1, b) };
+                for (int i = 0; i < ntW; i++)
+                    patchBndData[wPbd(i,a,b,c)] = { uwtPt(a ? ntU : 0, i, b), uwtPt(a ? ntU : 0, i+1, b) };
             }
 
     createBuffer(boundaryBuffer);
-    boundaryBuffer.allocate(&patchBndData[0], (nU + nV + nW) * 16 * sizeof(GLuint));
+    boundaryBuffer.allocate(&patchBndData[0], (ntU + ntV + ntW) * 16 * sizeof(GLuint));
 }
 
 
@@ -299,26 +321,26 @@ void DispObject::mkElementBuffer()
 
     for (bool a : {false, true})
     {
-        for (int i = 0; i < nU; i++)
+        for (int i = 0; i < ntU; i++)
         {
             for (int j = 1; j < ntV; j++)
-                elementData[uEll(i, j-1, a, false)] = { uvPt(i, rV*j, a), uvPt(i+1, rV*j, a) };
+                elementData[uEll(i, j-1, a, false)] = { uvtPt(i, j, a), uvtPt(i+1, j, a) };
             for (int j = 1; j < ntW; j++)
-                elementData[uEll(i, j-1, a, true)] = { uwPt(i, rW*j, a), uwPt(i+1, rW*j, a) };
+                elementData[uEll(i, j-1, a, true)] = { uwtPt(i, j, a), uwtPt(i+1, j, a) };
         }
-        for (int i = 0; i < nV; i++)
+        for (int i = 0; i < ntV; i++)
         {
             for (int j = 1; j < ntU; j++)
-                elementData[vEll(i, j-1, a, false)] = { uvPt(rU*j, i, a), uvPt(rU*j, i+1, a) };
+                elementData[vEll(i, j-1, a, false)] = { uvtPt(j, i, a), uvtPt(j, i+1, a) };
             for (int j = 1; j < ntW; j++)
-                elementData[vEll(i, j-1, a, true)] = { vwPt(i, rW*j, a), vwPt(i+1, rW*j, a) };
+                elementData[vEll(i, j-1, a, true)] = { vwtPt(i, j, a), vwtPt(i+1, j, a) };
         }
-        for (int i = 0; i < nW; i++)
+        for (int i = 0; i < ntW; i++)
         {
             for (int j = 1; j < ntU; j++)
-                elementData[wEll(i, j-1, a, false)] = { uwPt(rU*j, i, a), uwPt(rU*j, i+1, a) };
+                elementData[wEll(i, j-1, a, false)] = { uwtPt(j, i, a), uwtPt(j, i+1, a) };
             for (int j = 1; j < ntV; j++)
-                elementData[wEll(i, j-1, a, true)] = { vwPt(rV*j, i, a), vwPt(rV*j, i+1, a) };
+                elementData[wEll(i, j-1, a, true)] = { vwtPt(j, i, a), vwtPt(j, i+1, a) };
         }
     }
 

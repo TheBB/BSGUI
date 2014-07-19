@@ -10,7 +10,7 @@
 
 GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     : QGLWidget(parent)
-    , vcProgram(), ccProgram(), lnProgram()
+    , vcProgram(), ccProgram()
     , objectSet(oSet)
     , selectedObject(NULL)
     , shiftPressed(false)
@@ -73,7 +73,7 @@ void GLWidget::paintGL()
     matrices(&proj, &mv);
 
     for (auto obj : *objectSet)
-        obj->draw(proj, mv, vcProgram, ccProgram, lnProgram);
+        obj->draw(proj, mv, vcProgram, ccProgram);
 
     swapBuffers();
 
@@ -114,13 +114,6 @@ void GLWidget::initializeGL()
     if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsConstantColor))
         close();
     if (!ccProgram.link())
-        close();
-
-    if (!lnProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsLines))
-        close();
-    if (!lnProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsLines))
-        close();
-    if (!lnProgram.link())
         close();
 
     m.unlock();
