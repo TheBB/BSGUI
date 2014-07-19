@@ -76,11 +76,16 @@ void GLWidget::paintGL()
     QMatrix4x4 mvp;
     matrix(&mvp);
 
-    if (_showAxes)
-        drawAxes();
 
     for (auto obj : *objectSet)
         obj->draw(mvp, vcProgram, ccProgram);
+
+    if (_showAxes)
+    {
+        glDisable(GL_DEPTH_TEST);
+        drawAxes();
+        glEnable(GL_DEPTH_TEST);
+    }
 
     swapBuffers();
 
@@ -565,7 +570,7 @@ void GLWidget::axesMatrix(QMatrix4x4 *mvp)
     mvp->setToIdentity();
 
     float aspect = (float) width() / height();
-    mvp->translate(QVector3D(1.0 - 0.12/aspect, -0.88, -1));
+    mvp->translate(QVector3D(1.0 - 0.12/aspect, -0.88, 0));
     mvp->perspective(45.0, aspect, 0.01, 100.0);
 
     mvp->lookAt(QVector3D(0, 0, 0), QVector3D(0, 1, 0), QVector3D(0, 0, 1));
