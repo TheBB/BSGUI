@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <cmath>
+#include <set>
 #include <QRect>
 #include <QDesktopWidget>
 
@@ -13,9 +15,9 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , vcProgram(), ccProgram()
     , auxBuffer(QOpenGLBuffer::VertexBuffer)
     , axesBuffer(QOpenGLBuffer::IndexBuffer)
+    , selectionBuffer(QOpenGLBuffer::IndexBuffer)
     , auxCBuffer(QOpenGLBuffer::VertexBuffer)
     , objectSet(oSet)
-    , selectedObject(NULL)
     , shiftPressed(false)
     , ctrlPressed(false)
     , altPressed(false)
@@ -31,6 +33,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , _rightHanded(true)
     , _showAxes(true)
     , _diameter(20.0)
+    , selectTracking(false)
     , cameraTracking(false)
 {
     setFocusPolicy(Qt::ClickFocus);
@@ -52,12 +55,12 @@ QSize GLWidget::sizeHint() const
 
 void GLWidget::centerOnSelected()
 {
-    if (selectedObject)
-    {
-        _lookAt = selectedObject->center();
-        emit lookAtChanged(_lookAt, true);
-    }
-    else
+    // if (selectedObject)
+    // {
+    //     _lookAt = selectedObject->center();
+    //     emit lookAtChanged(_lookAt, true);
+    // }
+    // else
     {
         QVector3D center;
         float radius;
@@ -84,6 +87,55 @@ void GLWidget::initializeObject(DispObject *obj)
 }
 
 
+std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
+{
+    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glDisable(GL_LINE_SMOOTH);
+    glDisable(GL_MULTISAMPLE);
+
+    QMatrix4x4 mvp;
+    matrix(&mvp);
+
+    for (auto obj : *objectSet)
+        obj->draw(mvp, vcProgram, ccProgram, true);
+
+    GLubyte pixels[4 * w * h];
+    glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+
+    std::unordered_map<uint, uint> picks;
+    for (int i = 0; i < w * h; i++)
+    { 
+        uint key = pixels[4*i] + 255*pixels[4*i+1] + 255*255*pixels[4*i+2];
+        if (picks.find(key) != picks.end())
+            picks[key]++;
+        else
+            picks.insert(std::pair<uint,uint>(key, 1));
+    }
+
+    std::set<uint> deletes;
+
+    int limit = std::min(std::min(w, h) - 1, 5);
+    qDebug() << "Limit" << limit;
+    for (auto p : picks)
+        if (p.second < limit || p.first == 16646655)
+            deletes.insert(p.first);
+
+    for (auto p : deletes)
+        picks.erase(p);
+
+    std::set<uint> ret;
+    for (auto p : picks)
+        ret.insert(p.first);
+
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_LINE_SMOOTH);
+
+    return ret;
+}
+
+
 void GLWidget::paintGL()
 {
     std::lock(m, objectSet->m);
@@ -95,12 +147,19 @@ void GLWidget::paintGL()
     matrix(&mvp);
 
     for (auto obj : *objectSet)
-        obj->draw(mvp, vcProgram, ccProgram);
+        obj->draw(mvp, vcProgram, ccProgram, false);
 
     if (_showAxes)
     {
         glDisable(GL_DEPTH_TEST);
         drawAxes();
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    if (selectTracking)
+    {
+        glDisable(GL_DEPTH_TEST);
+        drawSelection();
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -130,6 +189,35 @@ void GLWidget::drawAxes()
     axesBuffer.bind();
     glLineWidth(3.0);
     glDrawElements(GL_LINES, 2 * 3, GL_UNSIGNED_INT, 0);
+}
+
+
+void GLWidget::drawSelection()
+{
+    glDisable(GL_LINE_SMOOTH);
+
+    ccProgram.bind();
+
+    auxBuffer.bind();
+    ccProgram.enableAttributeArray("vertexPosition");
+    ccProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
+
+    QMatrix4x4 mvp;
+    mvp.setToIdentity();
+
+    QPoint d = selectTo - selectOrig;
+    mvp.translate((float) selectOrig.x()/width() * 2.0 - 1.0,
+                  1.0 - (float) selectOrig.y()/height() * 2.0, 0.0);
+    mvp.scale((float) d.x()/width()*2.0, - (float) d.y()/height()*2.0, 1.0);
+    ccProgram.setUniformValue("mvp", mvp);
+
+    ccProgram.setUniformValue("col", QVector4D(0,0,0,0.6));
+
+    selectionBuffer.bind();
+    glLineWidth(1.0);
+    glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, 0);
+
+    glEnable(GL_LINE_SMOOTH);
 }
 
 
@@ -171,11 +259,12 @@ void GLWidget::initializeGL()
         QVector3D(0,0,0), QVector3D(1,0,0),
         QVector3D(0,0,0), QVector3D(0,1,0),
         QVector3D(0,0,0), QVector3D(0,0,1),
+        QVector3D(1,1,0)
     };
     auxBuffer.create();
     auxBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     auxBuffer.bind();
-    auxBuffer.allocate(&auxData[0], 6 * 3 * sizeof(float));
+    auxBuffer.allocate(&auxData[0], 7 * 3 * sizeof(float));
 
     std::vector<GLuint> axesData = {0, 1, 2, 3, 4, 5};
     axesBuffer.create();
@@ -183,15 +272,22 @@ void GLWidget::initializeGL()
     axesBuffer.bind();
     axesBuffer.allocate(&axesData[0], 3 * 2 * sizeof(GLuint));
 
+    std::vector<GLuint> selectionData = {0, 1, 6, 3};
+    selectionBuffer.create();
+    selectionBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    selectionBuffer.bind();
+    selectionBuffer.allocate(&selectionData[0], 4 * sizeof(GLuint));
+
     std::vector<QVector3D> auxColors = {
         QVector3D(1,0,0), QVector3D(1,0,0),
         QVector3D(0,1,0), QVector3D(0,1,0),
         QVector3D(0,0,1), QVector3D(0,0,1),
+        QVector3D(0,0,0),
     };
     auxCBuffer.create();
     auxCBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     auxCBuffer.bind();
-    auxCBuffer.allocate(&auxColors[0], 6 * 3 * sizeof(float));
+    auxCBuffer.allocate(&auxColors[0], 7 * 3 * sizeof(float));
 
     m.unlock();
 }
@@ -254,7 +350,7 @@ void GLWidget::keyReleaseEvent(QKeyEvent *event)
 
 void GLWidget::mousePressEvent(QMouseEvent *event)
 {
-    if (event->button() & Qt::RightButton)
+    if (event->button() == Qt::RightButton)
     {
         cameraTracking = true;
         mouseOrig = event->pos();
@@ -263,71 +359,53 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         mouseOrigRoll = _roll;
         mouseOrigLookAt = _lookAt;
     }
-    else if (event->button() & Qt::LeftButton)
+    else if (event->button() == Qt::LeftButton)
     {
-        QVector4D origin = QVector4D((float) event->pos().x() / width() * 2.0 - 1.0,
-                                     - (float) event->pos().y() / height() * 2.0 + 1.0,
-                                     0, 1);
-        QVector4D point = origin; point.setZ(1);
-
-        QMatrix4x4 mvp, inv;
-        matrix(&mvp);
-        inv = mvp.inverted();
-
-        QVector3D a = (inv * origin).toVector3DAffine();
-        QVector3D b = (inv * point).toVector3DAffine();
-
-        if (!_perspective)
-        {
-            QVector3D diff = 2*(a - b);
-            a += diff;
-            b += diff;
-        }
-
-        DispObject *selected = NULL;
-        float param, minParam = std::numeric_limits<float>::infinity();
-        bool intersect;
-        for (auto obj : *objectSet)
-        {
-            obj->intersect(a, b, &intersect, &param);
-            if (intersect && param < minParam && param >= 0.0)
-            {
-                selected = obj;
-                minParam = param;
-            }
-        }
-
-        bool needsUpdate = selectedObject || selected;
-
-        if (selectedObject)
-        {
-            selectedObject->selected = false;
-            selectedObject = NULL;
-        }
-
-        if (selected)
-        {
-            selected->selected = true;
-            selectedObject = selected;
-        }
-
-        if (needsUpdate)
-            update();
-
-        emit singlePatchSelected(selected);
+        selectTracking = true;
+        selectOrig = event->pos();
+        selectTo = event->pos();
     }
 }
 
 
 void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (event->button() & Qt::RightButton)
+    if (event->button() == Qt::RightButton)
         cameraTracking = false;
+    else if (event->button() == Qt::LeftButton)
+    {
+        std::lock(m, objectSet->m);
+
+        selectTracking = false;
+
+        int x = std::max(std::min(event->pos().x(), selectOrig.x()), 0);
+        int y = std::max(height() - std::max(event->pos().y(), selectOrig.y()), 0);
+
+        int toX = std::min(std::max(event->pos().x(), selectOrig.x()), width() - 1);
+        int toY = std::min(height() - std::min(event->pos().y(), selectOrig.y()), height() - 1);
+
+        makeCurrent();
+        std::set<uint> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
+
+        for (auto p : picks)
+            qDebug() << p;
+
+        m.unlock();
+        objectSet->m.unlock();
+
+        update();
+    }
 }
 
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    if (selectTracking)
+    {
+        selectTo = event->pos();
+        update();
+    }
+
     if (!cameraTracking)
         return;
 

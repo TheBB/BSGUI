@@ -93,6 +93,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
     void addCubeFromCenter(QVector3D center);
+
     void boundingSphere(QVector3D *center, float *radius);
 
     typedef typename std::vector<DispObject *>::iterator iterator;

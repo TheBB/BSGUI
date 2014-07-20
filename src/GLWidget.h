@@ -1,5 +1,5 @@
 #include <mutex>
-#include <set>
+#include <unordered_map>
 
 #include <QVector3D>
 #include <QVector4D>
@@ -85,12 +85,11 @@ signals:
     void rightHandedChanged(bool val);
     void showAxesChanged(bool val, bool fromMouse);
 
-    void singlePatchSelected(bool val);
-
 protected:
     void initializeGL();
     void resizeGL(int w, int h);
     void paintGL();
+    std::set<uint> paintGLPicks(int x, int y, int w, int h);
 
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
@@ -101,6 +100,7 @@ protected:
 
 private:
     void drawAxes();
+    void drawSelection();
     void matrix(QMatrix4x4 *);
     void axesMatrix(QMatrix4x4 *);
     void multiplyDir(QMatrix4x4 *);
@@ -110,10 +110,10 @@ private:
     QOpenGLShaderProgram lnProgram;
     QOpenGLBuffer auxBuffer;
     QOpenGLBuffer axesBuffer;
+    QOpenGLBuffer selectionBuffer;
     QOpenGLBuffer auxCBuffer;
 
     ObjectSet *objectSet;
-    DispObject *selectedObject;
 
     bool shiftPressed;
     bool ctrlPressed;
@@ -131,6 +131,10 @@ private:
     bool _rightHanded;
     bool _showAxes;
     float _diameter;
+
+    bool selectTracking;
+    QPoint selectOrig;
+    QPoint selectTo;
 
     bool cameraTracking;
     QPoint mouseOrig;

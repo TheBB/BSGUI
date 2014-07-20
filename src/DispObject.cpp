@@ -10,18 +10,28 @@ const QVector4D LINE_COLOR_SELECTED = QVector4D(0.749, 0.620, 0.431, 0.5);
 const QVector4D BLACK = QVector4D(0, 0, 0, 1);
 
 
+uchar DispObject::sColor[3] = {0, 0, 0};
+
+
 DispObject::DispObject(QVector3D center)
     : vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , vertexBufferLines(QOpenGLBuffer::VertexBuffer)
     , faceBuffer(QOpenGLBuffer::IndexBuffer)
     , boundaryBuffer(QOpenGLBuffer::IndexBuffer)
     , elementBuffer(QOpenGLBuffer::IndexBuffer)
+    , selectedFaces {}
     , visibleFaces {0,1,2,3,4,5}
     , visibleBoundaries {0,1,2,3,4,5}
     , visibleElements {0,1,2,3,4,5}
     , selected(false)
     , _initialized(false)
 {
+    // Picking colors
+    for (int i = 0; i < 3; i++)
+        color[i] = sColor[i];
+
+    incColors(sColor, 6);
+
     // Pre refinement
     ntU = 3; ntV = 4; ntW = 5;
 
@@ -100,6 +110,7 @@ DispObject::~DispObject()
 }
 
 
+
 void DispObject::init()
 {
     mkBuffers();
@@ -125,10 +136,33 @@ inline void drawCommand(GLenum mode, std::set<uint> &visible, uint *indices)
 }
 
 
-void DispObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &vprog, QOpenGLShaderProgram &cprog)
+inline void sortSelection(std::set<uint> *selected, std::set<uint> *visible,
+                          std::set<uint> *outSel, std::set<uint> *outUnsel)
+{
+    outSel->clear();
+    outUnsel->clear();
+
+    for (auto f : *visible)
+        if (selected->find(f) != selected->end())
+            outSel->insert(f);
+        else
+            outUnsel->insert(f);
+}
+
+
+void DispObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &vprog, QOpenGLShaderProgram &cprog, bool picking)
 {
     if (!_initialized)
         return;
+
+    if (picking)
+    {
+        drawPicking(mvp, cprog);
+        return;
+    }
+
+    std::set<uint> sel, unsel;
+    
 
     cprog.bind();
 
@@ -139,8 +173,13 @@ void DispObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &vprog, QOpenGLShade
     cprog.setUniformValue("mvp", mvp);
 
     faceBuffer.bind();
-    cprog.setUniformValue("col", selected ? FACE_COLOR_SELECTED : FACE_COLOR_NORMAL );
-    drawCommand(GL_QUADS, visibleFaces, faceIdxs);
+
+    sortSelection(&selectedFaces, &visibleFaces, &sel, &unsel);
+
+    cprog.setUniformValue("col", FACE_COLOR_SELECTED);
+    drawCommand(GL_QUADS, sel, faceIdxs);
+    cprog.setUniformValue("col", FACE_COLOR_NORMAL);
+    drawCommand(GL_QUADS, unsel, faceIdxs);
 
 
     vertexBufferLines.bind();
@@ -150,14 +189,46 @@ void DispObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &vprog, QOpenGLShade
     cprog.setUniformValue("mvp", mvp);
 
     elementBuffer.bind();
-    cprog.setUniformValue("col", selected ? LINE_COLOR_SELECTED : LINE_COLOR_NORMAL);
     glLineWidth(1.1);
-    drawCommand(GL_LINES, visibleElements, elementIdxs);
+
+    sortSelection(&selectedFaces, &visibleElements, &sel, &unsel);
+
+    cprog.setUniformValue("col", LINE_COLOR_SELECTED);
+    drawCommand(GL_LINES, sel, elementIdxs);
+    cprog.setUniformValue("col", LINE_COLOR_NORMAL);
+    drawCommand(GL_LINES, unsel, elementIdxs);
+
 
     boundaryBuffer.bind();
     cprog.setUniformValue("col", BLACK);
     glLineWidth(2.0);
     drawCommand(GL_LINES, visibleBoundaries, boundaryIdxs);
+}
+
+
+void DispObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &cprog)
+{
+    cprog.bind();
+
+    vertexBuffer.bind();
+    cprog.enableAttributeArray("vertexPosition");
+    cprog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
+
+    cprog.setUniformValue("mvp", mvp);
+
+    faceBuffer.bind();
+
+    uchar c[3];
+    for (int i = 0; i < 3; i++)
+        c[i] = color[i];
+
+    for (auto i : visibleFaces)
+    {
+        cprog.setUniformValue("col", QVector4D(c[0]/255.0, c[1]/255.0, c[2]/255.0, 1.0));
+        glDrawElements(GL_QUADS, 4*(faceIdxs[i+1]-faceIdxs[i]),
+                       GL_UNSIGNED_INT, (void *)(4*faceIdxs[i]*sizeof(GLuint)));
+        incColors(c, 1);
+    }
 }
 
 
@@ -281,6 +352,9 @@ void DispObject::mkBoundaryData()
                 for (int i = 0; i < ntW; i++)
                     boundaryData[wPbd(i,a,b,c)] = { uwtPt(a ? ntU : 0, i, b), uwtPt(a ? ntU : 0, i+1, b) };
             }
+
+    // for (auto d : boundaryData)
+    //     qDebug() << d.a << d.b;
 }
 
 
@@ -406,5 +480,29 @@ void DispObject::triangleIntersect(QVector3D &a, QVector3D &b, uint i, uint j, u
     {
         *intersect = true;
         *param = sol(2);
+    }
+}
+
+
+void DispObject::incColors(uchar col[3], int num)
+{
+    for (int i = 0; i < num; i++)
+    {
+        if (col[0] == 255)
+        {
+            col[0] = 0;
+            if (col[1] == 255)
+            {
+                col[1] = 0;
+                if (col[2] == 255)
+                    col[2] = 0;
+                else
+                    col[2]++;
+            }
+            else
+                col[1]++;
+        }
+        else
+            col[0]++;
     }
 }

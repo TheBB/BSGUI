@@ -200,11 +200,6 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     QPushButton *centerBtn = new QPushButton("Reset zoom and look at");
     layout->addWidget(centerBtn, row, 0, 1, 3);
 
-    QObject::connect(glWidget, &GLWidget::singlePatchSelected,
-                     [centerBtn] (bool val)
-                     {
-                         centerBtn->setText(val ? "Center on selected patch" : "Reset zoom and look at");
-                     });
     QObject::connect(centerBtn, &QPushButton::clicked,
                      [glWidget] (bool val)
                      {

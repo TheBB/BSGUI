@@ -63,7 +63,7 @@ public:
     //! \param cprog OpenGL shader program used to render constant-colored data.
     //!
     //! It is assumed that the OpenGL context has been set before this method is called!
-    void draw(QMatrix4x4& mvp, QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog);
+    void draw(QMatrix4x4& mvp, QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog, bool picking);
 
 
     //! \brief Checks whether the object intersects the line defined by the points `a` and `b`.
@@ -88,6 +88,10 @@ public:
 
 
 private:
+    static uchar sColor[3];
+    uchar color[3];
+    static void incColors(uchar col[3], int num);
+
     bool _initialized;
 
     // Pre refinement
@@ -118,6 +122,7 @@ private:
     QOpenGLBuffer boundaryBuffer;
     QOpenGLBuffer elementBuffer;
 
+    std::set<uint> selectedFaces;
     std::set<uint> visibleFaces;
     std::set<uint> visibleBoundaries;
     std::set<uint> visibleElements;
@@ -138,6 +143,8 @@ private:
     void ritterSphere();
 
     void triangleIntersect(QVector3D &, QVector3D &, uint, uint, uint, bool *, float *);
+
+    void drawPicking(QMatrix4x4& mvp, QOpenGLShaderProgram& cprog);
 
     inline uint uvPt(uint i, uint j, bool posW)
     {
@@ -225,7 +232,7 @@ private:
     {
         if (axU)
             return 4*(ntU+ntV) + 4*(ntU+ntW) + (posU ? 2*(ntV+ntW) : 0) + (posW ? ntV : 0) + i;
-        return 2*ntU + (posU ? nV : 0) + (posW ? 2*(ntU+ntV) : 0) + i;
+        return 2*ntU + (posU ? ntV : 0) + (posW ? 2*(ntU+ntV) : 0) + i;
     }
 
     inline uint wPbd(uint i, bool posU, bool posV, bool axU)
