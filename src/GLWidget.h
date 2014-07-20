@@ -130,6 +130,7 @@ private:
     direction _dir;
     bool _rightHanded;
     bool _showAxes;
+    float _diameter;
 
     bool cameraTracking;
     QPoint mouseOrig;

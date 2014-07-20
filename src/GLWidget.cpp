@@ -24,12 +24,13 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , _fov(45.0)
     , _roll(0.0)
     , _zoom(0.0)
-    , _lookAt(1.5,0,0)
+    , _lookAt(0,0,0)
     , _perspective(true)
     , _fixed(false)
     , _dir(POSZ)
     , _rightHanded(true)
     , _showAxes(true)
+    , _diameter(20.0)
     , cameraTracking(false)
 {
     setFocusPolicy(Qt::ClickFocus);
@@ -56,6 +57,23 @@ void GLWidget::centerOnSelected()
         _lookAt = selectedObject->center();
         emit lookAtChanged(_lookAt, true);
     }
+    else
+    {
+        QVector3D center;
+        float radius;
+        objectSet->boundingSphere(&center, &radius);
+
+        _lookAt = center;
+        emit lookAtChanged(_lookAt, true);
+
+        if (radius > 0.0)
+            _diameter = 2.0 * radius;
+        else
+            _diameter = 1.0;
+
+        setFov(45.0, true);
+        setZoom(0.0, true);
+    }
 }
 
 
@@ -75,7 +93,6 @@ void GLWidget::paintGL()
 
     QMatrix4x4 mvp;
     matrix(&mvp);
-
 
     for (auto obj : *objectSet)
         obj->draw(mvp, vcProgram, ccProgram);
@@ -559,7 +576,7 @@ void GLWidget::matrix(QMatrix4x4 *mvp)
     mvp->rotate(_roll, QVector3D(0, 1, 0));
     mvp->rotate(_inclination, QVector3D(1, 0, 0));
     mvp->rotate(_azimuth, QVector3D(0, 0, 1));
-    mvp->scale(1.0/11.0);
+    mvp->scale(1.0/_diameter);
     multiplyDir(mvp);
     mvp->translate(-_lookAt);
 }

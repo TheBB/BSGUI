@@ -9,12 +9,6 @@ const QVector4D FACE_COLOR_SELECTED = QVector4D(1.000, 0.867, 0.737, 1);
 const QVector4D LINE_COLOR_SELECTED = QVector4D(0.749, 0.620, 0.431, 0.5);
 const QVector4D BLACK = QVector4D(0, 0, 0, 1);
 
-//! \brief Convenience struct used to build the OpenGL element index buffers.
-//!
-//! Allows us to work with a vector of pairs instead of having a separate
-//! index for each element of a pair.
-typedef struct { GLuint a, b; } pair;
-
 
 DispObject::DispObject(QVector3D center)
     : vertexBuffer(QOpenGLBuffer::VertexBuffer)
@@ -26,7 +20,6 @@ DispObject::DispObject(QVector3D center)
     , visibleBoundaries {0,1,2,3,4,5}
     , visibleElements {0,1,2,3,4,5}
     , selected(false)
-    , _center(center)
     , _initialized(false)
 {
     // Pre refinement
@@ -85,8 +78,12 @@ DispObject::DispObject(QVector3D center)
     elementIdxs[5] = 2*nLinesUV + 2*nLinesUW + nLinesVW;
     elementIdxs[6] = 2*nLinesUV + 2*nLinesUW + 2*nLinesVW;
 
-    mkVertexData(_center);
+    mkVertexData(center);
     mkFaceData();
+    mkBoundaryData();
+    mkElementData();
+
+    boundingSphere();
 }
 
 
@@ -105,12 +102,14 @@ DispObject::~DispObject()
 
 void DispObject::init()
 {
-    mkVertexBuffer();
-    mkFaceBuffer();
-    mkBoundaryBuffer();
-    mkElementBuffer();
+    mkBuffers();
 
     _initialized = true;
+
+    // These vectors aren't needed after the memory has been sent to the GPU.
+    vertexDataLines.clear();
+    boundaryData.clear();
+    elementData.clear();
 }
 
 
@@ -191,12 +190,6 @@ void DispObject::intersect(QVector3D &a, QVector3D &b, bool *intersect, float *p
 }
 
 
-QVector3D DispObject::center()
-{
-    return _center;
-}
-
-
 void DispObject::createBuffer(QOpenGLBuffer& buffer)
 {
     buffer.create();
@@ -273,47 +266,27 @@ void DispObject::mkFaceData()
 }
 
 
-void DispObject::mkVertexBuffer()
+void DispObject::mkBoundaryData()
 {
-    createBuffer(vertexBuffer);
-    vertexBuffer.allocate(&vertexData[0], nPts * 3 * sizeof(float));
-
-    createBuffer(vertexBufferLines);
-    vertexBuffer.allocate(&vertexDataLines[0], ntPts * 3 * sizeof(float));
-}
-
-
-void DispObject::mkFaceBuffer()
-{
-    createBuffer(faceBuffer);
-    faceBuffer.allocate(&faceData[0], nElems * 4 * sizeof(GLuint));
-}
-
-
-void DispObject::mkBoundaryBuffer()
-{
-    std::vector<pair> patchBndData(8 * (ntU + ntV + ntW));
+    boundaryData.resize(8 * (ntU + ntV + ntW));
 
     for (bool a : {true, false})
         for (bool b : {true, false})
             for (bool c : {true, false})
             {
                 for (int i = 0; i < ntU; i++)
-                    patchBndData[uPbd(i,a,b,c)] = { uvtPt(i, a ? ntV : 0, b), uvtPt(i+1, a ? ntV : 0, b) };
+                    boundaryData[uPbd(i,a,b,c)] = { uvtPt(i, a ? ntV : 0, b), uvtPt(i+1, a ? ntV : 0, b) };
                 for (int i = 0; i < ntV; i++)
-                    patchBndData[vPbd(i,a,b,c)] = { uvtPt(a ? ntU : 0, i, b), uvtPt(a ? ntU : 0, i+1, b) };
+                    boundaryData[vPbd(i,a,b,c)] = { uvtPt(a ? ntU : 0, i, b), uvtPt(a ? ntU : 0, i+1, b) };
                 for (int i = 0; i < ntW; i++)
-                    patchBndData[wPbd(i,a,b,c)] = { uwtPt(a ? ntU : 0, i, b), uwtPt(a ? ntU : 0, i+1, b) };
+                    boundaryData[wPbd(i,a,b,c)] = { uwtPt(a ? ntU : 0, i, b), uwtPt(a ? ntU : 0, i+1, b) };
             }
-
-    createBuffer(boundaryBuffer);
-    boundaryBuffer.allocate(&patchBndData[0], (ntU + ntV + ntW) * 16 * sizeof(GLuint));
 }
 
 
-void DispObject::mkElementBuffer()
+void DispObject::mkElementData()
 {
-    std::vector<pair> elementData(nElemLines);
+    elementData.resize(nElemLines);
 
     for (bool a : {false, true})
     {
@@ -339,9 +312,69 @@ void DispObject::mkElementBuffer()
                 elementData[wEll(i, j-1, a, true)] = { vwtPt(j, i, a), vwtPt(j, i+1, a) };
         }
     }
+}
+
+
+void DispObject::mkBuffers()
+{
+    createBuffer(vertexBuffer);
+    vertexBuffer.allocate(&vertexData[0], nPts * 3 * sizeof(float));
+
+    createBuffer(vertexBufferLines);
+    vertexBuffer.allocate(&vertexDataLines[0], ntPts * 3 * sizeof(float));
+
+    createBuffer(faceBuffer);
+    faceBuffer.allocate(&faceData[0], nElems * 4 * sizeof(GLuint));
+
+    createBuffer(boundaryBuffer);
+    boundaryBuffer.allocate(&boundaryData[0], (ntU + ntV + ntW) * 16 * sizeof(GLuint));
 
     createBuffer(elementBuffer);
     elementBuffer.allocate(&elementData[0], 2 * nElemLines * sizeof(GLuint));
+}
+
+
+void DispObject::boundingSphere()
+{
+    int index = 0, found;
+
+    farthestPointFrom(index, &found);
+    farthestPointFrom(found, &index);
+
+    _center = (vertexDataLines[index] + vertexDataLines[found]) / 2;
+    _radius = (vertexDataLines[index] - vertexDataLines[found]).length() / 2;
+
+    ritterSphere();
+}
+
+
+void DispObject::farthestPointFrom(int index, int *found)
+{
+    float distance = -1;
+
+    for (int i = 0; i < ntPts; i++)
+    {
+        float _distance = (vertexDataLines[i] - vertexDataLines[index]).length();
+        if (_distance > distance)
+        {
+            distance = _distance;
+            *found = i;
+        }
+    }
+}
+
+
+void DispObject::ritterSphere()
+{
+    for (int i = 0; i < ntPts; i++)
+    {
+        float d = (vertexDataLines[i] - _center).length();
+        if (d > _radius)
+        {
+            _center = ((d + _radius)/2 * _center + (d - _radius)/2 * vertexDataLines[i]) / d;
+            _radius = (d + _radius)/2;
+        }
+    }
 }
 
 

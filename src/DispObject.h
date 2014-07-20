@@ -11,7 +11,18 @@
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
+
+//! \brief Convenience struct used to build the OpenGL face index buffers.
+//!
+//! Allows us to work with a vector of quads instead of having a separate
+//! index for each element of a quad.
 typedef struct { GLuint a, b, c, d; } quad;
+
+//! \brief Convenience struct used to build the OpenGL element index buffers.
+//!
+//! Allows us to work with a vector of pairs instead of having a separate
+//! index for each element of a pair.
+typedef struct { GLuint a, b; } pair;
 
 //! \brief Represents a drawable 3D object.
 //!
@@ -65,8 +76,11 @@ public:
     void intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param);
 
 
-    //! Returns the center of the minimal bounding sphere of the object.
-    QVector3D center();
+    //! Returns the center of the approximate minimal bounding sphere of the object.
+    QVector3D center() { return _center; };
+
+    //! Returns the radius of the approximate minimal bounding sphere of the object.
+    float radius() { return _radius; }
 
 
     //! Set to true if this object is currently selected.
@@ -88,11 +102,15 @@ private:
     ushort nU, nV, nW;
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
 
+    // Bouding sphere
     QVector3D _center;
+    float _radius;
 
     std::vector<QVector3D> vertexData;
     std::vector<QVector3D> vertexDataLines;
     std::vector<quad> faceData;
+    std::vector<pair> boundaryData;
+    std::vector<pair> elementData;
 
     QOpenGLBuffer vertexBuffer;
     QOpenGLBuffer vertexBufferLines;
@@ -109,12 +127,15 @@ private:
 
     void mkVertexData(QVector3D);
     void mkFaceData();
+    void mkBoundaryData();
+    void mkElementData();
 
     static void createBuffer(QOpenGLBuffer&);
-    void mkVertexBuffer();
-    void mkFaceBuffer();
-    void mkBoundaryBuffer();
-    void mkElementBuffer();
+    void mkBuffers();
+
+    void boundingSphere();
+    void farthestPointFrom(int index, int *found);
+    void ritterSphere();
 
     void triangleIntersect(QVector3D &, QVector3D &, uint, uint, uint, bool *, float *);
 

@@ -205,11 +205,42 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
     Patch *patch = new Patch(obj, fileNode);
     endInsertRows();
 
-    dispObjects.insert(obj);
+    dispObjects.push_back(obj);
 
     m.unlock();
 
     emit update();
+}
+
+
+void ObjectSet::boundingSphere(QVector3D *center, float *radius)
+{
+    if (dispObjects.empty())
+    {
+        *center = QVector3D(0,0,0);
+        *radius = 0.0;
+        return;
+    }
+
+    m.lock();
+
+    DispObject *a = dispObjects[0], *b;
+    farthestPointFrom(a, &b);
+    farthestPointFrom(b, &a);
+
+    *center = (a->center() + b->center()) / 2;
+    *radius = (a->center() - b->center()).length() / 2;
+
+    ritterSphere(center, radius);
+
+    float maxRadius = 0.0;
+    for (auto c : dispObjects)
+        if (c->radius() > maxRadius)
+            maxRadius = c->radius();
+
+    *radius += 2 * maxRadius;
+
+    m.unlock();
 }
 
 
@@ -234,4 +265,34 @@ Node *ObjectSet::getOrCreateFileNode(QString fileName)
     }
 
     return node;
+}
+
+
+void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b)
+{
+    float distance = -1;
+
+    for (auto c : dispObjects)
+    {
+        float _distance = (c->center() - a->center()).length();
+        if (_distance > distance)
+        {
+            distance = _distance;
+            *b = c;
+        }
+    }
+}
+
+
+void ObjectSet::ritterSphere(QVector3D *center, float *radius)
+{
+    for (auto c : dispObjects)
+    {
+        float d = (c->center() - (*center)).length();
+        if (d > (*radius))
+        {
+            *center = ((d + (*radius))/2 * (*center) + (d - (*radius))/2 * c->center()) / d;
+            *radius = (d + (*radius))/2;
+        }
+    }
 }

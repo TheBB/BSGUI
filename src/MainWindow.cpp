@@ -11,7 +11,7 @@
 #include "MainWindow.h"
 
 
-void makeCubes(ObjectSet *objectSet)
+void makeCubes(ObjectSet *objectSet, GLWidget *glWidget)
 {
     std::vector<QVector3D> centers = {
         QVector3D(0, 0, 1),
@@ -21,13 +21,14 @@ void makeCubes(ObjectSet *objectSet)
         QVector3D(0, 4, 0),
     };
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     for (auto c : centers)
     {
-        objectSet->addCubeFromCenter(c);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        objectSet->addCubeFromCenter(c);
     }
+
+    glWidget->centerOnSelected();
 }
 
 
@@ -51,7 +52,7 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     toolbox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, toolbox);
 
-    std::thread *thread = new std::thread(makeCubes, objectSet);
+    std::thread *thread = new std::thread(makeCubes, objectSet, glWidget);
 }
 
 

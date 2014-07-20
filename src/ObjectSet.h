@@ -93,9 +93,10 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
     void addCubeFromCenter(QVector3D center);
+    void boundingSphere(QVector3D *center, float *radius);
 
-    typedef typename std::set<DispObject *>::iterator iterator;
-    typedef typename std::set<DispObject *>::const_iterator const_iterator;
+    typedef typename std::vector<DispObject *>::iterator iterator;
+    typedef typename std::vector<DispObject *>::const_iterator const_iterator;
     iterator begin() { return dispObjects.begin(); }
     const_iterator begin() const { return dispObjects.begin(); }
     const_iterator cbegin() const { return dispObjects.cbegin(); }
@@ -111,7 +112,10 @@ private:
     Node *root;
     Node *getOrCreateFileNode(QString fileName);
 
-    std::set<DispObject *> dispObjects;
+    std::vector<DispObject *> dispObjects;
+
+    void farthestPointFrom(DispObject *a, DispObject **b);
+    void ritterSphere(QVector3D *center, float *radius);
 };
 
 #endif /* _OBJECTSET_H_ */
