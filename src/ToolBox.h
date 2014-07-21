@@ -21,7 +21,8 @@ class CameraPanel : public QWidget
     Q_OBJECT
 
 public:
-    CameraPanel(GLWidget *glWidget, QWidget *parent = NULL, Qt::WindowFlags flags = 0);
+    CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
+                QWidget *parent = NULL, Qt::WindowFlags flags = 0);
     ~CameraPanel() { }
 
     QSize sizeHint() const { return QSize(300, 100); }

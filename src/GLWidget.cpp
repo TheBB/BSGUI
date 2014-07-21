@@ -39,6 +39,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     setFocusPolicy(Qt::ClickFocus);
     QObject::connect(oSet, &ObjectSet::requestInitialization, this, &GLWidget::initializeDispObject);
     QObject::connect(oSet, SIGNAL(update()), this, SLOT(update()));
+    QObject::connect(oSet, SIGNAL(selectionChanged()), this, SLOT(update()));
 }
 
 
@@ -55,20 +56,15 @@ QSize GLWidget::sizeHint() const
 
 void GLWidget::centerOnSelected()
 {
-    // if (selectedObject)
-    // {
-    //     _lookAt = selectedObject->center();
-    //     emit lookAtChanged(_lookAt, true);
-    // }
-    // else
+    QVector3D center;
+    float radius;
+    objectSet->boundingSphere(&center, &radius);
+
+    _lookAt = center;
+    emit lookAtChanged(_lookAt, true);
+
+    if (!objectSet->hasSelection())
     {
-        QVector3D center;
-        float radius;
-        objectSet->boundingSphere(&center, &radius);
-
-        _lookAt = center;
-        emit lookAtChanged(_lookAt, true);
-
         if (radius > 0.0)
             _diameter = 2.0 * radius;
         else
@@ -117,7 +113,6 @@ std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
     std::set<uint> deletes;
 
     int limit = std::min(std::min(w, h) - 1, 5);
-    qDebug() << "Limit" << limit;
     for (auto p : picks)
         if (p.second < limit || p.first == 16646655)
             deletes.insert(p.first);
@@ -380,20 +375,15 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
 
         int x = std::max(std::min(event->pos().x(), selectOrig.x()), 0);
         int y = std::max(height() - std::max(event->pos().y(), selectOrig.y()), 0);
-
         int toX = std::min(std::max(event->pos().x(), selectOrig.x()), width() - 1);
         int toY = std::min(height() - std::min(event->pos().y(), selectOrig.y()), height() - 1);
 
         makeCurrent();
         std::set<uint> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
-
-        for (auto p : picks)
-            qDebug() << p;
+        objectSet->setSelection(&picks, !ctrlPressed);
 
         m.unlock();
         objectSet->m.unlock();
-
-        update();
     }
 }
 

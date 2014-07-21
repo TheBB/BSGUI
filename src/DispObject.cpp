@@ -23,7 +23,6 @@ DispObject::DispObject(QVector3D center)
     , visibleFaces {0,1,2,3,4,5}
     , visibleBoundaries {0,1,2,3,4,5}
     , visibleElements {0,1,2,3,4,5}
-    , selected(false)
     , _initialized(false)
 {
     // Picking colors
@@ -232,32 +231,15 @@ void DispObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &cprog)
 }
 
 
-void DispObject::intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param)
+void DispObject::clearSelection()
 {
-    bool trIntersect = false;
-    float trParam = std::numeric_limits<float>::infinity();
+    selectedFaces.clear();
+}
 
-    for (auto q : faceData)
-    {
-        triangleIntersect(a, b, q.a, q.b, q.c, &trIntersect, &trParam);
-        if (trIntersect && trParam >= 0.0)
-        {
-            *intersect = true;
-            *param = trParam;
-            return;
-        }
 
-        triangleIntersect(a, b, q.a, q.c, q.d, &trIntersect, &trParam);
-        if (trIntersect && trParam >= 0.0)
-        {
-            *intersect = true;
-            *param = trParam;
-            return;
-        }
-    }
-
-    *intersect = false;
-    return;
+void DispObject::selectFace(int idx)
+{
+    selectedFaces.insert(idx);
 }
 
 
@@ -448,38 +430,6 @@ void DispObject::ritterSphere()
             _center = ((d + _radius)/2 * _center + (d - _radius)/2 * vertexDataLines[i]) / d;
             _radius = (d + _radius)/2;
         }
-    }
-}
-
-
-void DispObject::triangleIntersect(QVector3D &a, QVector3D &b, uint i, uint j, uint k,
-                                   bool *intersect, float *param)
-{
-    Eigen::Matrix3f mx;
-    mx(0,0) = vertexData[i].x() - vertexData[k].x();
-    mx(1,0) = vertexData[i].y() - vertexData[k].y();
-    mx(2,0) = vertexData[i].z() - vertexData[k].z();
-    mx(0,1) = vertexData[j].x() - vertexData[k].x();
-    mx(1,1) = vertexData[j].y() - vertexData[k].y();
-    mx(2,1) = vertexData[j].z() - vertexData[k].z();
-    mx(0,2) = a.x() - b.x();
-    mx(1,2) = a.y() - b.y();
-    mx(2,2) = a.z() - b.z();
-
-    if (abs(mx.determinant()) < 1e-4)
-        return;
-
-    Eigen::Vector3f vec;
-    vec(0) = a.x() - vertexData[k].x();
-    vec(1) = a.y() - vertexData[k].y();
-    vec(2) = a.z() - vertexData[k].z();
-
-    Eigen::Vector3f sol = mx.colPivHouseholderQr().solve(vec);
-
-    if (sol(0) >= 0.0 && sol(1) >= 0.0 && sol(0) + sol(1) <= 1.0 && sol(2) >= 0.0)
-    {
-        *intersect = true;
-        *param = sol(2);
     }
 }
 

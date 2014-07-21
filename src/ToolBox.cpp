@@ -31,6 +31,13 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *parent, 
     layout->addWidget(treeView);
     treeView->setModel(objectSet);
 
+    QCheckBox *selectFaces = new QCheckBox("Face selection mode");
+    layout->addWidget(selectFaces);
+    selectFaces->setChecked(objectSet->selectFaces());
+
+    QObject::connect(selectFaces, &QCheckBox::toggled,
+                     [objectSet] (bool checked) { objectSet->setSelectFaces(checked); });
+
     setLayout(layout);
 }
 
@@ -98,7 +105,7 @@ void newPresetsRadioButton(QString title, QGridLayout *layout, int row, int col,
 }
 
 
-CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags flags)
+CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags)
     , glWidget(glWidget)
 {
@@ -197,7 +204,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
     row++;
 
 
-    QPushButton *centerBtn = new QPushButton("Reset zoom and look at");
+    QPushButton *centerBtn = new QPushButton("Center camera on scene");
     layout->addWidget(centerBtn, row, 0, 1, 3);
 
     QObject::connect(centerBtn, &QPushButton::clicked,
@@ -205,6 +212,13 @@ CameraPanel::CameraPanel(GLWidget *glWidget, QWidget *parent, Qt::WindowFlags fl
                      {
                          glWidget->centerOnSelected();
                          glWidget->update();
+                     });
+    QObject::connect(objectSet, &ObjectSet::selectionChanged,
+                     [centerBtn, objectSet] ()
+                     {
+                         centerBtn->setText(objectSet->hasSelection()
+                                            ? "Center camera on selection"
+                                            : "Center camera on scene");
                      });
 
     row++;
@@ -419,7 +433,7 @@ ToolBox::ToolBox(GLWidget *glWidget, ObjectSet *objectSet,
     TreePanel *treePanel = new TreePanel(glWidget, objectSet);
     toolBox->addItem(treePanel, "Objects");
 
-    CameraPanel *cameraPanel = new CameraPanel(glWidget);
+    CameraPanel *cameraPanel = new CameraPanel(glWidget, objectSet);
     toolBox->addItem(cameraPanel, "Camera");
 
     toolBox->setCurrentIndex(0);

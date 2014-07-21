@@ -101,6 +101,7 @@ QString Patch::displayString()
 
 ObjectSet::ObjectSet(QObject *parent)
     : QAbstractItemModel(parent)
+    , _selectFaces(false)
 {
     root = new Node();
 }
@@ -224,14 +225,16 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     m.lock();
 
-    DispObject *a = dispObjects[0], *b;
-    farthestPointFrom(a, &b);
-    farthestPointFrom(b, &a);
+    std::vector<DispObject *> *vec = selectedObjects.empty() ? &dispObjects : &selectedObjects;
+
+    DispObject *a = (*vec)[0], *b;
+    farthestPointFrom(a, &b, vec);
+    farthestPointFrom(b, &a, vec);
 
     *center = (a->center() + b->center()) / 2;
     *radius = (a->center() - b->center()).length() / 2;
 
-    ritterSphere(center, radius);
+    ritterSphere(center, radius, vec);
 
     float maxRadius = 0.0;
     for (auto c : dispObjects)
@@ -241,6 +244,38 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
     *radius += 2 * maxRadius;
 
     m.unlock();
+}
+
+
+void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
+{
+    if (clear)
+    {
+        for (auto o : selectedObjects)
+            o->clearSelection();
+        selectedObjects.clear();
+    }
+
+    for (auto p : *picks)
+    {
+        int idx = p / 6;
+        int face = p % 6;
+
+        if (idx > dispObjects.size() || idx < 0 || face > 5 || face < 0)
+            continue;
+
+        selectedObjects.push_back(dispObjects[idx]);
+
+        if (_selectFaces)
+            dispObjects[idx]->selectFace(face);
+        else
+        {
+            for (int i = 0; i < 6; i++)
+                dispObjects[idx]->selectFace(i);
+        }
+    }
+
+    emit selectionChanged();
 }
 
 
@@ -268,11 +303,11 @@ Node *ObjectSet::getOrCreateFileNode(QString fileName)
 }
 
 
-void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b)
+void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b, std::vector<DispObject *> *vec)
 {
     float distance = -1;
 
-    for (auto c : dispObjects)
+    for (auto c : *vec)
     {
         float _distance = (c->center() - a->center()).length();
         if (_distance > distance)
@@ -284,9 +319,9 @@ void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b)
 }
 
 
-void ObjectSet::ritterSphere(QVector3D *center, float *radius)
+void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<DispObject *> *vec)
 {
-    for (auto c : dispObjects)
+    for (auto c : *vec)
     {
         float d = (c->center() - (*center)).length();
         if (d > (*radius))

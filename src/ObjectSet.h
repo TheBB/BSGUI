@@ -1,4 +1,5 @@
 #include <mutex>
+#include <set>
 #include <vector>
 #include <QAbstractItemModel>
 #include <QFileInfo>
@@ -82,6 +83,10 @@ public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
 
+    bool hasSelection() { return !selectedObjects.empty(); }
+    bool selectFaces() { return _selectFaces; }
+    void setSelectFaces(bool val) { _selectFaces = val; }
+
     std::mutex m;
 
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
@@ -93,8 +98,8 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
     void addCubeFromCenter(QVector3D center);
-
     void boundingSphere(QVector3D *center, float *radius);
+    void setSelection(std::set<uint> *picks, bool clear = true);
 
     typedef typename std::vector<DispObject *>::iterator iterator;
     typedef typename std::vector<DispObject *>::const_iterator const_iterator;
@@ -108,15 +113,18 @@ public:
 signals:
     void requestInitialization(DispObject *obj);
     void update();
+    void selectionChanged();
 
 private:
     Node *root;
     Node *getOrCreateFileNode(QString fileName);
 
     std::vector<DispObject *> dispObjects;
+    std::vector<DispObject *> selectedObjects;
+    bool _selectFaces;
 
-    void farthestPointFrom(DispObject *a, DispObject **b);
-    void ritterSphere(QVector3D *center, float *radius);
+    void farthestPointFrom(DispObject *a, DispObject **b, std::vector<DispObject *> *vec);
+    void ritterSphere(QVector3D *center, float *radius, std::vector<DispObject *> *vec);
 };
 
 #endif /* _OBJECTSET_H_ */

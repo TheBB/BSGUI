@@ -66,16 +66,6 @@ public:
     void draw(QMatrix4x4& mvp, QOpenGLShaderProgram& vprog, QOpenGLShaderProgram& cprog, bool picking);
 
 
-    //! \brief Checks whether the object intersects the line defined by the points `a` and `b`.
-    //!
-    //! \param a Origin.
-    //! \param b Direction.
-    //! \param intersect Output: set to true if the line intersects this object.
-    //! \param param Output: set to the parameter value t for the point `p(t) = a + t*b` that
-    //!              intersects this object, if it does.
-    void intersect(QVector3D &a, QVector3D &b, bool *intersect, float *param);
-
-
     //! Returns the center of the approximate minimal bounding sphere of the object.
     QVector3D center() { return _center; };
 
@@ -83,8 +73,8 @@ public:
     float radius() { return _radius; }
 
 
-    //! Set to true if this object is currently selected.
-    bool selected;
+    void clearSelection();
+    void selectFace(int idx);
 
 
 private:
@@ -141,8 +131,6 @@ private:
     void boundingSphere();
     void farthestPointFrom(int index, int *found);
     void ritterSphere();
-
-    void triangleIntersect(QVector3D &, QVector3D &, uint, uint, uint, bool *, float *);
 
     void drawPicking(QMatrix4x4& mvp, QOpenGLShaderProgram& cprog);
 
