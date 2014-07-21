@@ -102,12 +102,13 @@ public:
 
     bool hasSelection() { return !selectedObjects.empty(); }
     bool selectFaces() { return _selectFaces; }
-    void setSelectFaces(bool val) { _selectFaces = val; }
+    void setSelectFaces(bool val);
 
     std::mutex m;
 
     QVariant headerData(int section, Qt::Orientation orientation, int role) const;
     QVariant data(const QModelIndex &index, int role) const;
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole);
     Qt::ItemFlags flags(const QModelIndex &index) const;
     QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const;
     QModelIndex parent(const QModelIndex &index) const;
@@ -117,6 +118,8 @@ public:
     void addCubeFromCenter(QVector3D center);
     void boundingSphere(QVector3D *center, float *radius);
     void setSelection(std::set<uint> *picks, bool clear = true);
+    void addToSelection(Node *node, bool signal = true);
+    void removeFromSelection(Node *node, bool signal = true);
 
     typedef typename std::vector<Patch *>::iterator iterator;
     typedef typename std::vector<Patch *>::const_iterator const_iterator;
@@ -137,7 +140,7 @@ private:
     Node *getOrCreateFileNode(QString fileName);
 
     std::vector<Patch *> dispObjects;
-    std::vector<Patch *> selectedObjects;
+    std::set<Patch *> selectedObjects;
     bool _selectFaces;
 
     void farthestPointFrom(DispObject *a, DispObject **b, std::vector<Patch *> *vec);

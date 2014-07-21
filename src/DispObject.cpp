@@ -237,9 +237,12 @@ void DispObject::clearSelection()
 }
 
 
-void DispObject::selectFace(int idx)
+void DispObject::selectFace(int idx, bool selected)
 {
-    selectedFaces.insert(idx);
+    if (selected)
+        selectedFaces.insert(idx);
+    else
+        selectedFaces.erase(idx);
 }
 
 
@@ -334,9 +337,6 @@ void DispObject::mkBoundaryData()
                 for (int i = 0; i < ntW; i++)
                     boundaryData[wPbd(i,a,b,c)] = { uwtPt(a ? ntU : 0, i, b), uwtPt(a ? ntU : 0, i+1, b) };
             }
-
-    // for (auto d : boundaryData)
-    //     qDebug() << d.a << d.b;
 }
 
 

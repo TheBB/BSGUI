@@ -133,6 +133,22 @@ ObjectSet::~ObjectSet()
 }
 
 
+void ObjectSet::setSelectFaces(bool val)
+{
+    _selectFaces = val;
+
+    if (!_selectFaces)
+        for (auto p : selectedObjects)
+        {
+            for (int i = 0; i < 6; i++)
+                p->obj()->selectFace(i);
+            signalCheckChange(p);
+        }
+
+    emit selectionChanged();
+}
+
+
 QModelIndex ObjectSet::index(int row, int column, const QModelIndex &parent) const
 {
     if (!hasIndex(row, column, parent))
@@ -232,6 +248,20 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
 }
 
 
+bool ObjectSet::setData(const QModelIndex &index, const QVariant &value, int role)
+{
+    if (role == Qt::CheckStateRole)
+    {
+        if (value.toInt() == Qt::Checked)
+            addToSelection(static_cast<Node *>(index.internalPointer()));
+        else
+            removeFromSelection(static_cast<Node *>(index.internalPointer()));
+    }
+
+    return false;
+}
+
+
 Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
 {
     if (!index.isValid())
@@ -244,10 +274,11 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
     switch (node->type())
     {
     case NT_FILE:
+        return flags | Qt::ItemIsUserCheckable;
     case NT_PATCH:
-        return flags | Qt::ItemIsTristate;
+        return flags | Qt::ItemIsUserCheckable;
     case NT_FACE:
-        return flags;
+        return flags | Qt::ItemIsUserCheckable | Qt::ItemNeverHasChildren;
     }
 }
 
@@ -300,7 +331,12 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     m.lock();
 
-    std::vector<Patch *> *vec = selectedObjects.empty() ? &dispObjects : &selectedObjects;
+    std::vector<Patch *> *vec;
+
+    if (selectedObjects.empty())
+        vec = &dispObjects;
+    else
+        vec = new std::vector<Patch *>(selectedObjects.begin(), selectedObjects.end());
 
     DispObject *a = (*vec)[0]->obj(), *b;
     farthestPointFrom(a, &b, vec);
@@ -317,6 +353,9 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
             maxRadius = c->obj()->radius();
 
     *radius += 2 * maxRadius;
+
+    if (!selectedObjects.empty())
+        delete vec;
 
     m.unlock();
 }
@@ -342,7 +381,7 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
         if (idx > dispObjects.size() || idx < 0 || face > 5 || face < 0)
             continue;
 
-        selectedObjects.push_back(dispObjects[idx]);
+        selectedObjects.insert(dispObjects[idx]);
 
         if (_selectFaces)
             dispObjects[idx]->obj()->selectFace(face);
@@ -354,6 +393,73 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
     }
 
     emit selectionChanged();
+}
+
+
+void ObjectSet::addToSelection(Node *node, bool signal)
+{
+    if (node->type() == NT_FACE)
+    {
+        Patch *patch = static_cast<Patch *>(node->parent());
+        if (!_selectFaces)
+        {
+            addToSelection(patch, true);
+            return;
+        }
+        selectedObjects.insert(patch);
+        patch->obj()->selectFace(node->indexInParent());
+
+        signalCheckChange(patch);
+    }
+    else if (node->type() == NT_PATCH)
+    {
+        Patch *patch = static_cast<Patch *>(node);
+        selectedObjects.insert(patch);
+        for (int i = 0; i < 6; i++)
+            patch->obj()->selectFace(i);
+
+        signalCheckChange(patch);
+    }
+    else if (node->type() == NT_FILE)
+        for (auto n : node->children())
+            addToSelection(n, false);
+
+
+    if (signal)
+        emit selectionChanged();
+}
+
+
+void ObjectSet::removeFromSelection(Node *node, bool signal)
+{
+    if (node->type() == NT_FACE)
+    {
+        Patch *patch = static_cast<Patch *>(node->parent());
+        if (!_selectFaces)
+        {
+            removeFromSelection(patch, true);
+            return;
+        }
+        patch->obj()->selectFace(node->indexInParent(), false);
+        if (!patch->obj()->hasSelection())
+            selectedObjects.erase(patch);
+
+        signalCheckChange(patch);
+    }
+    else if (node->type() == NT_PATCH)
+    {
+        Patch *patch = static_cast<Patch *>(node);
+        patch->obj()->clearSelection();
+        selectedObjects.erase(patch);
+
+        signalCheckChange(patch);
+    }
+    else if (node->type() == NT_FILE)
+        for (auto n : node->children())
+            removeFromSelection(n, false);
+
+    if (signal)
+        emit selectionChanged();
 }
 
 

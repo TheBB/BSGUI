@@ -60,6 +60,8 @@ void GLWidget::centerOnSelected()
     float radius;
     objectSet->boundingSphere(&center, &radius);
 
+    qDebug() << "centering on" << center << radius;
+
     _lookAt = center;
     emit lookAtChanged(_lookAt, true);
 
@@ -73,6 +75,8 @@ void GLWidget::centerOnSelected()
         setFov(45.0, true);
         setZoom(0.0, true);
     }
+
+    update();
 }
 
 
@@ -426,7 +430,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
                        (event->pos().y() - mouseOrig.y()) / screen.height(), true);
     }
     else
-        setRoll(mouseOrigRoll + (shiftPressed ? 36.0 : 360.0) *
+        setRoll(mouseOrigRoll - (shiftPressed ? 36.0 : 360.0) *
                 (event->pos().x() - mouseOrig.x()) / screen.width(), true);
 
     update();

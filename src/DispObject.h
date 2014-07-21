@@ -74,7 +74,7 @@ public:
 
 
     void clearSelection();
-    void selectFace(int idx);
+    void selectFace(int idx, bool selected = true);
     inline bool isFaceSelected(int idx) { return selectedFaces.find(idx) != selectedFaces.end(); }
     inline bool hasSelection() { return !selectedFaces.empty(); }
     inline bool fullSelection() { return selectedFaces.size() == 6; }
