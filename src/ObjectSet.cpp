@@ -52,6 +52,12 @@ int Node::indexOfChild(Node *child)
 }
 
 
+int Node::indexInParent()
+{
+    return _parent->indexOfChild(this);
+}
+
+
 int Node::numberOfChildren()
 {
     return _children.size();
@@ -96,7 +102,7 @@ Patch::~Patch()
 
 QString Patch::displayString()
 {
-    return QString("Patch %1").arg(_parent->indexOfChild(this) + 1);
+    return QString("Patch %1").arg(indexInParent() + 1);
 }
 
 
@@ -147,7 +153,7 @@ QModelIndex ObjectSet::parent(const QModelIndex &index) const
     if (parentNode == root)
         return QModelIndex();
 
-    return createIndex(parentNode->parent()->indexOfChild(parentNode), 0, parentNode);
+    return createIndex(parentNode->indexInParent(), 0, parentNode);
 }
 
 
@@ -180,11 +186,49 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    if (role != Qt::DisplayRole)
-        return QVariant();
-
     Node *node = static_cast<Node *>(index.internalPointer());
-    return node->displayString();
+
+    if (role == Qt::DisplayRole)
+        return node->displayString();
+
+    if (role == Qt::CheckStateRole)
+    {
+        switch (node->type())
+        {
+        case NT_FILE:
+        {
+            bool foundUnselected = false, foundSelected = false;
+            for (auto n : node->children())
+            {
+                DispObject *obj = static_cast<Patch *>(n)->obj();
+
+                foundUnselected |= !obj->fullSelection();
+                foundSelected |= obj->hasSelection();
+
+                if (foundUnselected && foundSelected)
+                    return Qt::PartiallyChecked;
+            }
+
+            return foundSelected ? Qt::Checked : Qt::Unchecked;
+        }
+        case NT_PATCH:
+        {
+            DispObject *obj = static_cast<Patch *>(node)->obj();
+            return QVariant(
+                obj->fullSelection()
+                ? Qt::Checked
+                : (obj->hasSelection()
+                   ? Qt::PartiallyChecked
+                   : Qt::Unchecked));
+        }
+        case NT_FACE:
+            return QVariant(
+                static_cast<Patch *>(node->parent())->obj()->isFaceSelected(node->indexInParent())
+                ? Qt::Checked : Qt::Unchecked);
+        }
+    }
+
+    return QVariant();
 }
 
 
@@ -193,7 +237,18 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
     if (!index.isValid())
         return 0;
 
-    return QAbstractItemModel::flags(index);
+    Qt::ItemFlags flags = QAbstractItemModel::flags(index);
+
+    Node *node = static_cast<Node *>(index.internalPointer());
+
+    switch (node->type())
+    {
+    case NT_FILE:
+    case NT_PATCH:
+        return flags | Qt::ItemIsTristate;
+    case NT_FACE:
+        return flags;
+    }
 }
 
 
@@ -215,18 +270,18 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
 
     Node *fileNode = getOrCreateFileNode("");
 
-    QModelIndex index = createIndex(fileNode->parent()->indexOfChild(fileNode), 0, fileNode);
+    QModelIndex index = createIndex(fileNode->indexInParent(), 0, fileNode);
     beginInsertRows(index, fileNode->numberOfChildren(), fileNode->numberOfChildren());
     Patch *patch = new Patch(obj, fileNode);
     endInsertRows();
 
-    index = createIndex(patch->parent()->indexOfChild(patch), 0, patch);
+    index = createIndex(patch->indexInParent(), 0, patch);
     beginInsertRows(index, 0, 5);
     for (int i = 0; i < 6; i++)
         new Face(i, patch);
     endInsertRows();
 
-    dispObjects.push_back(obj);
+    dispObjects.push_back(patch);
 
     m.unlock();
 
@@ -245,9 +300,9 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     m.lock();
 
-    std::vector<DispObject *> *vec = selectedObjects.empty() ? &dispObjects : &selectedObjects;
+    std::vector<Patch *> *vec = selectedObjects.empty() ? &dispObjects : &selectedObjects;
 
-    DispObject *a = (*vec)[0], *b;
+    DispObject *a = (*vec)[0]->obj(), *b;
     farthestPointFrom(a, &b, vec);
     farthestPointFrom(b, &a, vec);
 
@@ -258,8 +313,8 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     float maxRadius = 0.0;
     for (auto c : dispObjects)
-        if (c->radius() > maxRadius)
-            maxRadius = c->radius();
+        if (c->obj()->radius() > maxRadius)
+            maxRadius = c->obj()->radius();
 
     *radius += 2 * maxRadius;
 
@@ -272,7 +327,10 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
     if (clear)
     {
         for (auto o : selectedObjects)
-            o->clearSelection();
+        {
+            o->obj()->clearSelection();
+            signalCheckChange(static_cast<Patch *>(o));
+        }
         selectedObjects.clear();
     }
 
@@ -287,12 +345,12 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
         selectedObjects.push_back(dispObjects[idx]);
 
         if (_selectFaces)
-            dispObjects[idx]->selectFace(face);
+            dispObjects[idx]->obj()->selectFace(face);
         else
-        {
             for (int i = 0; i < 6; i++)
-                dispObjects[idx]->selectFace(i);
-        }
+                dispObjects[idx]->obj()->selectFace(i);
+
+        signalCheckChange(dispObjects[idx]);
     }
 
     emit selectionChanged();
@@ -323,31 +381,45 @@ Node *ObjectSet::getOrCreateFileNode(QString fileName)
 }
 
 
-void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b, std::vector<DispObject *> *vec)
+void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b, std::vector<Patch *> *vec)
 {
     float distance = -1;
 
     for (auto c : *vec)
     {
-        float _distance = (c->center() - a->center()).length();
+        float _distance = (c->obj()->center() - a->center()).length();
         if (_distance > distance)
         {
             distance = _distance;
-            *b = c;
+            *b = c->obj();
         }
     }
 }
 
 
-void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<DispObject *> *vec)
+void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<Patch *> *vec)
 {
     for (auto c : *vec)
     {
-        float d = (c->center() - (*center)).length();
+        float d = (c->obj()->center() - (*center)).length();
         if (d > (*radius))
         {
-            *center = ((d + (*radius))/2 * (*center) + (d - (*radius))/2 * c->center()) / d;
+            *center = ((d + (*radius))/2 * (*center) + (d - (*radius))/2 * c->obj()->center()) / d;
             *radius = (d + (*radius))/2;
         }
     }
+}
+
+
+void ObjectSet::signalCheckChange(Patch *patch)
+{
+    emit dataChanged(createIndex(0, 0, patch->getChild(0)),
+                     createIndex(5, 0, patch->getChild(5)),
+                     QVector<int>(Qt::CheckStateRole));
+
+    QModelIndex patchIndex = createIndex(patch->indexInParent(), 0, patch);
+    emit dataChanged(patchIndex, patchIndex, QVector<int>(Qt::CheckStateRole));
+
+    QModelIndex fileIndex = createIndex(patch->parent()->indexInParent(), 0, patch->parent());
+    emit dataChanged(fileIndex, fileIndex, QVector<int>(Qt::CheckStateRole));
 }

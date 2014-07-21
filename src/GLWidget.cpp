@@ -94,8 +94,8 @@ std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
     QMatrix4x4 mvp;
     matrix(&mvp);
 
-    for (auto obj : *objectSet)
-        obj->draw(mvp, vcProgram, ccProgram, true);
+    for (auto patch : *objectSet)
+        patch->obj()->draw(mvp, vcProgram, ccProgram, true);
 
     GLubyte pixels[4 * w * h];
     glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -141,8 +141,8 @@ void GLWidget::paintGL()
     QMatrix4x4 mvp;
     matrix(&mvp);
 
-    for (auto obj : *objectSet)
-        obj->draw(mvp, vcProgram, ccProgram, false);
+    for (auto patch : *objectSet)
+        patch->obj()->draw(mvp, vcProgram, ccProgram, false);
 
     if (_showAxes)
     {

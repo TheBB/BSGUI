@@ -74,8 +74,7 @@ void newUpRadioButton(QString title, QGridLayout *layout, int row, int col, GLWi
     layout->addWidget(btn, row, col, 1, 1);
     btn->setChecked(glWidget->dir() == dir);
     QObject::connect(btn, &QRadioButton::toggled,
-                     [glWidget, dir] (bool checked)
-                     {
+                     [glWidget, dir] (bool checked) {
                          if (checked)
                          {
                              glWidget->setDir(dir);
@@ -92,8 +91,7 @@ void newPresetsRadioButton(QString title, QGridLayout *layout, int row, int col,
     btn->setChecked(checked);
     layout->addWidget(btn, row, col, 1, 1);
     QObject::connect(btn, &QRadioButton::toggled,
-                     [glWidget, val] (bool checked)
-                     {
+                     [glWidget, val] (bool checked) {
                          if (checked)
                          {
                              glWidget->usePreset(val);
@@ -119,8 +117,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
 
     QObject::connect(glWidget, &GLWidget::inclinationChanged, this, &CameraPanel::inclinationChanged);
     QObject::connect(inclinationSlider, &QSlider::valueChanged,
-                     [glWidget] (int val)
-                     {
+                     [glWidget] (int val) {
                          glWidget->setInclination((float) val / INCSLIDER_FACTOR, false);
                          glWidget->update();
                      });
@@ -133,8 +130,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
 
     QObject::connect(glWidget, &GLWidget::azimuthChanged, this, &CameraPanel::azimuthChanged);
     QObject::connect(azimuthSlider, &QSlider::valueChanged,
-                     [glWidget] (int val)
-                     {
+                     [glWidget] (int val) {
                          glWidget->setAzimuth((float) val / AZMSLIDER_FACTOR, false);
                          glWidget->update();
                      });
@@ -147,8 +143,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
 
     QObject::connect(glWidget, &GLWidget::rollChanged, this, &CameraPanel::rollChanged);
     QObject::connect(rollSlider, &QSlider::valueChanged,
-                     [glWidget] (int val)
-                     {
+                     [glWidget] (int val) {
                          glWidget->setRoll((float) val / ROLLSLIDER_FACTOR, false);
                          glWidget->update();
                      });
@@ -161,8 +156,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
 
     QObject::connect(glWidget, &GLWidget::fovChanged, this, &CameraPanel::fovChanged);
     QObject::connect(fovSlider, &QSlider::valueChanged,
-                     [glWidget] (int val)
-                     {
+                     [glWidget] (int val) {
                          glWidget->setFov(exp((float) val / FOVSLIDER_FACTOR) * MAX_FOV, false);
                          glWidget->update();
                      });
@@ -175,8 +169,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
 
     QObject::connect(glWidget, &GLWidget::zoomChanged, this, &CameraPanel::zoomChanged);
     QObject::connect(zoomSlider, &QSlider::valueChanged,
-                     [glWidget] (int val)
-                     {
+                     [glWidget] (int val) {
                          glWidget->setZoom((float) val / ZOOMSLIDER_FACTOR, false);
                          glWidget->update();
                      });
@@ -208,14 +201,12 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
     layout->addWidget(centerBtn, row, 0, 1, 3);
 
     QObject::connect(centerBtn, &QPushButton::clicked,
-                     [glWidget] (bool val)
-                     {
+                     [glWidget] (bool val) {
                          glWidget->centerOnSelected();
                          glWidget->update();
                      });
     QObject::connect(objectSet, &ObjectSet::selectionChanged,
-                     [centerBtn, objectSet] ()
-                     {
+                     [centerBtn, objectSet] () {
                          centerBtn->setText(objectSet->hasSelection()
                                             ? "Center camera on selection"
                                             : "Center camera on scene");
@@ -239,8 +230,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
 
     QObject::connect(glWidget, &GLWidget::perspectiveChanged, this, &CameraPanel::perspectiveChanged);
     QObject::connect(perspectiveBtn, &QRadioButton::toggled,
-                     [glWidget] (bool checked)
-                     {
+                     [glWidget] (bool checked) {
                          glWidget->setPerspective(checked);
                          glWidget->update();
                      });
@@ -293,8 +283,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
     leftHanded->setChecked(!glWidget->rightHanded());
 
     QObject::connect(rightHanded, &QRadioButton::toggled,
-                     [glWidget] (bool checked)
-                     {
+                     [glWidget] (bool checked) {
                          glWidget->setRightHanded(checked);
                          glWidget->update();
                      });
@@ -309,8 +298,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *pare
     row++;
 
     QObject::connect(showAxes, &QCheckBox::toggled,
-                     [glWidget] (bool checked)
-                     {
+                     [glWidget] (bool checked) {
                          glWidget->setShowAxes(checked, false);
                          glWidget->update();
                      });

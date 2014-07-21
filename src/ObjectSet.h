@@ -3,6 +3,7 @@
 #include <vector>
 #include <QAbstractItemModel>
 #include <QFileInfo>
+#include <QItemSelection>
 #include <QModelIndex>
 #include <QString>
 #include <QVector3D>
@@ -26,6 +27,7 @@ public:
     void addChild(Node *child);
     Node *getChild(int idx);
     int indexOfChild(Node *child);
+    int indexInParent();
     int numberOfChildren();
 
     inline Node *parent() { return _parent; }
@@ -116,8 +118,8 @@ public:
     void boundingSphere(QVector3D *center, float *radius);
     void setSelection(std::set<uint> *picks, bool clear = true);
 
-    typedef typename std::vector<DispObject *>::iterator iterator;
-    typedef typename std::vector<DispObject *>::const_iterator const_iterator;
+    typedef typename std::vector<Patch *>::iterator iterator;
+    typedef typename std::vector<Patch *>::const_iterator const_iterator;
     iterator begin() { return dispObjects.begin(); }
     const_iterator begin() const { return dispObjects.begin(); }
     const_iterator cbegin() const { return dispObjects.cbegin(); }
@@ -134,12 +136,14 @@ private:
     Node *root;
     Node *getOrCreateFileNode(QString fileName);
 
-    std::vector<DispObject *> dispObjects;
-    std::vector<DispObject *> selectedObjects;
+    std::vector<Patch *> dispObjects;
+    std::vector<Patch *> selectedObjects;
     bool _selectFaces;
 
-    void farthestPointFrom(DispObject *a, DispObject **b, std::vector<DispObject *> *vec);
-    void ritterSphere(QVector3D *center, float *radius, std::vector<DispObject *> *vec);
+    void farthestPointFrom(DispObject *a, DispObject **b, std::vector<Patch *> *vec);
+    void ritterSphere(QVector3D *center, float *radius, std::vector<Patch *> *vec);
+
+    void signalCheckChange(Patch *patch);
 };
 
 #endif /* _OBJECTSET_H_ */
