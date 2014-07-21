@@ -25,6 +25,7 @@ Node::~Node()
         case NT_ROOT: delete static_cast<Node *>(c); break;
         case NT_FILE: delete static_cast<File *>(c); break;
         case NT_PATCH: delete static_cast<Patch *>(c); break;
+        case NT_FACE: delete static_cast<Face *>(c); break;
         }
     }
 }
@@ -82,8 +83,8 @@ QString File::displayString()
 
 Patch::Patch(DispObject *obj, Node *parent)
     : Node(parent)
+    , _obj(obj)
 {
-    _obj = obj;
 }
 
 
@@ -96,6 +97,19 @@ Patch::~Patch()
 QString Patch::displayString()
 {
     return QString("Patch %1").arg(_parent->indexOfChild(this) + 1);
+}
+
+
+Face::Face(int index, Node *parent)
+    : Node(parent)
+    , _index(index)
+{
+}
+
+
+QString Face::displayString()
+{
+    return QString("Face %1").arg(_index + 1);
 }
 
 
@@ -204,6 +218,12 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
     QModelIndex index = createIndex(fileNode->parent()->indexOfChild(fileNode), 0, fileNode);
     beginInsertRows(index, fileNode->numberOfChildren(), fileNode->numberOfChildren());
     Patch *patch = new Patch(obj, fileNode);
+    endInsertRows();
+
+    index = createIndex(patch->parent()->indexOfChild(patch), 0, patch);
+    beginInsertRows(index, 0, 5);
+    for (int i = 0; i < 6; i++)
+        new Face(i, patch);
     endInsertRows();
 
     dispObjects.push_back(obj);

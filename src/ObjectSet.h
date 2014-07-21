@@ -12,7 +12,7 @@
 #ifndef _OBJECTSET_H_
 #define _OBJECTSET_H_
 
-enum NodeType { NT_ROOT, NT_FILE, NT_PATCH };
+enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, NT_FACE };
 
 class Node
 {
@@ -65,13 +65,27 @@ public:
     Patch(DispObject *obj, Node *parent = NULL);
     ~Patch();
 
-    NodeType type() { return NT_PATCH; }
-    QString displayString();
+    virtual NodeType type() { return NT_PATCH; }
+    virtual QString displayString();
 
     inline DispObject *obj() { return _obj; }
 
 private:
     DispObject *_obj;
+};
+
+
+class Face : public Node
+{
+public:
+    Face(int index, Node *parent = NULL);
+    ~Face() {};
+
+    NodeType type() { return NT_FACE; }
+    QString displayString();
+
+private:
+    int _index;
 };
 
 
@@ -82,6 +96,7 @@ class ObjectSet : public QAbstractItemModel
 public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
+
 
     bool hasSelection() { return !selectedObjects.empty(); }
     bool selectFaces() { return _selectFaces; }
