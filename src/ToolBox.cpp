@@ -22,12 +22,14 @@
 #define ZOOMSLIDER_FACTOR 500
 
 
-TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *parent, Qt::WindowFlags flags)
+TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
+                     QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags)
 {
     QVBoxLayout *layout = new QVBoxLayout();
 
     QTreeView *treeView = new QTreeView();
+    treeView->installEventFilter(filter);
     layout->addWidget(treeView);
     treeView->setModel(objectSet);
 
@@ -36,7 +38,16 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *parent, 
     selectFaces->setChecked(objectSet->selectFaces());
 
     QObject::connect(selectFaces, &QCheckBox::toggled,
-                     [objectSet] (bool checked) { objectSet->setSelectFaces(checked); });
+                     [objectSet] (bool checked) { objectSet->setSelectFaces(checked, false); });
+    QObject::connect(objectSet, &ObjectSet::selectFacesChanged,
+                     [selectFaces] (bool val, bool fromMouse) {
+                         if (fromMouse)
+                         {
+                             bool prev = selectFaces->blockSignals(true);
+                             selectFaces->setChecked(val);
+                             selectFaces->blockSignals(prev);
+                         }
+                     });
 
     setLayout(layout);
 }
@@ -48,6 +59,7 @@ void blockAndSet(T *obj, V val)
     bool prev = obj->blockSignals(true);
     obj->setValue(val);
     obj->blockSignals(prev);
+
 }
 
 
@@ -103,7 +115,8 @@ void newPresetsRadioButton(QString title, QGridLayout *layout, int row, int col,
 }
 
 
-CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *parent, Qt::WindowFlags flags)
+CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
+                         QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags)
     , glWidget(glWidget)
 {
@@ -415,13 +428,14 @@ ToolBox::ToolBox(GLWidget *glWidget, ObjectSet *objectSet,
                  const QString &title, QWidget *parent, Qt::WindowFlags flags)
     : QDockWidget(title, parent, flags)
 {
+    installEventFilter(parent);
     QToolBox *toolBox = new QToolBox();
 
     qRegisterMetaType<QVecInt>("QVecInt");
-    TreePanel *treePanel = new TreePanel(glWidget, objectSet);
+    TreePanel *treePanel = new TreePanel(glWidget, objectSet, parent, NULL);
     toolBox->addItem(treePanel, "Objects");
 
-    CameraPanel *cameraPanel = new CameraPanel(glWidget, objectSet);
+    CameraPanel *cameraPanel = new CameraPanel(glWidget, objectSet, NULL);
     toolBox->addItem(cameraPanel, "Camera");
 
     toolBox->setCurrentIndex(0);

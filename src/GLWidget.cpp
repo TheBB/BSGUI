@@ -36,6 +36,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , selectTracking(false)
     , cameraTracking(false)
 {
+    installEventFilter(parent);
     setFocusPolicy(Qt::ClickFocus);
     QObject::connect(oSet, &ObjectSet::requestInitialization, this, &GLWidget::initializeDispObject);
     QObject::connect(oSet, SIGNAL(update()), this, SLOT(update()));
@@ -59,8 +60,6 @@ void GLWidget::centerOnSelected()
     QVector3D center;
     float radius;
     objectSet->boundingSphere(&center, &radius);
-
-    qDebug() << "centering on" << center << radius;
 
     _lookAt = center;
     emit lookAtChanged(_lookAt, true);

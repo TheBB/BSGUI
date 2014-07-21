@@ -69,6 +69,9 @@ public:
     inline bool showAxes() { return _showAxes; }
     void setShowAxes(bool val, bool fromMouse);
 
+    void keyPressEvent(QKeyEvent *event);
+    void keyReleaseEvent(QKeyEvent *event);
+
 public slots:
     void initializeDispObject(DispObject *obj);
 
@@ -91,8 +94,6 @@ protected:
     void paintGL();
     std::set<uint> paintGLPicks(int x, int y, int w, int h);
 
-    void keyPressEvent(QKeyEvent *event);
-    void keyReleaseEvent(QKeyEvent *event);
     void mousePressEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);

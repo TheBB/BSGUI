@@ -102,7 +102,7 @@ public:
 
     bool hasSelection() { return !selectedObjects.empty(); }
     bool selectFaces() { return _selectFaces; }
-    void setSelectFaces(bool val);
+    void setSelectFaces(bool val, bool fromMouse);
 
     std::mutex m;
 
@@ -134,6 +134,7 @@ signals:
     void requestInitialization(DispObject *obj);
     void update();
     void selectionChanged();
+    void selectFacesChanged(bool val, bool fromMouse);
 
 private:
     Node *root;

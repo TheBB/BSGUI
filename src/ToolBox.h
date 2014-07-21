@@ -56,7 +56,7 @@ class TreePanel : public QWidget
     Q_OBJECT
 
 public:
-    TreePanel(GLWidget *glWidget, ObjectSet *objectSet,
+    TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
               QWidget *parent = NULL, Qt::WindowFlags flags = 0);
     ~TreePanel() { }
 

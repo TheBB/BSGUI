@@ -4,8 +4,6 @@
 #include <QVector3D>
 
 #include "DispObject.h"
-#include "GLWidget.h"
-#include "ToolBox.h"
 #include "main.h"
 
 #include "MainWindow.h"
@@ -44,13 +42,13 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
 
     objectSet = new ObjectSet();
 
-    GLWidget *glWidget = new GLWidget(objectSet, this);
+    glWidget = new GLWidget(objectSet, this);
     setCentralWidget(glWidget);
     glWidget->setFocus();
 
-    ToolBox *toolbox = new ToolBox(glWidget, objectSet, "Toolbox", this);
-    toolbox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
-    addDockWidget(Qt::RightDockWidgetArea, toolbox);
+    toolBox = new ToolBox(glWidget, objectSet, "Toolbox", this);
+    toolBox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    addDockWidget(Qt::RightDockWidgetArea, toolBox);
 
     std::thread *thread = new std::thread(makeCubes, objectSet, glWidget);
 }
@@ -59,4 +57,36 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
 MainWindow::~MainWindow()
 {
     delete objectSet;
+}
+
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() != QEvent::KeyPress)
+        return false;
+
+    QKeyEvent *e = static_cast<QKeyEvent *>(event);
+    switch (e->key())
+    {
+    case Qt::Key_Control:
+    case Qt::Key_Shift:
+    case Qt::Key_Alt:
+    case Qt::Key_C:
+    case Qt::Key_A:
+    case Qt::Key_P:
+    case Qt::Key_QuoteLeft:
+    case Qt::Key_1:
+    case Qt::Key_2:
+    case Qt::Key_3:
+    case Qt::Key_4:
+    case Qt::Key_5:
+    case Qt::Key_6:
+        glWidget->keyPressEvent(e);
+        return true;
+    case Qt::Key_F:
+        objectSet->setSelectFaces(!objectSet->selectFaces(), true);
+        return true;
+    default:
+        return false;
+    }
 }

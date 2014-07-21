@@ -133,11 +133,12 @@ ObjectSet::~ObjectSet()
 }
 
 
-void ObjectSet::setSelectFaces(bool val)
+void ObjectSet::setSelectFaces(bool val, bool fromMouse)
 {
     _selectFaces = val;
 
     if (!_selectFaces)
+    {
         for (auto p : selectedObjects)
         {
             for (int i = 0; i < 6; i++)
@@ -145,7 +146,10 @@ void ObjectSet::setSelectFaces(bool val)
             signalCheckChange(p);
         }
 
-    emit selectionChanged();
+        emit selectionChanged();
+    }
+
+    emit selectFacesChanged(val, fromMouse);
 }
 
 
