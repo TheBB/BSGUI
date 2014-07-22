@@ -1,14 +1,21 @@
+#include <algorithm>
+
 #include "DisplayObject.h"
 
+const QVector4D FACE_COLOR_NORMAL    = QVector4D(0.737, 0.929, 1.000, 1.0);
+const QVector4D LINE_COLOR_NORMAL    = QVector4D(0.431, 0.663, 0.749, 0.5);
+const QVector4D EDGE_COLOR_NORMAL    = QVector4D(0.000, 0.000, 0.000, 1.0);
+const QVector4D POINT_COLOR_NORMAL   = QVector4D(0.000, 0.000, 0.000, 1.0);
 
-const QVector4D FACE_COLOR_NORMAL  = QVector4D(0.737, 0.929, 1.000, 1);
-const QVector4D LINE_COLOR_NORMAL  = QVector4D(0.431, 0.663, 0.749, 0.5);
-const QVector4D EDGE_COLOR_NORMAL  = QVector4D(0, 0, 0, 1);
-const QVector4D POINT_COLOR_NORMAL = QVector4D(0, 0, 0, 1);
+const QVector4D FACE_COLOR_SELECTED  = QVector4D(1.000, 0.867, 0.737, 1.0);
+const QVector4D LINE_COLOR_SELECTED  = QVector4D(0.749, 0.620, 0.431, 0.5);
+const QVector4D EDGE_COLOR_SELECTED  = QVector4D(0.776, 0.478, 0.427, 1.0);
+const QVector4D POINT_COLOR_SELECTED = QVector4D(0.776, 0.478, 0.427, 1.0);
+
 
 #define LINE_WIDTH 1.1
 #define EDGE_WIDTH 2.0
-#define POINT_SIZE 8.0
+#define POINT_SIZE 10.0
 
 
 uchar DisplayObject::sColor[3] = {0, 0, 0};
@@ -16,12 +23,17 @@ uchar DisplayObject::sColor[3] = {0, 0, 0};
 
 DisplayObject::DisplayObject(int parts)
     : _initialized(false)
+    , _selectionMode(SM_NONE)
+    , _visible(true)
     , vertexBufferFaces(QOpenGLBuffer::VertexBuffer)
     , vertexBufferGrid(QOpenGLBuffer::VertexBuffer)
     , faceBuffer(QOpenGLBuffer::IndexBuffer)
     , elementBuffer(QOpenGLBuffer::IndexBuffer)
     , edgeBuffer(QOpenGLBuffer::IndexBuffer)
     , pointBuffer(QOpenGLBuffer::IndexBuffer)
+    , selectedFaces {}
+    , selectedEdges {}
+    , selectedPoints {}
 {
     for (int i = 0; i < 3; i++)
         color[i] = sColor[i];
@@ -70,14 +82,53 @@ void DisplayObject::initialize()
 }
 
 
+void drawCommand(GLenum mode, const std::set<uint> &visible, int n, std::vector<uint> indices)
+{
+    uint mult = mode == GL_QUADS ? 4 : 2;
+    if (visible.size() == n)
+        glDrawElements(mode, mult*indices[n], GL_UNSIGNED_INT, 0);
+    else
+        for (auto i : visible)
+        {
+            glDrawElements(mode, mult*(indices[i+1] - indices[i]), GL_UNSIGNED_INT,
+                           (void *) (mult * indices[i] * sizeof(GLuint)));
+        }
+}
+
+
+void drawCommandPts(const std::set<uint> &visible, int n)
+{
+    if (visible.size() == n)
+        glDrawElements(GL_POINTS, n, GL_UNSIGNED_INT, 0);
+    else
+        for (auto i : visible)
+            glDrawElements(GL_POINTS, 1, GL_UNSIGNED_INT, (void *) (i * sizeof(GLuint)));
+}
+
+
+void sortSelection(const std::set<uint> &selected, const std::set<uint> &visible,
+                   std::set<uint> &outSel, std::set<uint> &outUnsel)
+{
+    outSel.clear();
+    outUnsel.clear();
+
+    for (auto f : visible)
+        if (selected.find(f) != selected.end())
+            outSel.insert(f);
+        else
+            outUnsel.insert(f);
+}
+
+
 void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
 {
     if (!_initialized)
         return;
 
+    std::set<uint> sel, unsel;
+
     prog.bind();
     prog.setUniformValue("mvp", mvp);
-
 
     // Bind face vertices
     vertexBufferFaces.bind();
@@ -86,8 +137,11 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
 
     // Draw faces
     faceBuffer.bind();
+    sortSelection(selectedFaces, visibleFaces, sel, unsel);
+    prog.setUniformValue("col", FACE_COLOR_SELECTED);
+    drawCommand(GL_QUADS, sel, nFaces(), faceIdxs);
     prog.setUniformValue("col", FACE_COLOR_NORMAL);
-    glDrawElements(GL_QUADS, 4 * faceData.size(), GL_UNSIGNED_INT, 0);
+    drawCommand(GL_QUADS, unsel, nFaces(), faceIdxs);
 
 
     // Bind grid vertices
@@ -97,21 +151,30 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
 
     // Draw elements
     elementBuffer.bind();
-    prog.setUniformValue("col", LINE_COLOR_NORMAL);
     glLineWidth(LINE_WIDTH);
-    glDrawElements(GL_LINES, 2 * elementData.size(), GL_UNSIGNED_INT, 0);
+    sortSelection(selectedFaces, visibleFaces, sel, unsel);
+    prog.setUniformValue("col", LINE_COLOR_SELECTED);
+    drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
+    prog.setUniformValue("col", LINE_COLOR_NORMAL);
+    drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
 
     // Draw edges
     edgeBuffer.bind();
-    prog.setUniformValue("col", EDGE_COLOR_NORMAL);
     glLineWidth(EDGE_WIDTH);
-    glDrawElements(GL_LINES, 2 * edgeData.size(), GL_UNSIGNED_INT, 0);
+    sortSelection(selectedEdges, visibleEdges, sel, unsel);
+    prog.setUniformValue("col", EDGE_COLOR_SELECTED);
+    drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
+    prog.setUniformValue("col", EDGE_COLOR_NORMAL);
+    drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
 
     // Draw points
     pointBuffer.bind();
-    prog.setUniformValue("col", POINT_COLOR_NORMAL);
     glPointSize(POINT_SIZE);
-    glDrawElements(GL_POINTS, pointData.size(), GL_UNSIGNED_INT, 0);
+    sortSelection(selectedPoints, visiblePoints, sel, unsel);
+    prog.setUniformValue("col", POINT_COLOR_SELECTED);
+    drawCommandPts(sel, nPoints());
+    prog.setUniformValue("col", POINT_COLOR_NORMAL);
+    drawCommandPts(unsel, nPoints());
 }
 
 
@@ -161,6 +224,181 @@ void DisplayObject::ritterSphere()
             _radius = (d + _radius)/2;
         }
     }
+}
+
+
+void DisplayObject::selectionMode(SelectionMode mode, bool conjunction)
+{
+    if (_selectionMode == mode)
+        return;
+
+    switch (mode)
+    {
+    case SM_PATCH:
+        selectObject(!selectedFaces.empty() || !selectedEdges.empty() || !selectedPoints.empty());
+        break;
+
+    case SM_FACE:
+        if (selectedEdges.empty())
+            balloonPointsToEdges(conjunction);
+        if (selectedFaces.empty())
+            balloonEdgesToFaces(conjunction);
+        refreshEdgesFromFaces();
+        refreshPointsFromEdges();
+        break;
+
+    case SM_EDGE:
+        if (selectedFaces.empty() && selectedEdges.empty())
+            balloonPointsToEdges(conjunction);
+        selectedFaces.clear();
+        break;
+
+    case SM_POINT:
+        selectedFaces.clear();
+        selectedEdges.clear();
+        break;
+    }
+}
+
+
+void DisplayObject::selectObject(bool selected)
+{
+    if (selected)
+    {
+        selectedFaces = visibleFaces;
+        selectedEdges = visibleEdges;
+        selectedPoints = visiblePoints;
+    }
+    else
+    {
+        selectedFaces.clear();
+        selectedEdges.clear();
+        selectedPoints.clear();
+    }
+}
+
+
+void DisplayObject::selectFaces(bool selected, std::set<uint> faces)
+{
+    if (!selected)
+    {
+        for (auto f : faces)
+            selectedFaces.erase(f);
+        refreshEdgesFromFaces();
+        refreshPointsFromEdges();
+
+        return;
+    }
+
+    std::set<uint> isct;
+    set_intersection(faces.begin(), faces.end(), visibleFaces.begin(), visibleFaces.end(),
+                     std::inserter(isct, isct.begin()));
+    selectedFaces.insert(isct.begin(), isct.end());
+
+    std::set<uint> edges;
+    for (auto f : isct)
+    {
+        edges.insert(faceEdgeMap[f].a);
+        edges.insert(faceEdgeMap[f].b);
+        edges.insert(faceEdgeMap[f].c);
+        edges.insert(faceEdgeMap[f].d);
+    }
+
+    selectEdges(true, edges);
+}
+
+
+void DisplayObject::selectEdges(bool selected, std::set<uint> edges)
+{
+    if (!selected)
+    {
+        for (auto e : edges)
+            selectedEdges.erase(e);
+        refreshPointsFromEdges();
+
+        return;
+    }
+
+    std::set<uint> isct;
+    set_intersection(edges.begin(), edges.end(), visibleEdges.begin(), visibleEdges.end(),
+                     std::inserter(isct, isct.begin()));
+    selectedEdges.insert(isct.begin(), isct.end());
+
+    std::set<uint> points;
+    for (auto e : isct)
+    {
+        points.insert(edgePointMap[e].a);
+        points.insert(edgePointMap[e].b);
+    }
+
+    selectPoints(true, points);
+}
+
+
+void DisplayObject::selectPoints(bool selected, std::set<uint> points)
+{
+    if (selected)
+    {
+        std::set<uint> isct;
+        set_intersection(points.begin(), points.end(), visiblePoints.begin(), visiblePoints.end(),
+                         std::inserter(isct, isct.begin()));
+        selectedPoints.insert(isct.begin(), isct.end());
+    }
+    else
+        for (auto p : points)
+            selectedPoints.erase(p);
+}
+
+
+void DisplayObject::refreshEdgesFromFaces()
+{
+    selectedEdges.clear();
+    for (auto e : selectedFaces)
+        selectEdges(true, {faceEdgeMap[e].a, faceEdgeMap[e].b, faceEdgeMap[e].c, faceEdgeMap[e].d});
+}
+
+
+void DisplayObject::refreshPointsFromEdges()
+{
+    selectedPoints.clear();
+    for (auto e : selectedEdges)
+        selectPoints(true, {edgePointMap[e].a, edgePointMap[e].b});
+}
+
+
+void DisplayObject::balloonEdgesToFaces(bool conjunction)
+{
+    std::set<uint> faces;
+    for (uint f = 0; f < nFaces(); f++)
+        if ((conjunction &&  (selectedEdges.find(faceEdgeMap[f].a) != selectedEdges.end() &&
+                              selectedEdges.find(faceEdgeMap[f].b) != selectedEdges.end() &&
+                              selectedEdges.find(faceEdgeMap[f].c) != selectedEdges.end() &&
+                              selectedEdges.find(faceEdgeMap[f].d) != selectedEdges.end())) ||
+            (!conjunction && (selectedEdges.find(faceEdgeMap[f].a) != selectedEdges.end() ||
+                              selectedEdges.find(faceEdgeMap[f].b) != selectedEdges.end() ||
+                              selectedEdges.find(faceEdgeMap[f].c) != selectedEdges.end() ||
+                              selectedEdges.find(faceEdgeMap[f].d) != selectedEdges.end())))
+        {
+            faces.insert(f);
+        }
+
+    selectFaces(true, faces);
+}
+
+
+void DisplayObject::balloonPointsToEdges(bool conjunction)
+{
+    std::set<uint> edges;
+    for (uint e = 0; e < nEdges(); e++)
+        if ((conjunction &&  (selectedPoints.find(edgePointMap[e].a) != selectedPoints.end() &&
+                              selectedPoints.find(edgePointMap[e].b) != selectedPoints.end())) ||
+            (!conjunction && (selectedPoints.find(edgePointMap[e].a) != selectedPoints.end() ||
+                              selectedPoints.find(edgePointMap[e].b) != selectedPoints.end())))
+        {
+            edges.insert(e);
+        }
+
+    selectEdges(true, edges);
 }
 
 

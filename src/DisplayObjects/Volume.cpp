@@ -35,6 +35,39 @@ Volume::Volume(QVector3D center)
 
     nElemLines = 2 * (nLinesUV + nLinesUW + nLinesVW);
 
+    // Visibility
+    visibleFaces  = {0,1,2,3,4,5};
+    visibleEdges  = {0,1,2,3,4,5,6,7,8,9,10,11};
+    visiblePoints = {0,1,2,3,4,5,6,7};
+
+    // Indexes
+    faceIdxs    = {0, nU*nV, nU*nV*2, 2*nU*nV + nU*nW, 2*(nU*nV + nU*nW), 2*(nU*nV + nU*nW) + nV*nW,
+                   2*(nU*nV + nU*nW + nV*nW)};
+    elementIdxs = {0, nLinesUV, 2*nLinesUV, 2*nLinesUV + nLinesUW, 2*(nLinesUV + nLinesUW),
+                   2*(nLinesUV + nLinesUW) + nLinesVW, 2*(nLinesUV + nLinesUW + nLinesVW)};
+    edgeIdxs    = {0, ntU, 2*ntU, 3*ntU, 4*ntU, 4*ntU + ntV, 4*ntU + 2*ntV, 4*ntU + 3*ntV, 4*(ntU + ntV),
+                   4*(ntU + ntV) + ntW, 4*(ntU + ntV) + 2*ntW, 4*(ntU + ntV) + 3*ntW, 4*(ntU + ntV + ntW)};
+
+    // Maps
+    faceEdgeMap  = {{0, {0,1,4,5}},
+                    {1, {2,3,6,7}},
+                    {2, {0,2,8,9}},
+                    {3, {1,3,10,11}},
+                    {4, {4,6,8,10}},
+                    {5, {5,7,9,11}}};
+    edgePointMap = {{0, {0,1}},
+                    {1, {2,3}},
+                    {2, {4,5}},
+                    {3, {6,7}},
+                    {4, {0,2}},
+                    {5, {1,3}},
+                    {6, {4,6}},
+                    {7, {5,7}},
+                    {8, {0,4}},
+                    {9, {1,5}},
+                    {10, {2,6}},
+                    {11, {3,7}}};
+
     // Make data
     mkVertexData(center);
     mkFaceData();

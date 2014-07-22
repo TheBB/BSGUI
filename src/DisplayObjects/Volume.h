@@ -8,21 +8,21 @@ class Volume : public DisplayObject
 public:
     Volume(QVector3D center);
 
-    int nFaces() { return 6; }
-    int nEdges() { return 12; }
-    int nPoints() { return 8; }
+    uint nFaces() { return 6; }
+    uint nEdges() { return 12; }
+    uint nPoints() { return 8; }
 
 private:
     // Pre refinement
-    ushort ntU, ntV, ntW;
+    uint ntU, ntV, ntW;
     uint ntPtsU, ntPtsV, ntPtsW, ntPts;
     uint ntElems;
 
     // Refinement
-    ushort rU, rV, rW;
+    uint rU, rV, rW;
 
     // Post refinement
-    ushort nU, nV, nW;
+    uint nU, nV, nW;
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
 
     void mkVertexData(QVector3D);
