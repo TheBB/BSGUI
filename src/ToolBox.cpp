@@ -35,19 +35,19 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
 
     QCheckBox *selectFaces = new QCheckBox("Face selection mode");
     layout->addWidget(selectFaces);
-    selectFaces->setChecked(objectSet->selectFaces());
+    // selectFaces->setChecked(objectSet->selectFaces());
 
-    QObject::connect(selectFaces, &QCheckBox::toggled,
-                     [objectSet] (bool checked) { objectSet->setSelectFaces(checked, false); });
-    QObject::connect(objectSet, &ObjectSet::selectFacesChanged,
-                     [selectFaces] (bool val, bool fromMouse) {
-                         if (fromMouse)
-                         {
-                             bool prev = selectFaces->blockSignals(true);
-                             selectFaces->setChecked(val);
-                             selectFaces->blockSignals(prev);
-                         }
-                     });
+    // QObject::connect(selectFaces, &QCheckBox::toggled,
+    //                  [objectSet] (bool checked) { objectSet->setSelectFaces(checked, false); });
+    // QObject::connect(objectSet, &ObjectSet::selectFacesChanged,
+    //                  [selectFaces] (bool val, bool fromMouse) {
+    //                      if (fromMouse)
+    //                      {
+    //                          bool prev = selectFaces->blockSignals(true);
+    //                          selectFaces->setChecked(val);
+    //                          selectFaces->blockSignals(prev);
+    //                      }
+    //                  });
 
     setLayout(layout);
 }
@@ -213,17 +213,17 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QPushButton *centerBtn = new QPushButton("Center camera on scene");
     layout->addWidget(centerBtn, row, 0, 1, 3);
 
-    QObject::connect(centerBtn, &QPushButton::clicked,
-                     [glWidget] (bool val) {
-                         glWidget->centerOnSelected();
-                         glWidget->update();
-                     });
-    QObject::connect(objectSet, &ObjectSet::selectionChanged,
-                     [centerBtn, objectSet] () {
-                         centerBtn->setText(objectSet->hasSelection()
-                                            ? "Center camera on selection"
-                                            : "Center camera on scene");
-                     });
+    // QObject::connect(centerBtn, &QPushButton::clicked,
+    //                  [glWidget] (bool val) {
+    //                      glWidget->centerOnSelected();
+    //                      glWidget->update();
+    //                  });
+    // QObject::connect(objectSet, &ObjectSet::selectionChanged,
+    //                  [centerBtn, objectSet] () {
+    //                      centerBtn->setText(objectSet->hasSelection()
+    //                                         ? "Center camera on selection"
+    //                                         : "Center camera on scene");
+    //                  });
 
     row++;
 

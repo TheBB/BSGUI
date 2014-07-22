@@ -4,7 +4,7 @@
 #include <QRect>
 #include <QDesktopWidget>
 
-#include "DispObject.h"
+#include "DisplayObject.h"
 #include "shaders.h"
 
 #include "GLWidget.h"
@@ -57,80 +57,73 @@ QSize GLWidget::sizeHint() const
 
 void GLWidget::centerOnSelected()
 {
-    QVector3D center;
-    float radius;
-    objectSet->boundingSphere(&center, &radius);
+//     QVector3D center;
+//     float radius;
+//     objectSet->boundingSphere(&center, &radius);
 
-    _lookAt = center;
-    emit lookAtChanged(_lookAt, true);
+//     _lookAt = center;
+//     emit lookAtChanged(_lookAt, true);
 
-    if (!objectSet->hasSelection())
-    {
-        if (radius > 0.0)
-            _diameter = 2.0 * radius;
-        else
-            _diameter = 1.0;
+//     if (!objectSet->hasSelection())
+//     {
+//         if (radius > 0.0)
+//             _diameter = 2.0 * radius;
+//         else
+//             _diameter = 1.0;
 
-        setFov(45.0, true);
-        setZoom(0.0, true);
-    }
+//         setFov(45.0, true);
+//         setZoom(0.0, true);
+//     }
 
-    update();
-}
-
-
-void GLWidget::initializeObject(DispObject *obj)
-{
-    makeCurrent();
-    obj->init();
+//     update();
 }
 
 
 std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
 {
-    glClearColor(1.0, 1.0, 1.0, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glClearColor(1.0, 1.0, 1.0, 1.0);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glDisable(GL_LINE_SMOOTH);
-    glDisable(GL_MULTISAMPLE);
+    // glDisable(GL_LINE_SMOOTH);
+    // glDisable(GL_MULTISAMPLE);
 
-    QMatrix4x4 mvp;
-    matrix(&mvp);
+    // QMatrix4x4 mvp;
+    // matrix(&mvp);
 
-    for (auto patch : *objectSet)
-        patch->obj()->draw(mvp, vcProgram, ccProgram, true);
+    // for (auto patch : *objectSet)
+    //     patch->obj()->draw(mvp, vcProgram, ccProgram, true);
 
-    GLubyte pixels[4 * w * h];
-    glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    // GLubyte pixels[4 * w * h];
+    // glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-    std::unordered_map<uint, uint> picks;
-    for (int i = 0; i < w * h; i++)
-    { 
-        uint key = pixels[4*i] + 255*pixels[4*i+1] + 255*255*pixels[4*i+2];
-        if (picks.find(key) != picks.end())
-            picks[key]++;
-        else
-            picks.insert(std::pair<uint,uint>(key, 1));
-    }
+    // std::unordered_map<uint, uint> picks;
+    // for (int i = 0; i < w * h; i++)
+    // { 
+    //     uint key = pixels[4*i] + 255*pixels[4*i+1] + 255*255*pixels[4*i+2];
+    //     if (picks.find(key) != picks.end())
+    //         picks[key]++;
+    //     else
+    //         picks.insert(std::pair<uint,uint>(key, 1));
+    // }
 
-    std::set<uint> deletes;
+    // std::set<uint> deletes;
 
-    int limit = std::min(std::min(w, h) - 1, 5);
-    for (auto p : picks)
-        if (p.second < limit || p.first == 16646655)
-            deletes.insert(p.first);
+    // int limit = std::min(std::min(w, h) - 1, 5);
+    // for (auto p : picks)
+    //     if (p.second < limit || p.first == 16646655)
+    //         deletes.insert(p.first);
 
-    for (auto p : deletes)
-        picks.erase(p);
+    // for (auto p : deletes)
+    //     picks.erase(p);
 
-    std::set<uint> ret;
-    for (auto p : picks)
-        ret.insert(p.first);
+    // std::set<uint> ret;
+    // for (auto p : picks)
+    //     ret.insert(p.first);
 
-    glEnable(GL_MULTISAMPLE);
-    glEnable(GL_LINE_SMOOTH);
+    // glEnable(GL_MULTISAMPLE);
+    // glEnable(GL_LINE_SMOOTH);
 
-    return ret;
+    // return ret;
 }
 
 
@@ -145,7 +138,7 @@ void GLWidget::paintGL()
     matrix(&mvp);
 
     for (auto patch : *objectSet)
-        patch->obj()->draw(mvp, vcProgram, ccProgram, false);
+        patch->obj()->draw(mvp, ccProgram);
 
     if (_showAxes)
     {
@@ -192,30 +185,30 @@ void GLWidget::drawAxes()
 
 void GLWidget::drawSelection()
 {
-    glDisable(GL_LINE_SMOOTH);
+//     glDisable(GL_LINE_SMOOTH);
 
-    ccProgram.bind();
+//     ccProgram.bind();
 
-    auxBuffer.bind();
-    ccProgram.enableAttributeArray("vertexPosition");
-    ccProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
+//     auxBuffer.bind();
+//     ccProgram.enableAttributeArray("vertexPosition");
+//     ccProgram.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
 
-    QMatrix4x4 mvp;
-    mvp.setToIdentity();
+//     QMatrix4x4 mvp;
+//     mvp.setToIdentity();
 
-    QPoint d = selectTo - selectOrig;
-    mvp.translate((float) selectOrig.x()/width() * 2.0 - 1.0,
-                  1.0 - (float) selectOrig.y()/height() * 2.0, 0.0);
-    mvp.scale((float) d.x()/width()*2.0, - (float) d.y()/height()*2.0, 1.0);
-    ccProgram.setUniformValue("mvp", mvp);
+//     QPoint d = selectTo - selectOrig;
+//     mvp.translate((float) selectOrig.x()/width() * 2.0 - 1.0,
+//                   1.0 - (float) selectOrig.y()/height() * 2.0, 0.0);
+//     mvp.scale((float) d.x()/width()*2.0, - (float) d.y()/height()*2.0, 1.0);
+//     ccProgram.setUniformValue("mvp", mvp);
 
-    ccProgram.setUniformValue("col", QVector4D(0,0,0,0.6));
+//     ccProgram.setUniformValue("col", QVector4D(0,0,0,0.6));
 
-    selectionBuffer.bind();
-    glLineWidth(1.0);
-    glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, 0);
+//     selectionBuffer.bind();
+//     glLineWidth(1.0);
+//     glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, 0);
 
-    glEnable(GL_LINE_SMOOTH);
+//     glEnable(GL_LINE_SMOOTH);
 }
 
 
@@ -235,6 +228,7 @@ void GLWidget::initializeGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
     glDepthFunc(GL_LEQUAL);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -359,9 +353,9 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
     }
     else if (event->button() == Qt::LeftButton)
     {
-        selectTracking = true;
-        selectOrig = event->pos();
-        selectTo = event->pos();
+        // selectTracking = true;
+        // selectOrig = event->pos();
+        // selectTo = event->pos();
     }
 }
 
@@ -372,32 +366,32 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         cameraTracking = false;
     else if (event->button() == Qt::LeftButton)
     {
-        std::lock(m, objectSet->m);
+        // std::lock(m, objectSet->m);
 
-        selectTracking = false;
+        // selectTracking = false;
 
-        int x = std::max(std::min(event->pos().x(), selectOrig.x()), 0);
-        int y = std::max(height() - std::max(event->pos().y(), selectOrig.y()), 0);
-        int toX = std::min(std::max(event->pos().x(), selectOrig.x()), width() - 1);
-        int toY = std::min(height() - std::min(event->pos().y(), selectOrig.y()), height() - 1);
+        // int x = std::max(std::min(event->pos().x(), selectOrig.x()), 0);
+        // int y = std::max(height() - std::max(event->pos().y(), selectOrig.y()), 0);
+        // int toX = std::min(std::max(event->pos().x(), selectOrig.x()), width() - 1);
+        // int toY = std::min(height() - std::min(event->pos().y(), selectOrig.y()), height() - 1);
 
-        makeCurrent();
-        std::set<uint> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
-        objectSet->setSelection(&picks, !ctrlPressed);
+        // makeCurrent();
+        // std::set<uint> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
+        // objectSet->setSelection(&picks, !ctrlPressed);
 
-        m.unlock();
-        objectSet->m.unlock();
+        // m.unlock();
+        // objectSet->m.unlock();
     }
 }
 
 
 void GLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    if (selectTracking)
-    {
-        selectTo = event->pos();
-        update();
-    }
+    // if (selectTracking)
+    // {
+    //     selectTo = event->pos();
+    //     update();
+    // }
 
     if (!cameraTracking)
         return;
@@ -619,11 +613,11 @@ void GLWidget::setShowAxes(bool val, bool fromMouse)
 }
 
 
-void GLWidget::initializeDispObject(DispObject *obj)
+void GLWidget::initializeDispObject(DisplayObject *obj)
 {
     m.lock();
     makeCurrent();
-    obj->init();
+    obj->initialize();
     m.unlock();
 }
 

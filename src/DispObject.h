@@ -212,24 +212,18 @@ private:
             2*nU*nV + 2*nU*nW + nV*j + i;
     }
 
-    inline uint uPbd(uint i, bool posV, bool posW, bool axV)
+    inline uint uPbd(uint i, bool posV, bool posW)
     {
-        if (axV)
-            return 4*(ntU+ntV) + (posV ? 2*(ntU+ntW) : 0) + (posW ? ntU : 0) + i;
         return (posV ? ntU : 0) + (posW ? 2*(ntU+ntV) : 0) + i;
     }
 
-    inline uint vPbd(uint i, bool posU, bool posW, bool axU)
+    inline uint vPbd(uint i, bool posU, bool posW)
     {
-        if (axU)
-            return 4*(ntU+ntV) + 4*(ntU+ntW) + (posU ? 2*(ntV+ntW) : 0) + (posW ? ntV : 0) + i;
         return 2*ntU + (posU ? ntV : 0) + (posW ? 2*(ntU+ntV) : 0) + i;
     }
 
-    inline uint wPbd(uint i, bool posU, bool posV, bool axU)
+    inline uint wPbd(uint i, bool posU, bool posV)
     {
-        if (axU)
-            return 4*(ntU+ntV) + 4*(ntU+ntW) + 2*ntV + (posU ? 2*(ntV+ntW) : 0) + (posV ? ntW : 0) + i;
         return 4*(ntU+ntV) + 2*ntU + (posU ? ntW : 0) + (posV ? 2*(ntU+ntW) : 0) + i;
     }
 

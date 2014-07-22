@@ -4,6 +4,7 @@
 #include <GoTools/geometry/ObjectHeader.h>
 
 #include "GLWidget.h"
+#include "DisplayObjects/Volume.h"
 
 #include "ObjectSet.h"
 
@@ -25,7 +26,7 @@ Node::~Node()
         case NT_ROOT: delete static_cast<Node *>(c); break;
         case NT_FILE: delete static_cast<File *>(c); break;
         case NT_PATCH: delete static_cast<Patch *>(c); break;
-        case NT_FACE: delete static_cast<Face *>(c); break;
+        // case NT_FACE: delete static_cast<Face *>(c); break;
         }
     }
 }
@@ -87,7 +88,7 @@ QString File::displayString()
 }
 
 
-Patch::Patch(DispObject *obj, Node *parent)
+Patch::Patch(DisplayObject *obj, Node *parent)
     : Node(parent)
     , _obj(obj)
 {
@@ -106,22 +107,22 @@ QString Patch::displayString()
 }
 
 
-Face::Face(int index, Node *parent)
-    : Node(parent)
-    , _index(index)
-{
-}
+// Face::Face(int index, Node *parent)
+//     : Node(parent)
+//     , _index(index)
+// {
+// }
 
 
-QString Face::displayString()
-{
-    return QString("Face %1").arg(_index + 1);
-}
+// QString Face::displayString()
+// {
+//     return QString("Face %1").arg(_index + 1);
+// }
 
 
 ObjectSet::ObjectSet(QObject *parent)
     : QAbstractItemModel(parent)
-    , _selectFaces(false)
+    // , _selectFaces(false)
 {
     root = new Node();
 }
@@ -133,24 +134,24 @@ ObjectSet::~ObjectSet()
 }
 
 
-void ObjectSet::setSelectFaces(bool val, bool fromMouse)
-{
-    _selectFaces = val;
+// void ObjectSet::setSelectFaces(bool val, bool fromMouse)
+// {
+//     _selectFaces = val;
 
-    if (!_selectFaces)
-    {
-        for (auto p : selectedObjects)
-        {
-            for (int i = 0; i < 6; i++)
-                p->obj()->selectFace(i);
-            signalCheckChange(p);
-        }
+//     if (!_selectFaces)
+//     {
+//         for (auto p : selectedObjects)
+//         {
+//             for (int i = 0; i < 6; i++)
+//                 p->obj()->selectFace(i);
+//             signalCheckChange(p);
+//         }
 
-        emit selectionChanged();
-    }
+//         emit selectionChanged();
+//     }
 
-    emit selectFacesChanged(val, fromMouse);
-}
+//     emit selectFacesChanged(val, fromMouse);
+// }
 
 
 QModelIndex ObjectSet::index(int row, int column, const QModelIndex &parent) const
@@ -211,42 +212,41 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
     if (role == Qt::DisplayRole)
         return node->displayString();
 
-    if (role == Qt::CheckStateRole)
-    {
-        switch (node->type())
-        {
-        case NT_FILE:
-        {
-            bool foundUnselected = false, foundSelected = false;
-            for (auto n : node->children())
-            {
-                DispObject *obj = static_cast<Patch *>(n)->obj();
+    // if (role == Qt::CheckStateRole)
+    // {
+    //     switch (node->type())
+    //     {
+    //     case NT_FILE:
+    //     {
+    //         bool foundUnselected = false, foundSelected = false;
+    //         for (auto n : node->children())
+    //         {
+    //             DisplayObject *obj = static_cast<Patch *>(n)->obj();
 
-                foundUnselected |= !obj->fullSelection();
-                foundSelected |= obj->hasSelection();
+    //             foundUnselected |= !obj->fullSelection();
+    //             foundSelected |= obj->hasSelection();
 
-                if (foundUnselected && foundSelected)
-                    return Qt::PartiallyChecked;
-            }
+    //             if (foundUnselected && foundSelected)
+    //                 return Qt::PartiallyChecked;
+    //         }
 
-            return foundSelected ? Qt::Checked : Qt::Unchecked;
-        }
-        case NT_PATCH:
-        {
-            DispObject *obj = static_cast<Patch *>(node)->obj();
-            return QVariant(
-                obj->fullSelection()
-                ? Qt::Checked
-                : (obj->hasSelection()
-                   ? Qt::PartiallyChecked
-                   : Qt::Unchecked));
-        }
-        case NT_FACE:
-            return QVariant(
-                static_cast<Patch *>(node->parent())->obj()->isFaceSelected(node->indexInParent())
-                ? Qt::Checked : Qt::Unchecked);
-        }
-    }
+    //         return foundSelected ? Qt::Checked : Qt::Unchecked;
+    //     }
+    //     case NT_PATCH:
+    //     {
+    //         DispObject *obj = static_cast<Patch *>(node)->obj();
+    //         return QVariant(obj->fullSelection()
+    //                         ? Qt::Checked
+    //                         : (obj->hasSelection()
+    //                            ? Qt::PartiallyChecked
+    //                            : Qt::Unchecked));
+    //     }
+    //     case NT_FACE:
+    //         return QVariant(
+    //             static_cast<Patch *>(node->parent())->obj()->isFaceSelected(node->indexInParent())
+    //             ? Qt::Checked : Qt::Unchecked);
+    //     }
+    // }
 
     return QVariant();
 }
@@ -254,13 +254,13 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
 
 bool ObjectSet::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if (role == Qt::CheckStateRole)
-    {
-        if (value.toInt() == Qt::Checked)
-            addToSelection(static_cast<Node *>(index.internalPointer()));
-        else
-            removeFromSelection(static_cast<Node *>(index.internalPointer()));
-    }
+    // if (role == Qt::CheckStateRole)
+    // {
+    //     if (value.toInt() == Qt::Checked)
+    //         addToSelection(static_cast<Node *>(index.internalPointer()));
+    //     else
+    //         removeFromSelection(static_cast<Node *>(index.internalPointer()));
+    // }
 
     return false;
 }
@@ -281,15 +281,15 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
         return flags | Qt::ItemIsUserCheckable;
     case NT_PATCH:
         return flags | Qt::ItemIsUserCheckable;
-    case NT_FACE:
-        return flags | Qt::ItemIsUserCheckable | Qt::ItemNeverHasChildren;
+    // case NT_FACE:
+    //     return flags | Qt::ItemIsUserCheckable | Qt::ItemNeverHasChildren;
     }
 }
 
 
 void ObjectSet::addCubeFromCenter(QVector3D center)
 {
-    DispObject *obj = new DispObject(center);
+    DisplayObject *obj = new Volume(center);
     emit requestInitialization(obj);
 
     while (!obj->initialized())
@@ -310,13 +310,13 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
     Patch *patch = new Patch(obj, fileNode);
     endInsertRows();
 
-    index = createIndex(patch->indexInParent(), 0, patch);
-    beginInsertRows(index, 0, 5);
-    for (int i = 0; i < 6; i++)
-        new Face(i, patch);
-    endInsertRows();
+    // index = createIndex(patch->indexInParent(), 0, patch);
+    // beginInsertRows(index, 0, 5);
+    // for (int i = 0; i < 6; i++)
+    //     new Face(i, patch);
+    // endInsertRows();
 
-    dispObjects.push_back(patch);
+    displayObjects.push_back(patch);
 
     m.unlock();
 
@@ -326,7 +326,7 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
 
 void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 {
-    if (dispObjects.empty())
+    if (displayObjects.empty())
     {
         *center = QVector3D(0,0,0);
         *radius = 0.0;
@@ -335,14 +335,14 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     m.lock();
 
-    std::vector<Patch *> *vec;
+    std::vector<Patch *> *vec = &displayObjects;
 
-    if (selectedObjects.empty())
-        vec = &dispObjects;
-    else
-        vec = new std::vector<Patch *>(selectedObjects.begin(), selectedObjects.end());
+    // if (selectedObjects.empty())
+    //     vec = &dispObjects;
+    // else
+    //     vec = new std::vector<Patch *>(selectedObjects.begin(), selectedObjects.end());
 
-    DispObject *a = (*vec)[0]->obj(), *b;
+    DisplayObject *a = (*vec)[0]->obj(), *b;
     farthestPointFrom(a, &b, vec);
     farthestPointFrom(b, &a, vec);
 
@@ -352,119 +352,119 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
     ritterSphere(center, radius, vec);
 
     float maxRadius = 0.0;
-    for (auto c : dispObjects)
+    for (auto c : displayObjects)
         if (c->obj()->radius() > maxRadius)
             maxRadius = c->obj()->radius();
 
     *radius += 2 * maxRadius;
 
-    if (!selectedObjects.empty())
-        delete vec;
+    // if (!selectedObjects.empty())
+    //     delete vec;
 
     m.unlock();
 }
 
 
-void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
-{
-    if (clear)
-    {
-        for (auto o : selectedObjects)
-        {
-            o->obj()->clearSelection();
-            signalCheckChange(static_cast<Patch *>(o));
-        }
-        selectedObjects.clear();
-    }
+// void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
+// {
+//     if (clear)
+//     {
+//         for (auto o : selectedObjects)
+//         {
+//             o->obj()->clearSelection();
+//             signalCheckChange(static_cast<Patch *>(o));
+//         }
+//         selectedObjects.clear();
+//     }
 
-    for (auto p : *picks)
-    {
-        int idx = p / 6;
-        int face = p % 6;
+//     for (auto p : *picks)
+//     {
+//         int idx = p / 6;
+//         int face = p % 6;
 
-        if (idx > dispObjects.size() || idx < 0 || face > 5 || face < 0)
-            continue;
+//         if (idx > dispObjects.size() || idx < 0 || face > 5 || face < 0)
+//             continue;
 
-        selectedObjects.insert(dispObjects[idx]);
+//         selectedObjects.insert(dispObjects[idx]);
 
-        if (_selectFaces)
-            dispObjects[idx]->obj()->selectFace(face);
-        else
-            for (int i = 0; i < 6; i++)
-                dispObjects[idx]->obj()->selectFace(i);
+//         if (_selectFaces)
+//             dispObjects[idx]->obj()->selectFace(face);
+//         else
+//             for (int i = 0; i < 6; i++)
+//                 dispObjects[idx]->obj()->selectFace(i);
 
-        signalCheckChange(dispObjects[idx]);
-    }
+//         signalCheckChange(dispObjects[idx]);
+//     }
 
-    emit selectionChanged();
-}
-
-
-void ObjectSet::addToSelection(Node *node, bool signal)
-{
-    if (node->type() == NT_FACE)
-    {
-        Patch *patch = static_cast<Patch *>(node->parent());
-        if (!_selectFaces)
-        {
-            addToSelection(patch, true);
-            return;
-        }
-        selectedObjects.insert(patch);
-        patch->obj()->selectFace(node->indexInParent());
-
-        signalCheckChange(patch);
-    }
-    else if (node->type() == NT_PATCH)
-    {
-        Patch *patch = static_cast<Patch *>(node);
-        selectedObjects.insert(patch);
-        for (int i = 0; i < 6; i++)
-            patch->obj()->selectFace(i);
-
-        signalCheckChange(patch);
-    }
-    else if (node->type() == NT_FILE)
-        for (auto n : node->children())
-            addToSelection(n, false);
+//     emit selectionChanged();
+// }
 
 
-    if (signal)
-        emit selectionChanged();
-}
+// void ObjectSet::addToSelection(Node *node, bool signal)
+// {
+//     if (node->type() == NT_FACE)
+//     {
+//         Patch *patch = static_cast<Patch *>(node->parent());
+//         if (!_selectFaces)
+//         {
+//             addToSelection(patch, true);
+//             return;
+//         }
+//         selectedObjects.insert(patch);
+//         patch->obj()->selectFace(node->indexInParent());
+
+//         signalCheckChange(patch);
+//     }
+//     else if (node->type() == NT_PATCH)
+//     {
+//         Patch *patch = static_cast<Patch *>(node);
+//         selectedObjects.insert(patch);
+//         for (int i = 0; i < 6; i++)
+//             patch->obj()->selectFace(i);
+
+//         signalCheckChange(patch);
+//     }
+//     else if (node->type() == NT_FILE)
+//         for (auto n : node->children())
+//             addToSelection(n, false);
 
 
-void ObjectSet::removeFromSelection(Node *node, bool signal)
-{
-    if (node->type() == NT_FACE)
-    {
-        Patch *patch = static_cast<Patch *>(node->parent());
-        if (!_selectFaces)
-        {
-            removeFromSelection(patch, true);
-            return;
-        }
-        patch->obj()->selectFace(node->indexInParent(), false);
-        if (!patch->obj()->hasSelection())
-            selectedObjects.erase(patch);
+//     if (signal)
+//         emit selectionChanged();
+// }
 
-        signalCheckChange(patch);
-    }
-    else if (node->type() == NT_PATCH)
-    {
-        Patch *patch = static_cast<Patch *>(node);
-        patch->obj()->clearSelection();
-        selectedObjects.erase(patch);
 
-        signalCheckChange(patch);
-    }
-    else if (node->type() == NT_FILE)
-        for (auto n : node->children())
-            removeFromSelection(n, false);
+// void ObjectSet::removeFromSelection(Node *node, bool signal)
+// {
+//     if (node->type() == NT_FACE)
+//     {
+//         Patch *patch = static_cast<Patch *>(node->parent());
+//         if (!_selectFaces)
+//         {
+//             removeFromSelection(patch, true);
+//             return;
+//         }
+//         patch->obj()->selectFace(node->indexInParent(), false);
+//         if (!patch->obj()->hasSelection())
+//             selectedObjects.erase(patch);
 
-    if (signal)
-        emit selectionChanged();
-}
+//         signalCheckChange(patch);
+//     }
+//     else if (node->type() == NT_PATCH)
+//     {
+//         Patch *patch = static_cast<Patch *>(node);
+//         patch->obj()->clearSelection();
+//         selectedObjects.erase(patch);
+
+//         signalCheckChange(patch);
+//     }
+//     else if (node->type() == NT_FILE)
+//         for (auto n : node->children())
+//             removeFromSelection(n, false);
+
+//     if (signal)
+//         emit selectionChanged();
+// }
 
 
 Node *ObjectSet::getOrCreateFileNode(QString fileName)
@@ -491,7 +491,7 @@ Node *ObjectSet::getOrCreateFileNode(QString fileName)
 }
 
 
-void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b, std::vector<Patch *> *vec)
+void ObjectSet::farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vector<Patch *> *vec)
 {
     float distance = -1;
 
@@ -521,15 +521,15 @@ void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<Patch
 }
 
 
-void ObjectSet::signalCheckChange(Patch *patch)
-{
-    emit dataChanged(createIndex(0, 0, patch->getChild(0)),
-                     createIndex(5, 0, patch->getChild(5)),
-                     QVector<int>(Qt::CheckStateRole));
+// void ObjectSet::signalCheckChange(Patch *patch)
+// {
+//     emit dataChanged(createIndex(0, 0, patch->getChild(0)),
+//                      createIndex(5, 0, patch->getChild(5)),
+//                      QVector<int>(Qt::CheckStateRole));
 
-    QModelIndex patchIndex = createIndex(patch->indexInParent(), 0, patch);
-    emit dataChanged(patchIndex, patchIndex, QVector<int>(Qt::CheckStateRole));
+//     QModelIndex patchIndex = createIndex(patch->indexInParent(), 0, patch);
+//     emit dataChanged(patchIndex, patchIndex, QVector<int>(Qt::CheckStateRole));
 
-    QModelIndex fileIndex = createIndex(patch->parent()->indexInParent(), 0, patch->parent());
-    emit dataChanged(fileIndex, fileIndex, QVector<int>(Qt::CheckStateRole));
-}
+//     QModelIndex fileIndex = createIndex(patch->parent()->indexInParent(), 0, patch->parent());
+//     emit dataChanged(fileIndex, fileIndex, QVector<int>(Qt::CheckStateRole));
+// }

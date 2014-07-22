@@ -9,11 +9,12 @@ include_directories(${GoTools_INCLUDE_DIRS})
 
 add_executable(BSGUI
   main.cpp
-  DispObject.cpp
   GLWidget.cpp
   MainWindow.cpp
   ObjectSet.cpp
   ToolBox.cpp
+  DisplayObject.cpp
+  DisplayObjects/Volume.cpp
   )
 
 qt5_use_modules(BSGUI Core Widgets Gui OpenGL)

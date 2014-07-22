@@ -3,7 +3,6 @@
 
 #include <QVector3D>
 
-#include "DispObject.h"
 #include "main.h"
 
 #include "MainWindow.h"
@@ -84,7 +83,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         glWidget->keyPressEvent(e);
         return true;
     case Qt::Key_F:
-        objectSet->setSelectFaces(!objectSet->selectFaces(), true);
+        // objectSet->setSelectFaces(!objectSet->selectFaces(), true);
         return true;
     default:
         return false;
