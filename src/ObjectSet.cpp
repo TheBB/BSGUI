@@ -122,7 +122,7 @@ QString Patch::displayString()
 
 ObjectSet::ObjectSet(QObject *parent)
     : QAbstractItemModel(parent)
-    , _selectionMode(SM_POINT)
+    , _selectionMode(SM_PATCH)
 {
     root = new Node();
 }
@@ -336,11 +336,8 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
     m.lock();
 
     std::vector<Patch *> *vec = &displayObjects;
-
-    // if (selectedObjects.empty())
-    //     vec = &dispObjects;
-    // else
-    //     vec = new std::vector<Patch *>(selectedObjects.begin(), selectedObjects.end());
+    if (!selectedObjects.empty())
+        vec = new std::vector<Patch *>(selectedObjects.begin(), selectedObjects.end());
 
     DisplayObject *a = (*vec)[0]->obj(), *b;
     farthestPointFrom(a, &b, vec);
@@ -358,8 +355,8 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     *radius += 2 * maxRadius;
 
-    // if (!selectedObjects.empty())
-    //     delete vec;
+    if (!selectedObjects.empty())
+        delete vec;
 
     m.unlock();
 }

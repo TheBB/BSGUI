@@ -57,25 +57,25 @@ QSize GLWidget::sizeHint() const
 
 void GLWidget::centerOnSelected()
 {
-//     QVector3D center;
-//     float radius;
-//     objectSet->boundingSphere(&center, &radius);
+    QVector3D center;
+    float radius;
+    objectSet->boundingSphere(&center, &radius);
 
-//     _lookAt = center;
-//     emit lookAtChanged(_lookAt, true);
+    _lookAt = center;
+    emit lookAtChanged(_lookAt, true);
 
-//     if (!objectSet->hasSelection())
-//     {
-//         if (radius > 0.0)
-//             _diameter = 2.0 * radius;
-//         else
-//             _diameter = 1.0;
+    if (!objectSet->hasSelection())
+    {
+        if (radius > 0.0)
+            _diameter = 2.0 * radius;
+        else
+            _diameter = 1.0;
 
-//         setFov(45.0, true);
-//         setZoom(0.0, true);
-//     }
+        setFov(45.0, true);
+        setZoom(0.0, true);
+    }
 
-//     update();
+    update();
 }
 
 

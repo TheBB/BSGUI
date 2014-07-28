@@ -99,7 +99,7 @@ public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
 
-    // bool hasSelection() { return !selectedObjects.empty(); }
+    bool hasSelection() { return !selectedObjects.empty(); }
     // bool selectFaces() { return _selectFaces; }
     // void setSelectFaces(bool val, bool fromMouse);
     inline SelectionMode selectionMode() { return _selectionMode; }
