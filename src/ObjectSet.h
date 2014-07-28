@@ -100,9 +100,8 @@ public:
     ~ObjectSet();
 
     bool hasSelection() { return !selectedObjects.empty(); }
-    // bool selectFaces() { return _selectFaces; }
-    // void setSelectFaces(bool val, bool fromMouse);
     inline SelectionMode selectionMode() { return _selectionMode; }
+    void setSelectionMode(SelectionMode mode);
 
     std::mutex m;
 
@@ -134,7 +133,6 @@ signals:
     void requestInitialization(DisplayObject *obj);
     void update();
     void selectionChanged();
-    void selectFacesChanged(bool val, bool fromMouse);
 
 private:
     Node *root;

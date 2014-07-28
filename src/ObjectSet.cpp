@@ -134,24 +134,18 @@ ObjectSet::~ObjectSet()
 }
 
 
-// void ObjectSet::setSelectFaces(bool val, bool fromMouse)
-// {
-//     _selectFaces = val;
+void ObjectSet::setSelectionMode(SelectionMode mode)
+{
+    if (mode != _selectionMode)
+    {
+        _selectionMode = mode;
 
-//     if (!_selectFaces)
-//     {
-//         for (auto p : selectedObjects)
-//         {
-//             for (int i = 0; i < 6; i++)
-//                 p->obj()->selectFace(i);
-//             signalCheckChange(p);
-//         }
+        for (auto p : selectedObjects)
+            p->obj()->selectionMode(mode, true);
+    }
 
-//         emit selectionChanged();
-//     }
-
-//     emit selectFacesChanged(val, fromMouse);
-// }
+    emit selectionChanged();
+}
 
 
 QModelIndex ObjectSet::index(int row, int column, const QModelIndex &parent) const
