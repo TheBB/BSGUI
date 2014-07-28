@@ -1,16 +1,14 @@
-#include <algorithm>
-
 #include "DisplayObject.h"
 
-const QVector4D FACE_COLOR_NORMAL    = QVector4D(0.737, 0.929, 1.000, 1.0);
-const QVector4D LINE_COLOR_NORMAL    = QVector4D(0.431, 0.663, 0.749, 0.5);
-const QVector4D EDGE_COLOR_NORMAL    = QVector4D(0.000, 0.000, 0.000, 1.0);
-const QVector4D POINT_COLOR_NORMAL   = QVector4D(0.000, 0.000, 0.000, 1.0);
+const QVector3D FACE_COLOR_NORMAL    = QVector3D(0.737, 0.929, 1.000);
+const QVector3D LINE_COLOR_NORMAL    = QVector3D(0.431, 0.663, 0.749);
+const QVector3D EDGE_COLOR_NORMAL    = QVector3D(0.000, 0.000, 0.000);
+const QVector3D POINT_COLOR_NORMAL   = QVector3D(0.000, 0.000, 0.000);
 
-const QVector4D FACE_COLOR_SELECTED  = QVector4D(1.000, 0.867, 0.737, 1.0);
-const QVector4D LINE_COLOR_SELECTED  = QVector4D(0.749, 0.620, 0.431, 0.5);
-const QVector4D EDGE_COLOR_SELECTED  = QVector4D(0.776, 0.478, 0.427, 1.0);
-const QVector4D POINT_COLOR_SELECTED = QVector4D(0.776, 0.478, 0.427, 1.0);
+const QVector3D FACE_COLOR_SELECTED  = QVector3D(1.000, 0.867, 0.737);
+const QVector3D LINE_COLOR_SELECTED  = QVector3D(0.749, 0.620, 0.431);
+const QVector3D EDGE_COLOR_SELECTED  = QVector3D(0.776, 0.478, 0.427);
+const QVector3D POINT_COLOR_SELECTED = QVector3D(0.776, 0.478, 0.427);
 
 
 #define LINE_WIDTH 1.1
@@ -25,8 +23,8 @@ DisplayObject::DisplayObject(int parts)
     : _initialized(false)
     , _selectionMode(SM_NONE)
     , _visible(true)
-    , vertexBufferFaces(QOpenGLBuffer::VertexBuffer)
-    , vertexBufferGrid(QOpenGLBuffer::VertexBuffer)
+    , vertexBuffer(QOpenGLBuffer::VertexBuffer)
+    , normalBuffer(QOpenGLBuffer::VertexBuffer)
     , faceBuffer(QOpenGLBuffer::IndexBuffer)
     , elementBuffer(QOpenGLBuffer::IndexBuffer)
     , edgeBuffer(QOpenGLBuffer::IndexBuffer)
@@ -48,8 +46,8 @@ DisplayObject::~DisplayObject()
     {
         _initialized = false;
 
-        vertexBufferFaces.destroy();
-        vertexBufferGrid.destroy();
+        vertexBuffer.destroy();
+        normalBuffer.destroy();
         faceBuffer.destroy();
         elementBuffer.destroy();
         edgeBuffer.destroy();
@@ -60,11 +58,11 @@ DisplayObject::~DisplayObject()
 
 void DisplayObject::initialize()
 {
-    createBuffer(vertexBufferFaces);
-    vertexBufferFaces.allocate(&vertexDataFaces[0], 3 * vertexDataFaces.size() * sizeof(float));
+    createBuffer(vertexBuffer);
+    vertexBuffer.allocate(&vertexData[0], 3 * vertexData.size() * sizeof(float));
 
-    createBuffer(vertexBufferGrid);
-    vertexBufferGrid.allocate(&vertexDataGrid[0], 3 * vertexDataGrid.size() * sizeof(float));
+    createBuffer(normalBuffer);
+    normalBuffer.allocate(&normalData[0], 3 * normalData.size() * sizeof(float));
 
     createBuffer(faceBuffer);
     faceBuffer.allocate(&faceData[0], 4 * faceData.size() * sizeof(GLuint));
@@ -128,53 +126,43 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
     std::set<uint> sel, unsel;
 
     prog.bind();
-    prog.setUniformValue("mvp", mvp);
 
-    // Bind face vertices
-    vertexBufferFaces.bind();
-    prog.enableAttributeArray("vertexPosition");
-    prog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
+    bindBuffer(prog, vertexBuffer, "vertexPosition");
+    bindBuffer(prog, normalBuffer, "vertexNormal");
 
-    // Draw faces
+
     faceBuffer.bind();
     sortSelection(selectedFaces, visibleFaces, sel, unsel);
-    prog.setUniformValue("col", FACE_COLOR_SELECTED);
-    drawCommand(GL_QUADS, sel, nFaces(), faceIdxs);
-    prog.setUniformValue("col", FACE_COLOR_NORMAL);
-    drawCommand(GL_QUADS, unsel, nFaces(), faceIdxs);
+
+    setUniforms(prog, mvp, FACE_COLOR_SELECTED, 0.0); drawCommand(GL_QUADS, sel, nFaces(), faceIdxs);
+    setUniforms(prog, mvp, FACE_COLOR_NORMAL, 0.0); drawCommand(GL_QUADS, unsel, nFaces(), faceIdxs);
 
 
-    // Bind grid vertices
-    vertexBufferGrid.bind();
-    prog.enableAttributeArray("vertexPosition");
-    prog.setAttributeBuffer("vertexPosition", GL_FLOAT, 0, 3);
-
-    // Draw elements
     elementBuffer.bind();
     glLineWidth(LINE_WIDTH);
-    sortSelection(selectedFaces, visibleFaces, sel, unsel);
-    prog.setUniformValue("col", LINE_COLOR_SELECTED);
-    drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
-    prog.setUniformValue("col", LINE_COLOR_NORMAL);
-    drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
 
-    // Draw edges
+    setUniforms(prog, mvp, LINE_COLOR_SELECTED, 0.0001); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
+    setUniforms(prog, mvp, LINE_COLOR_NORMAL, 0.0001); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
+    setUniforms(prog, mvp, LINE_COLOR_SELECTED, -0.0001); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
+    setUniforms(prog, mvp, LINE_COLOR_NORMAL, -0.0001); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
+
+
     edgeBuffer.bind();
-    glLineWidth(EDGE_WIDTH);
     sortSelection(selectedEdges, visibleEdges, sel, unsel);
-    prog.setUniformValue("col", EDGE_COLOR_SELECTED);
-    drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
-    prog.setUniformValue("col", EDGE_COLOR_NORMAL);
-    drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
+    glLineWidth(EDGE_WIDTH);
 
-    // Draw points
+    setUniforms(prog, mvp, EDGE_COLOR_SELECTED, 0.0002); drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
+    setUniforms(prog, mvp, EDGE_COLOR_NORMAL, 0.0002); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
+    setUniforms(prog, mvp, EDGE_COLOR_SELECTED, -0.001); drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
+    setUniforms(prog, mvp, EDGE_COLOR_NORMAL, -0.001); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
+
+
     pointBuffer.bind();
-    glPointSize(POINT_SIZE);
     sortSelection(selectedPoints, visiblePoints, sel, unsel);
-    prog.setUniformValue("col", POINT_COLOR_SELECTED);
-    drawCommandPts(sel, nPoints());
-    prog.setUniformValue("col", POINT_COLOR_NORMAL);
-    drawCommandPts(unsel, nPoints());
+    glPointSize(POINT_SIZE);
+
+    setUniforms(prog, mvp, POINT_COLOR_SELECTED, 0.0); drawCommandPts(sel, nPoints());
+    setUniforms(prog, mvp, POINT_COLOR_NORMAL, 0.0); drawCommandPts(unsel, nPoints());
 }
 
 
@@ -185,7 +173,7 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
 
 void DisplayObject::computeBoundingSphere()
 {
-    QVector3D point = vertexDataGrid[0], found;
+    QVector3D point = vertexData[0], found;
 
     farthestPointFrom(point, &found);
     farthestPointFrom(point, &found);
@@ -201,7 +189,7 @@ void DisplayObject::farthestPointFrom(QVector3D point, QVector3D *found)
 {
     float distance = -1;
 
-    for (auto p : vertexDataGrid)
+    for (auto p : vertexData)
     {
         float _distance = (p - point).length();
         if (_distance > distance)
@@ -215,7 +203,7 @@ void DisplayObject::farthestPointFrom(QVector3D point, QVector3D *found)
 
 void DisplayObject::ritterSphere()
 {
-    for (auto p : vertexDataGrid)
+    for (auto p : vertexData)
     {
         float d = (p - _center).length();
         if (d > _radius)
@@ -265,9 +253,12 @@ void DisplayObject::selectObject(bool selected)
 {
     if (selected)
     {
-        selectedFaces = visibleFaces;
-        selectedEdges = visibleEdges;
-        selectedPoints = visiblePoints;
+        for (int i = 0; i < nFaces(); i++)
+            selectedFaces.insert(i);
+        for (int i = 0; i < nEdges(); i++)
+            selectedEdges.insert(i);
+        for (int i = 0; i < nEdges(); i++)
+            selectedPoints.insert(i);
     }
     else
     {
@@ -290,13 +281,10 @@ void DisplayObject::selectFaces(bool selected, std::set<uint> faces)
         return;
     }
 
-    std::set<uint> isct;
-    set_intersection(faces.begin(), faces.end(), visibleFaces.begin(), visibleFaces.end(),
-                     std::inserter(isct, isct.begin()));
-    selectedFaces.insert(isct.begin(), isct.end());
+    selectedFaces.insert(faces.begin(), faces.end());
 
     std::set<uint> edges;
-    for (auto f : isct)
+    for (auto f : faces)
     {
         edges.insert(faceEdgeMap[f].a);
         edges.insert(faceEdgeMap[f].b);
@@ -319,13 +307,10 @@ void DisplayObject::selectEdges(bool selected, std::set<uint> edges)
         return;
     }
 
-    std::set<uint> isct;
-    set_intersection(edges.begin(), edges.end(), visibleEdges.begin(), visibleEdges.end(),
-                     std::inserter(isct, isct.begin()));
-    selectedEdges.insert(isct.begin(), isct.end());
+    selectedEdges.insert(edges.begin(), edges.end());
 
     std::set<uint> points;
-    for (auto e : isct)
+    for (auto e : edges)
     {
         points.insert(edgePointMap[e].a);
         points.insert(edgePointMap[e].b);
@@ -338,12 +323,7 @@ void DisplayObject::selectEdges(bool selected, std::set<uint> edges)
 void DisplayObject::selectPoints(bool selected, std::set<uint> points)
 {
     if (selected)
-    {
-        std::set<uint> isct;
-        set_intersection(points.begin(), points.end(), visiblePoints.begin(), visiblePoints.end(),
-                         std::inserter(isct, isct.begin()));
-        selectedPoints.insert(isct.begin(), isct.end());
-    }
+        selectedPoints.insert(points.begin(), points.end());
     else
         for (auto p : points)
             selectedPoints.erase(p);
@@ -407,6 +387,22 @@ void DisplayObject::createBuffer(QOpenGLBuffer &buffer)
     buffer.create();
     buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     buffer.bind();
+}
+
+
+void DisplayObject::bindBuffer(QOpenGLShaderProgram &prog, QOpenGLBuffer &buffer, const char *attribute)
+{
+    buffer.bind();
+    prog.enableAttributeArray(attribute);
+    prog.setAttributeBuffer(attribute, GL_FLOAT, 0, 3);
+}
+
+
+void DisplayObject::setUniforms(QOpenGLShaderProgram &prog, QMatrix4x4 mvp, QVector3D col, float p)
+{
+    prog.setUniformValue("mvp", mvp);
+    prog.setUniformValue("col", col);
+    prog.setUniformValue("p", p);
 }
 
 

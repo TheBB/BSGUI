@@ -29,8 +29,8 @@ public:
 
     inline bool visible() { return _visible; }
 
-    void draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &cprog);
-    void drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &cprog);
+    void draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog);
+    void drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog);
 
     inline QVector3D center() { return _center; };
     inline float radius() { return _radius; }
@@ -49,8 +49,7 @@ protected:
     QVector3D _center;
     float _radius;
 
-    std::vector<QVector3D> vertexDataFaces;
-    std::vector<QVector3D> vertexDataGrid;
+    std::vector<QVector3D> vertexData, normalData;
     std::vector<quad> faceData;
     std::vector<pair> elementData, edgeData;
     std::vector<GLuint> pointData;
@@ -71,7 +70,7 @@ private:
 
     std::set<uint> selectedFaces, selectedEdges, selectedPoints;
 
-    QOpenGLBuffer vertexBufferFaces, vertexBufferGrid, faceBuffer, elementBuffer, edgeBuffer, pointBuffer;
+    QOpenGLBuffer vertexBuffer, normalBuffer, faceBuffer, elementBuffer, edgeBuffer, pointBuffer;
 
     void farthestPointFrom(QVector3D point, QVector3D *found);
     void ritterSphere();
@@ -82,7 +81,9 @@ private:
     void balloonPointsToEdges(bool conjunction);
 
     static void createBuffer(QOpenGLBuffer &buffer);
-
+    static void bindBuffer(QOpenGLShaderProgram &prog, QOpenGLBuffer &buffer, const char *attribute);
+    static void setUniforms(QOpenGLShaderProgram&, QMatrix4x4, QVector3D, float);
+    
     static uchar sColor[3];
     static void incColors(uchar col[3], int num);
 };

@@ -58,33 +58,6 @@ private:
             2*nPtsU*nPtsV + 2*nPtsU*(nPtsW-2) + (nPtsV-2)*(j-1) + (i-1);
     }
 
-    inline uint uvtPt(uint i, uint j, bool posW)
-    {
-        return posW ?
-            ntPtsU*ntPtsV + ntPtsU*j + i :
-            ntPtsU*j + i;
-    }
-
-    inline uint uwtPt(uint i, uint j, bool posV)
-    {
-        if (j == 0 || j == ntW)
-            return uvtPt(i, posV ? ntV : 0, j != 0);
-        return posV ?
-            2*ntPtsU*ntPtsV + ntPtsU*(ntPtsW-2) + ntPtsU*(j-1) + i :
-            2*ntPtsU*ntPtsV + ntPtsU*(j-1) + i;
-    }
-
-    inline uint vwtPt(uint i, uint j, bool posU)
-    {
-        if (j == 0 || j == ntW)
-            return uvtPt(posU ? ntU : 0, i, j != 0);
-        if (i == 0 || i == ntV)
-            return uwtPt(posU ? ntU : 0, j, i != 0);
-        return posU ?
-            2*ntPtsU*ntPtsV + 2*ntPtsU*(ntPtsW-2) + (ntPtsV-2)*(ntPtsW-2) + (ntPtsV-2)*(j-1) + (i-1) :
-            2*ntPtsU*ntPtsV + 2*ntPtsU*(ntPtsW-2) + (ntPtsV-2)*(j-1) + (i-1);
-    }
-
     inline uint uvFace(uint i, uint j, bool posW)
     {
         return posW ?
@@ -109,37 +82,37 @@ private:
     inline uint uElmt(uint i, int j, bool posO, bool axV)
     {
         if (axV)
-            return 2*nLinesUV + (posO ? nLinesUW : 0) + ntU*j + i;
-        return (posO ? nLinesUV : 0) + ntU*j + i;
+            return 2*nLinesUV + (posO ? nLinesUW : 0) + nU*j + i;
+        return (posO ? nLinesUV : 0) + nU*j + i;
     }
 
     inline uint vElmt(uint i, int j, bool posO, bool axU)
     {
         if (axU)
-            return 2*nLinesUV + 2*nLinesUW + (posO ? nLinesVW : 0) + ntV*j + i;
-        return ntU*(ntV-1) + (posO ? nLinesUV : 0) + ntV*j + i;
+            return 2*nLinesUV + 2*nLinesUW + (posO ? nLinesVW : 0) + nV*j + i;
+        return nU*(ntV-1) + (posO ? nLinesUV : 0) + nV*j + i;
     }
 
     inline uint wElmt(uint i, int j, bool posO, bool axU)
     {
         if (axU)
-            return 2*nLinesUV + 2*nLinesUW + ntV*(ntW-1) + (posO ? nLinesVW : 0) + ntW*j + i;
-        return 2*nLinesUV + ntU*(ntW-1) + (posO ? nLinesUW : 0) + ntW*j + i;
+            return 2*nLinesUV + 2*nLinesUW + nV*(ntW-1) + (posO ? nLinesVW : 0) + nW*j + i;
+        return 2*nLinesUV + nU*(ntW-1) + (posO ? nLinesUW : 0) + nW*j + i;
     }
 
     inline uint uEdge(uint i, bool posV, bool posW)
     {
-        return (posV ? ntU : 0) + (posW ? 2*ntU : 0) + i;
+        return (posV ? nU : 0) + (posW ? 2*nU : 0) + i;
     }
 
     inline uint vEdge(uint i, bool posU, bool posW)
     {
-        return 4*ntU + (posU ? ntV : 0) + (posW ? 2*ntV : 0) + i;
+        return 4*nU + (posU ? nV : 0) + (posW ? 2*nV : 0) + i;
     }
 
     inline uint wEdge(uint i, bool posU, bool posV)
     {
-        return 4*(ntU+ntV) + (posU ? ntW : 0) + (posV ? 2*ntW : 0) + i;
+        return 4*(nU+nV) + (posU ? nW : 0) + (posV ? 2*nW : 0) + i;
     }
 };
 
