@@ -13,7 +13,8 @@
 #ifndef _OBJECTSET_H_
 #define _OBJECTSET_H_
 
-enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, /* NT_FACE */ };
+enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, NT_COMPONENTS, NT_COMPONENT };
+enum ComponentType { CT_FACE, CT_EDGE, CT_POINT };
 
 class Node
 {
@@ -28,7 +29,7 @@ public:
     Node *getChild(int idx);
     int indexOfChild(Node *child);
     int indexInParent();
-    int numberOfChildren();
+    int nChildren();
 
     inline Node *parent() { return _parent; }
 
@@ -77,18 +78,36 @@ private:
 };
 
 
-// class Face : public Node
-// {
-// public:
-//     Face(int index, Node *parent = NULL);
-//     ~Face() {};
+class Components : public Node
+{
+public:
+    Components(ComponentType type, Node *parent = NULL);
+    ~Components() {};
 
-//     NodeType type() { return NT_FACE; }
-//     QString displayString();
+    virtual NodeType type () { return NT_COMPONENTS; }
+    virtual QString displayString();
 
-// private:
-//     int _index;
-// };
+    inline ComponentType cType() { return _type; }
+
+private:
+    ComponentType _type;
+};
+
+
+class Component : public Node
+{
+public:
+    Component(int index, Node *parent = NULL);
+    ~Component() {};
+
+    virtual NodeType type () { return NT_COMPONENT; }
+    virtual QString displayString();
+
+    bool isSelected();
+
+private:
+    int _index;
+};
 
 
 class ObjectSet : public QAbstractItemModel
@@ -142,12 +161,11 @@ private:
 
     std::vector<Patch *> displayObjects;
     std::set<Patch *> selectedObjects;
-    // bool _selectFaces;
 
     void farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vector<Patch *> *vec);
     void ritterSphere(QVector3D *center, float *radius, std::vector<Patch *> *vec);
 
-    // void signalCheckChange(Patch *patch);
+    void signalCheckChange(Patch *patch);
 };
 
 #endif /* _OBJECTSET_H_ */

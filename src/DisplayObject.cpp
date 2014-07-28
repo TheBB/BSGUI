@@ -378,6 +378,19 @@ void DisplayObject::selectPoints(bool selected, std::set<uint> points)
 }
 
 
+bool DisplayObject::fullSelection(SelectionMode mode)
+{
+    if (mode == SM_PATCH)
+        return hasSelection();
+    else if (mode == SM_FACE)
+        return selectedFaces.size() == nFaces();
+    else if (mode == SM_EDGE)
+        return selectedEdges.size() == nEdges();
+    else if (mode == SM_POINT)
+        return selectedPoints.size() == nPoints();
+}
+
+
 void DisplayObject::refreshEdgesFromFaces()
 {
     selectedEdges.clear();
