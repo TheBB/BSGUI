@@ -99,10 +99,10 @@ public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
 
-
     // bool hasSelection() { return !selectedObjects.empty(); }
     // bool selectFaces() { return _selectFaces; }
     // void setSelectFaces(bool val, bool fromMouse);
+    inline SelectionMode selectionMode() { return _selectionMode; }
 
     std::mutex m;
 
@@ -117,7 +117,7 @@ public:
 
     void addCubeFromCenter(QVector3D center);
     void boundingSphere(QVector3D *center, float *radius);
-    // void setSelection(std::set<uint> *picks, bool clear = true);
+    void setSelection(std::set<uint> *picks, bool clear = true);
     // void addToSelection(Node *node, bool signal = true);
     // void removeFromSelection(Node *node, bool signal = true);
 
@@ -140,8 +140,10 @@ private:
     Node *root;
     Node *getOrCreateFileNode(QString fileName);
 
+    SelectionMode _selectionMode;
+
     std::vector<Patch *> displayObjects;
-    // std::set<Patch *> selectedObjects;
+    std::set<Patch *> selectedObjects;
     // bool _selectFaces;
 
     void farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vector<Patch *> *vec);

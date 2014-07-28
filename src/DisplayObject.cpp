@@ -10,6 +10,8 @@ const QVector3D LINE_COLOR_SELECTED  = QVector3D(0.749, 0.620, 0.431);
 const QVector3D EDGE_COLOR_SELECTED  = QVector3D(0.776, 0.478, 0.427);
 const QVector3D POINT_COLOR_SELECTED = QVector3D(0.776, 0.478, 0.427);
 
+const QVector3D WHITE = QVector3D(1.0, 1.0, 1.0);
+
 
 #define LINE_WIDTH 1.1
 #define EDGE_WIDTH 2.0
@@ -21,7 +23,6 @@ uchar DisplayObject::sColor[3] = {0, 0, 0};
 
 DisplayObject::DisplayObject(int parts)
     : _initialized(false)
-    , _selectionMode(SM_NONE)
     , _visible(true)
     , vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , normalBuffer(QOpenGLBuffer::VertexBuffer)
@@ -33,6 +34,9 @@ DisplayObject::DisplayObject(int parts)
     , selectedEdges {}
     , selectedPoints {}
 {
+    minColor = sColor[0] + 255*sColor[1] + 255*255*sColor[2];
+    maxColor = minColor + parts;
+
     for (int i = 0; i < 3; i++)
         color[i] = sColor[i];
 
@@ -143,9 +147,7 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
 
     setUniforms(prog, mvp, LINE_COLOR_SELECTED, 0.0001); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
     setUniforms(prog, mvp, LINE_COLOR_NORMAL, 0.0001); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
-    setUniforms(prog, mvp, LINE_COLOR_SELECTED, -0.0001); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
-    setUniforms(prog, mvp, LINE_COLOR_NORMAL, -0.0001); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
-
+    
 
     edgeBuffer.bind();
     sortSelection(selectedEdges, visibleEdges, sel, unsel);
@@ -153,8 +155,6 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
 
     setUniforms(prog, mvp, EDGE_COLOR_SELECTED, 0.0002); drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
     setUniforms(prog, mvp, EDGE_COLOR_NORMAL, 0.0002); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
-    setUniforms(prog, mvp, EDGE_COLOR_SELECTED, -0.001); drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
-    setUniforms(prog, mvp, EDGE_COLOR_NORMAL, -0.001); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
 
 
     pointBuffer.bind();
@@ -166,8 +166,59 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
 }
 
 
-void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
+void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, SelectionMode mode)
 {
+    if (!_initialized)
+        return;
+
+    uchar col[3]; col[0] = color[0]; col[1] = color[1]; col[2] = color[2];
+
+    prog.bind();
+
+    bindBuffer(prog, vertexBuffer, "vertexPosition");
+    bindBuffer(prog, normalBuffer, "vertexNormal");
+
+
+    faceBuffer.bind();
+    if (mode == SM_PATCH)
+    {
+        setUniforms(prog, mvp, col, 0.0); incColors(col, 1);
+        drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+    }
+    else if (mode == SM_FACE)
+    {
+        for (auto f : visibleFaces)
+        {
+            setUniforms(prog, mvp, col, 0.0); incColors(col, 1);
+            drawCommand(GL_QUADS, {f}, nFaces(), faceIdxs);
+        }
+    }
+    else if (mode == SM_EDGE)
+    {
+        setUniforms(prog, mvp, WHITE, 0.0);
+        drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+
+        edgeBuffer.bind();
+        glLineWidth(20 * EDGE_WIDTH);
+        for (auto e : visibleEdges)
+        {
+            setUniforms(prog, mvp, col, 0.0002); incColors(col, 1);
+            drawCommand(GL_LINES, {e}, nEdges(), edgeIdxs);
+        }
+    }
+    else if (mode == SM_POINT)
+    {
+        setUniforms(prog, mvp, WHITE, 0.0);
+        drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+
+        pointBuffer.bind();
+        glPointSize(POINT_SIZE);
+        for (auto p : visiblePoints)
+        {
+            setUniforms(prog, mvp, col, 0.0002); incColors(col, 1);
+            drawCommandPts({p}, nPoints());
+        }
+    }
 }
 
 
@@ -217,9 +268,6 @@ void DisplayObject::ritterSphere()
 
 void DisplayObject::selectionMode(SelectionMode mode, bool conjunction)
 {
-    if (_selectionMode == mode)
-        return;
-
     switch (mode)
     {
     case SM_PATCH:
@@ -402,6 +450,14 @@ void DisplayObject::setUniforms(QOpenGLShaderProgram &prog, QMatrix4x4 mvp, QVec
 {
     prog.setUniformValue("mvp", mvp);
     prog.setUniformValue("col", col);
+    prog.setUniformValue("p", p);
+}
+
+
+void DisplayObject::setUniforms(QOpenGLShaderProgram &prog, QMatrix4x4 mvp, uchar *col, float p)
+{
+    prog.setUniformValue("mvp", mvp);
+    prog.setUniformValue("col", QVector3D((float) col[0]/255, (float) col[1]/255, (float) col[2]/255));
     prog.setUniformValue("p", p);
 }
 

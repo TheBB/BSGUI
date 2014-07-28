@@ -16,7 +16,7 @@ typedef unsigned int uint;
 typedef struct { GLuint a, b, c, d; } quad;
 typedef struct { GLuint a, b; } pair;
 enum ObjectType { OT_VOLUME, OT_FACE, OT_CURVE };
-enum SelectionMode { SM_NONE, SM_PATCH, SM_FACE, SM_EDGE, SM_POINT };
+enum SelectionMode { SM_PATCH, SM_FACE, SM_EDGE, SM_POINT };
 
 class DisplayObject
 {
@@ -30,7 +30,7 @@ public:
     inline bool visible() { return _visible; }
 
     void draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog);
-    void drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog);
+    void drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, SelectionMode mode);
 
     inline QVector3D center() { return _center; };
     inline float radius() { return _radius; }
@@ -44,6 +44,9 @@ public:
     void selectFaces(bool selected, std::set<uint> faces);
     void selectEdges(bool selected, std::set<uint> edges);
     void selectPoints(bool selected, std::set<uint> points);
+
+    inline bool hasColor(uint color) { return minColor <= color && color < maxColor; }
+    inline uint baseColor() { return minColor; }
 
 protected:
     QVector3D _center;
@@ -65,8 +68,8 @@ protected:
 
 private:
     bool _initialized;
-    SelectionMode _selectionMode;
     uchar color[3];
+    uint minColor, maxColor;
 
     std::set<uint> selectedFaces, selectedEdges, selectedPoints;
 
@@ -83,6 +86,7 @@ private:
     static void createBuffer(QOpenGLBuffer &buffer);
     static void bindBuffer(QOpenGLShaderProgram &prog, QOpenGLBuffer &buffer, const char *attribute);
     static void setUniforms(QOpenGLShaderProgram&, QMatrix4x4, QVector3D, float);
+    static void setUniforms(QOpenGLShaderProgram&, QMatrix4x4, uchar *, float);
     
     static uchar sColor[3];
     static void incColors(uchar col[3], int num);

@@ -122,7 +122,7 @@ QString Patch::displayString()
 
 ObjectSet::ObjectSet(QObject *parent)
     : QAbstractItemModel(parent)
-    // , _selectFaces(false)
+    , _selectionMode(SM_POINT)
 {
     root = new Node();
 }
@@ -365,39 +365,37 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 }
 
 
-// void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
-// {
-//     if (clear)
-//     {
-//         for (auto o : selectedObjects)
-//         {
-//             o->obj()->clearSelection();
-//             signalCheckChange(static_cast<Patch *>(o));
-//         }
-//         selectedObjects.clear();
-//     }
+void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
+{
+    if (clear)
+    {
+        for (auto o : selectedObjects)
+            o->obj()->selectObject(false);
+        selectedObjects.clear();
+    }
 
-//     for (auto p : *picks)
-//     {
-//         int idx = p / 6;
-//         int face = p % 6;
+    std::vector<Patch *>::iterator it = displayObjects.begin();
+    for (auto p : *picks)
+    {
+        while (!(*it)->obj()->hasColor(p) && it != displayObjects.end())
+            it++;
 
-//         if (idx > dispObjects.size() || idx < 0 || face > 5 || face < 0)
-//             continue;
+        if (it == displayObjects.end())
+            break;
 
-//         selectedObjects.insert(dispObjects[idx]);
+        selectedObjects.insert(*it);
 
-//         if (_selectFaces)
-//             dispObjects[idx]->obj()->selectFace(face);
-//         else
-//             for (int i = 0; i < 6; i++)
-//                 dispObjects[idx]->obj()->selectFace(i);
+        switch (_selectionMode)
+        {
+        case SM_PATCH: (*it)->obj()->selectObject(true); break;
+        case SM_FACE:  (*it)->obj()->selectFaces(true,  {p - (*it)->obj()->baseColor()}); break;
+        case SM_EDGE:  (*it)->obj()->selectEdges(true,  {p - (*it)->obj()->baseColor()}); break;
+        case SM_POINT: (*it)->obj()->selectPoints(true, {p - (*it)->obj()->baseColor()}); break;
+        }
+    }
 
-//         signalCheckChange(dispObjects[idx]);
-//     }
-
-//     emit selectionChanged();
-// }
+    emit selectionChanged();
+}
 
 
 // void ObjectSet::addToSelection(Node *node, bool signal)

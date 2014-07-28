@@ -2,7 +2,7 @@
 
 
 Volume::Volume(QVector3D center)
-    : DisplayObject(27)
+    : DisplayObject(12)
 {
     // Pre refinement
     ntU = 3; ntV = 4; ntW = 5;
