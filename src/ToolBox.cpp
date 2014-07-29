@@ -56,7 +56,7 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
     selModeLayout->addWidget(edgesBtn, 1, 0, 1, 1);
     edgesBtn->setChecked(objectSet->selectionMode() == SM_EDGE);
 
-    QRadioButton *pointsBtn = new QRadioButton("Points");
+    QRadioButton *pointsBtn = new QRadioButton("Vertices");
     selModeLayout->addWidget(pointsBtn, 1, 1, 1, 1);
     pointsBtn->setChecked(objectSet->selectionMode() == SM_POINT);
 

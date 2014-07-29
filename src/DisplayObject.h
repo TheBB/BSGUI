@@ -55,6 +55,8 @@ public:
     inline bool edgeSelected(uint i) { return selectedEdges.find(i) != selectedEdges.end(); }
     inline bool pointSelected(uint i) { return selectedPoints.find(i) != selectedPoints.end(); }
 
+    void showSelected(SelectionMode mode, bool visible);
+
     inline bool hasColor(uint color) { return minColor <= color && color < maxColor; }
     inline uint baseColor() { return minColor; }
 

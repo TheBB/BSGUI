@@ -403,6 +403,53 @@ bool DisplayObject::fullSelection(SelectionMode mode)
 }
 
 
+void DisplayObject::showSelected(SelectionMode mode, bool visible)
+{
+    if (mode == SM_PATCH)
+    {
+        if (!visible)
+        {
+            visibleFaces = {};
+            visibleEdges = {};
+            visiblePoints = {};
+        }
+        else
+        {
+            for (int i = 0; i < nFaces(); i++)
+                visibleFaces.insert(i);
+            for (int i = 0; i < nEdges(); i++)
+                visibleEdges.insert(i);
+            for (int i = 0; i < nPoints(); i++)
+                visiblePoints.insert(i);
+        }
+    }
+    else if (mode == SM_FACE)
+    {
+        if (!visible)
+            for (auto f : selectedFaces)
+                visibleFaces.erase(f);
+        else
+            visibleFaces.insert(selectedFaces.begin(), selectedFaces.end());
+    }
+    else if (mode == SM_EDGE)
+    {
+        if (!visible)
+            for (auto f : selectedEdges)
+                visibleEdges.erase(f);
+        else
+            visibleEdges.insert(selectedEdges.begin(), selectedEdges.end());
+    }
+    else if (mode == SM_POINT)
+    {
+        if (!visible)
+            for (auto f : selectedPoints)
+                visiblePoints.erase(f);
+        else
+            visiblePoints.insert(selectedPoints.begin(), selectedPoints.end());
+    }
+}
+
+
 void DisplayObject::refreshEdgesFromFaces()
 {
     selectedEdges.clear();

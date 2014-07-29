@@ -95,9 +95,25 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
             glWidget->setPerspective(!glWidget->perspective());
         return true;
 
-    case Qt::Key_O:
+    case Qt::Key_V:
         if (e->modifiers().testFlag(Qt::ControlModifier))
             objectSet->setSelectionMode(SM_POINT, true);
+        return true;
+
+    case Qt::Key_H:
+        if (e->modifiers().testFlag(Qt::ControlModifier))
+            objectSet->showAllSelectedPatches(false);
+        else
+            objectSet->showSelected(false);
+        return true;
+
+    case Qt::Key_S:
+        if (e->modifiers().testFlag(Qt::ControlModifier) && e->modifiers().testFlag(Qt::ShiftModifier))
+            objectSet->showAll();
+        else if (e->modifiers().testFlag(Qt::ControlModifier))
+            objectSet->showAllSelectedPatches(true);
+        else
+            objectSet->showSelected(true);
         return true;
 
     case Qt::Key_Control:

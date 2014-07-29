@@ -145,7 +145,7 @@ Components::Components(ComponentType type, Node *parent)
 
 QString Components::displayString()
 {
-    return (_type == CT_FACE ? "Faces" : (_type == CT_EDGE ? "Edges" : "Points"));
+    return (_type == CT_FACE ? "Faces" : (_type == CT_EDGE ? "Edges" : "Vertices"));
 }
 
 
@@ -160,7 +160,7 @@ QString Component::displayString()
 {
     Components *p = static_cast<Components *>(_parent);
     return (QString("%1 %2")
-            .arg(p->cType() == CT_FACE ? "Face" : (p->cType() == CT_EDGE ? "Edge" : "Point"))
+            .arg(p->cType() == CT_FACE ? "Face" : (p->cType() == CT_EDGE ? "Edge" : "Vertex"))
             .arg(_index + 1));
 }
 
@@ -208,6 +208,33 @@ void ObjectSet::setSelectionMode(SelectionMode mode, bool fromMouse)
 
     emit selectionChanged();
     emit selectionModeChanged(_selectionMode, fromMouse);
+}
+
+
+void ObjectSet::showSelected(bool visible)
+{
+    for (auto p : selectedObjects)
+        p->obj()->showSelected(_selectionMode, visible);
+
+    emit update();
+}
+
+
+void ObjectSet::showAllSelectedPatches(bool visible)
+{
+    for (auto p : selectedObjects)
+        p->obj()->showSelected(SM_PATCH, visible);
+
+    emit update();
+}
+
+
+void ObjectSet::showAll()
+{
+    for (auto p : displayObjects)
+        p->obj()->showSelected(SM_PATCH, true);
+
+    emit update();
 }
 
 

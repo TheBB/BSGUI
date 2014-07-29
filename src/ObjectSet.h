@@ -124,6 +124,9 @@ public:
     bool hasSelection() { return !selectedObjects.empty(); }
     inline SelectionMode selectionMode() { return _selectionMode; }
     void setSelectionMode(SelectionMode mode, bool fromMouse);
+    void showSelected(bool visible);
+    void showAllSelectedPatches(bool visible);
+    void showAll();
 
     std::mutex m;
 
