@@ -9,6 +9,14 @@
 #include "ObjectSet.h"
 
 
+inline bool modeMatch(SelectionMode mode, ComponentType type)
+{
+    return (mode == SM_FACE && type == CT_FACE ||
+            mode == SM_EDGE && type == CT_EDGE ||
+            mode == SM_POINT && type == CT_POINT);
+}
+
+
 Node::Node(Node *parent)
 {
     _parent = parent;
@@ -191,10 +199,11 @@ void ObjectSet::setSelectionMode(SelectionMode mode)
         _selectionMode = mode;
 
         for (auto p : selectedObjects)
-        {
             p->obj()->selectionMode(mode, true);
-            signalCheckChange(p);
-        }
+
+        for (auto f : root->children())
+            for (auto p : f->children())
+                signalCheckChange(static_cast<Patch *>(p));
     }
 
     emit selectionChanged();
@@ -289,8 +298,23 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
                                : Qt::Unchecked));
         }
         case NT_COMPONENT:
-            return static_cast<Component *>(node)->isSelected() ? Qt::Checked : Qt::Unchecked;
+            if (modeMatch(_selectionMode, static_cast<Components *>(node->parent())->cType()))
+                return static_cast<Component *>(node)->isSelected() ? Qt::Checked : Qt::Unchecked;
+            return QVariant();
         }
+    }
+
+    if (role == Qt::ForegroundRole)
+    {
+        ComponentType type;
+        if (node->type() == NT_COMPONENTS)
+            type = static_cast<Components *>(node)->cType();
+        else if (node->type() == NT_COMPONENT)
+            type = static_cast<Components *>(node->parent())->cType();
+        else
+            return QVariant();
+
+        return QBrush(QColor(modeMatch(_selectionMode, type) ? "black" : "gray"));
     }
 
     return QVariant();
@@ -465,17 +489,27 @@ void ObjectSet::addToSelection(Node *node, bool signal)
     else if (node->type() == NT_COMPONENT)
     {
         ComponentType type = static_cast<Components *>(node->parent())->cType();
-        Patch *patch = static_cast<Patch *>(node->parent()->parent());
 
-        if (type == CT_FACE && _selectionMode == SM_FACE)
-            patch->obj()->selectFaces(true, {static_cast<Component *>(node)->index()});
-        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
-            patch->obj()->selectEdges(true, {static_cast<Component *>(node)->index()});
-        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
-            patch->obj()->selectPoints(true, {static_cast<Component *>(node)->index()});
+        if (modeMatch(_selectionMode, type))
+        {
+            Patch *patch = static_cast<Patch *>(node->parent()->parent());
 
-        signalCheckChange(patch);
-        selectedObjects.insert(patch);
+            switch (type)
+            {
+            case CT_FACE:
+                patch->obj()->selectFaces(true, {static_cast<Component *>(node)->index()});
+                break;
+            case CT_EDGE:
+                patch->obj()->selectEdges(true, {static_cast<Component *>(node)->index()});
+                break;
+            case CT_POINT:
+                patch->obj()->selectPoints(true, {static_cast<Component *>(node)->index()});
+                break;
+            }
+
+            signalCheckChange(patch);
+            selectedObjects.insert(patch);
+        }
     }
 
     if (signal)
@@ -500,18 +534,27 @@ void ObjectSet::removeFromSelection(Node *node, bool signal)
     else if (node->type() == NT_COMPONENT)
     {
         ComponentType type = static_cast<Components *>(node->parent())->cType();
-        Patch *patch = static_cast<Patch *>(node->parent()->parent());
+        if (modeMatch(_selectionMode, type))
+        {
+            Patch *patch = static_cast<Patch *>(node->parent()->parent());
 
-        if (type == CT_FACE && _selectionMode == SM_FACE)
-            patch->obj()->selectFaces(false, {static_cast<Component *>(node)->index()});
-        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
-            patch->obj()->selectEdges(false, {static_cast<Component *>(node)->index()});
-        else if (type == CT_POINT && _selectionMode == SM_POINT)
-            patch->obj()->selectPoints(false, {static_cast<Component *>(node)->index()});
+            switch (type)
+            {
+            case CT_FACE:
+                patch->obj()->selectFaces(false, {static_cast<Component *>(node)->index()});
+                break;
+            case CT_EDGE:
+                patch->obj()->selectEdges(false, {static_cast<Component *>(node)->index()});
+                break;
+            case CT_POINT:
+                patch->obj()->selectPoints(false, {static_cast<Component *>(node)->index()});
+                break;
+            }
 
-        signalCheckChange(patch);
-        if (!patch->obj()->hasSelection())
-            selectedObjects.erase(patch);
+            signalCheckChange(patch);
+            if (!patch->obj()->hasSelection())
+                selectedObjects.erase(patch);
+        }
     }
 
     if (signal)
@@ -578,11 +621,11 @@ void ObjectSet::signalCheckChange(Patch *patch)
     for (Node *n : patch->children())
         emit dataChanged(createIndex(0, 0, n->getChild(0)),
                          createIndex(n->nChildren()-1, 0, n->getChild(n->nChildren()-1)),
-                         QVector<int>(Qt::CheckStateRole));
+                         QVector<int>(Qt::CheckStateRole, Qt::ForegroundRole));
 
     emit dataChanged(createIndex(0, 0, patch->getChild(0)),
                      createIndex(patch->nChildren()-1, 0, patch->getChild(patch->nChildren()-1)),
-                     QVector<int>(Qt::CheckStateRole));
+                     QVector<int>(Qt::CheckStateRole, Qt::ForegroundRole));
 
     QModelIndex patchIndex = createIndex(patch->indexInParent(), 0, patch);
     emit dataChanged(patchIndex, patchIndex, QVector<int>(Qt::CheckStateRole));
