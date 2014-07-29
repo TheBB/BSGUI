@@ -15,7 +15,7 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef struct { GLuint a, b, c, d; } quad;
 typedef struct { GLuint a, b; } pair;
-enum ObjectType { OT_VOLUME, OT_FACE, OT_CURVE };
+enum ObjectType { OT_VOLUME };
 enum SelectionMode { SM_PATCH, SM_FACE, SM_EDGE, SM_POINT };
 
 class DisplayObject
@@ -23,6 +23,8 @@ class DisplayObject
 public:
     DisplayObject(int parts);
     virtual ~DisplayObject();
+
+    virtual ObjectType type() = 0;
 
     inline bool initialized() { return _initialized; }
     void initialize();

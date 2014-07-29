@@ -8,6 +8,8 @@ class Volume : public DisplayObject
 public:
     Volume(QVector3D center);
 
+    ObjectType type() { return OT_VOLUME; }
+
     uint nFaces() { return 6; }
     uint nEdges() { return 12; }
     uint nPoints() { return 8; }

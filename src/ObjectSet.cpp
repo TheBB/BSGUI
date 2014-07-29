@@ -1,5 +1,6 @@
 #include <thread>
 #include <QFileInfo>
+#include <QIcon>
 
 #include <GoTools/geometry/ObjectHeader.h>
 
@@ -343,6 +344,21 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
             return QVariant();
 
         return QBrush(QColor(modeMatch(_selectionMode, type) ? "black" : "gray"));
+    }
+
+    if (role == Qt::DecorationRole)
+    {
+        if (node->type() == NT_PATCH)
+        {
+            ObjectType type = static_cast<Patch *>(node)->obj()->type();
+
+            switch (type)
+            {
+            case OT_VOLUME: return QIcon("../icons/volume.png");
+            }
+        }
+        else if (node->type() == NT_FILE)
+            return QIcon("../icons/file.png");
     }
 
     return QVariant();
