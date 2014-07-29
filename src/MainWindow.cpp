@@ -3,7 +3,6 @@
 
 #include <QVector3D>
 
-#include "DispObject.h"
 #include "main.h"
 
 #include "MainWindow.h"
@@ -13,10 +12,10 @@ void makeCubes(ObjectSet *objectSet, GLWidget *glWidget)
 {
     std::vector<QVector3D> centers = {
         QVector3D(0, 0, 1),
-        QVector3D(-3, 0, 0),
-        QVector3D(0, -3, 0),
-        QVector3D(6, 0, 0),
-        QVector3D(0, 4, 0),
+        // QVector3D(-3, 0, 0),
+        // QVector3D(0, -3, 0),
+        // QVector3D(6, 0, 0),
+        // QVector3D(0, 4, 0),
     };
 
 
@@ -84,7 +83,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         glWidget->keyPressEvent(e);
         return true;
     case Qt::Key_F:
-        objectSet->setSelectFaces(!objectSet->selectFaces(), true);
+        // objectSet->setSelectFaces(!objectSet->selectFaces(), true);
         return true;
     default:
         return false;

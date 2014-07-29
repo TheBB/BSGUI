@@ -4,7 +4,7 @@
 #include <QRect>
 #include <QDesktopWidget>
 
-#include "DispObject.h"
+#include "DisplayObject.h"
 #include "shaders.h"
 
 #include "GLWidget.h"
@@ -79,18 +79,12 @@ void GLWidget::centerOnSelected()
 }
 
 
-void GLWidget::initializeObject(DispObject *obj)
-{
-    makeCurrent();
-    obj->init();
-}
-
-
 std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
 {
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glDisable(GL_POINT_SMOOTH);
     glDisable(GL_LINE_SMOOTH);
     glDisable(GL_MULTISAMPLE);
 
@@ -98,14 +92,14 @@ std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
     matrix(&mvp);
 
     for (auto patch : *objectSet)
-        patch->obj()->draw(mvp, vcProgram, ccProgram, true);
+        patch->obj()->drawPicking(mvp, ccProgram, objectSet->selectionMode());
 
     GLubyte pixels[4 * w * h];
     glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     std::unordered_map<uint, uint> picks;
     for (int i = 0; i < w * h; i++)
-    { 
+    {
         uint key = pixels[4*i] + 255*pixels[4*i+1] + 255*255*pixels[4*i+2];
         if (picks.find(key) != picks.end())
             picks[key]++;
@@ -115,7 +109,7 @@ std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
 
     std::set<uint> deletes;
 
-    int limit = std::min(std::min(w, h) - 1, 5);
+    int limit = std::min(std::min(w, h) - 1, 3);
     for (auto p : picks)
         if (p.second < limit || p.first == 16646655)
             deletes.insert(p.first);
@@ -129,6 +123,7 @@ std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
 
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
 
     return ret;
 }
@@ -145,7 +140,7 @@ void GLWidget::paintGL()
     matrix(&mvp);
 
     for (auto patch : *objectSet)
-        patch->obj()->draw(mvp, vcProgram, ccProgram, false);
+        patch->obj()->draw(mvp, ccProgram);
 
     if (_showAxes)
     {
@@ -235,6 +230,7 @@ void GLWidget::initializeGL()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
     glDepthFunc(GL_LEQUAL);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -619,11 +615,11 @@ void GLWidget::setShowAxes(bool val, bool fromMouse)
 }
 
 
-void GLWidget::initializeDispObject(DispObject *obj)
+void GLWidget::initializeDispObject(DisplayObject *obj)
 {
     m.lock();
     makeCurrent();
-    obj->init();
+    obj->initialize();
     m.unlock();
 }
 

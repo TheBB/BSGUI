@@ -1,5 +1,4 @@
 #include <cmath>
-
 #include <QAbstractItemModel>
 #include <QGridLayout>
 #include <QGroupBox>
@@ -10,11 +9,8 @@
 #include <QToolBox>
 #include <QTreeView>
 #include <QVBoxLayout>
-
 #include "ObjectSet.h"
-
 #include "ToolBox.h"
-
 #define INCSLIDER_FACTOR 10
 #define AZMSLIDER_FACTOR 10
 #define ROLLSLIDER_FACTOR 10
@@ -33,21 +29,36 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
     layout->addWidget(treeView);
     treeView->setModel(objectSet);
 
-    QCheckBox *selectFaces = new QCheckBox("Face selection mode");
-    layout->addWidget(selectFaces);
-    selectFaces->setChecked(objectSet->selectFaces());
 
-    QObject::connect(selectFaces, &QCheckBox::toggled,
-                     [objectSet] (bool checked) { objectSet->setSelectFaces(checked, false); });
-    QObject::connect(objectSet, &ObjectSet::selectFacesChanged,
-                     [selectFaces] (bool val, bool fromMouse) {
-                         if (fromMouse)
-                         {
-                             bool prev = selectFaces->blockSignals(true);
-                             selectFaces->setChecked(val);
-                             selectFaces->blockSignals(prev);
-                         }
-                     });
+    QGroupBox *selModePanel = new QGroupBox("Selection mode");
+    layout->addWidget(selModePanel);
+    QGridLayout *selModeLayout = new QGridLayout();
+    selModePanel->setLayout(selModeLayout);
+
+    QRadioButton *patchesBtn = new QRadioButton("Patches");
+    selModeLayout->addWidget(patchesBtn, 0, 0, 1, 1);
+    patchesBtn->setChecked(objectSet->selectionMode() == SM_PATCH);
+
+    QRadioButton *facesBtn = new QRadioButton("Faces");
+    selModeLayout->addWidget(facesBtn, 0, 1, 1, 1);
+    facesBtn->setChecked(objectSet->selectionMode() == SM_FACE);
+
+    QRadioButton *edgesBtn = new QRadioButton("Edges");
+    selModeLayout->addWidget(edgesBtn, 1, 0, 1, 1);
+    edgesBtn->setChecked(objectSet->selectionMode() == SM_EDGE);
+
+    QRadioButton *pointsBtn = new QRadioButton("Points");
+    selModeLayout->addWidget(pointsBtn, 1, 1, 1, 1);
+    pointsBtn->setChecked(objectSet->selectionMode() == SM_POINT);
+
+    QObject::connect(patchesBtn, &QRadioButton::toggled,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_PATCH); });
+    QObject::connect(facesBtn, &QRadioButton::toggled,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_FACE); });
+    QObject::connect(edgesBtn, &QRadioButton::toggled,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_EDGE); });
+    QObject::connect(pointsBtn, &QRadioButton::toggled,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_POINT); });
 
     setLayout(layout);
 }

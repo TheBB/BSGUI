@@ -4,6 +4,7 @@
 #include <GoTools/geometry/ObjectHeader.h>
 
 #include "GLWidget.h"
+#include "DisplayObjects/Volume.h"
 
 #include "ObjectSet.h"
 
@@ -25,7 +26,8 @@ Node::~Node()
         case NT_ROOT: delete static_cast<Node *>(c); break;
         case NT_FILE: delete static_cast<File *>(c); break;
         case NT_PATCH: delete static_cast<Patch *>(c); break;
-        case NT_FACE: delete static_cast<Face *>(c); break;
+        case NT_COMPONENTS: delete static_cast<Components *>(c); break;
+        case NT_COMPONENT: delete static_cast<Component *>(c); break;
         }
     }
 }
@@ -58,7 +60,7 @@ int Node::indexInParent()
 }
 
 
-int Node::numberOfChildren()
+int Node::nChildren()
 {
     return _children.size();
 }
@@ -87,10 +89,30 @@ QString File::displayString()
 }
 
 
-Patch::Patch(DispObject *obj, Node *parent)
+Patch::Patch(DisplayObject *obj, Node *parent)
     : Node(parent)
     , _obj(obj)
 {
+    if (obj->nFaces() > 0)
+    {
+        Components *faces = new Components(CT_FACE, this);
+        for (int i = 0; i < obj->nFaces(); i++)
+            new Component(i, faces);
+    }
+
+    if (obj->nEdges() > 0)
+    {
+        Components *edges = new Components(CT_EDGE, this);
+        for (int i = 0; i < obj->nEdges(); i++)
+            new Component(i, edges);
+    }
+
+    if (obj->nPoints() > 0)
+    {
+        Components *points = new Components(CT_POINT, this);
+        for (int i = 0; i < obj->nPoints(); i++)
+            new Component(i, points);
+    }
 }
 
 
@@ -106,22 +128,51 @@ QString Patch::displayString()
 }
 
 
-Face::Face(int index, Node *parent)
+Components::Components(ComponentType type, Node *parent)
+    : Node(parent)
+    , _type(type)
+{
+}
+
+
+QString Components::displayString()
+{
+    return (_type == CT_FACE ? "Faces" : (_type == CT_EDGE ? "Edges" : "Points"));
+}
+
+
+Component::Component(uint index, Node *parent)
     : Node(parent)
     , _index(index)
 {
 }
 
 
-QString Face::displayString()
+QString Component::displayString()
 {
-    return QString("Face %1").arg(_index + 1);
+    Components *p = static_cast<Components *>(_parent);
+    return (QString("%1 %2")
+            .arg(p->cType() == CT_FACE ? "Face" : (p->cType() == CT_EDGE ? "Edge" : "Point"))
+            .arg(_index + 1));
+}
+
+
+bool Component::isSelected()
+{
+    DisplayObject *obj = static_cast<Patch *>(_parent->parent())->obj();
+
+    switch (static_cast<Components *>(_parent)->cType())
+    {
+    case CT_FACE: return obj->faceSelected(_index);
+    case CT_EDGE: return obj->edgeSelected(_index);
+    case CT_POINT: return obj->pointSelected(_index);
+    }
 }
 
 
 ObjectSet::ObjectSet(QObject *parent)
     : QAbstractItemModel(parent)
-    , _selectFaces(false)
+    , _selectionMode(SM_PATCH)
 {
     root = new Node();
 }
@@ -133,23 +184,20 @@ ObjectSet::~ObjectSet()
 }
 
 
-void ObjectSet::setSelectFaces(bool val, bool fromMouse)
+void ObjectSet::setSelectionMode(SelectionMode mode)
 {
-    _selectFaces = val;
-
-    if (!_selectFaces)
+    if (mode != _selectionMode)
     {
+        _selectionMode = mode;
+
         for (auto p : selectedObjects)
         {
-            for (int i = 0; i < 6; i++)
-                p->obj()->selectFace(i);
+            p->obj()->selectionMode(mode, true);
             signalCheckChange(p);
         }
-
-        emit selectionChanged();
     }
 
-    emit selectFacesChanged(val, fromMouse);
+    emit selectionChanged();
 }
 
 
@@ -183,7 +231,7 @@ int ObjectSet::rowCount(const QModelIndex &index) const
         return 0;
 
     Node *parentNode = index.isValid() ? static_cast<Node *>(index.internalPointer()) : root;
-    return parentNode->numberOfChildren();
+    return parentNode->nChildren();
 }
 
 
@@ -220,9 +268,9 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
             bool foundUnselected = false, foundSelected = false;
             for (auto n : node->children())
             {
-                DispObject *obj = static_cast<Patch *>(n)->obj();
+                DisplayObject *obj = static_cast<Patch *>(n)->obj();
 
-                foundUnselected |= !obj->fullSelection();
+                foundUnselected |= !obj->fullSelection(_selectionMode);
                 foundSelected |= obj->hasSelection();
 
                 if (foundUnselected && foundSelected)
@@ -233,18 +281,15 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
         }
         case NT_PATCH:
         {
-            DispObject *obj = static_cast<Patch *>(node)->obj();
-            return QVariant(
-                obj->fullSelection()
-                ? Qt::Checked
-                : (obj->hasSelection()
-                   ? Qt::PartiallyChecked
-                   : Qt::Unchecked));
+            DisplayObject *obj = static_cast<Patch *>(node)->obj();
+            return QVariant(obj->fullSelection(_selectionMode)
+                            ? Qt::Checked
+                            : (obj->hasSelection()
+                               ? Qt::PartiallyChecked
+                               : Qt::Unchecked));
         }
-        case NT_FACE:
-            return QVariant(
-                static_cast<Patch *>(node->parent())->obj()->isFaceSelected(node->indexInParent())
-                ? Qt::Checked : Qt::Unchecked);
+        case NT_COMPONENT:
+            return static_cast<Component *>(node)->isSelected() ? Qt::Checked : Qt::Unchecked;
         }
     }
 
@@ -281,7 +326,9 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
         return flags | Qt::ItemIsUserCheckable;
     case NT_PATCH:
         return flags | Qt::ItemIsUserCheckable;
-    case NT_FACE:
+    case NT_COMPONENTS:
+        return flags & ~Qt::ItemIsSelectable;
+    case NT_COMPONENT:
         return flags | Qt::ItemIsUserCheckable | Qt::ItemNeverHasChildren;
     }
 }
@@ -289,7 +336,7 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
 
 void ObjectSet::addCubeFromCenter(QVector3D center)
 {
-    DispObject *obj = new DispObject(center);
+    DisplayObject *obj = new Volume(center);
     emit requestInitialization(obj);
 
     while (!obj->initialized())
@@ -306,17 +353,11 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
     Node *fileNode = getOrCreateFileNode("");
 
     QModelIndex index = createIndex(fileNode->indexInParent(), 0, fileNode);
-    beginInsertRows(index, fileNode->numberOfChildren(), fileNode->numberOfChildren());
+    beginInsertRows(index, fileNode->nChildren(), fileNode->nChildren());
     Patch *patch = new Patch(obj, fileNode);
     endInsertRows();
 
-    index = createIndex(patch->indexInParent(), 0, patch);
-    beginInsertRows(index, 0, 5);
-    for (int i = 0; i < 6; i++)
-        new Face(i, patch);
-    endInsertRows();
-
-    dispObjects.push_back(patch);
+    displayObjects.push_back(patch);
 
     m.unlock();
 
@@ -326,7 +367,7 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
 
 void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 {
-    if (dispObjects.empty())
+    if (displayObjects.empty())
     {
         *center = QVector3D(0,0,0);
         *radius = 0.0;
@@ -335,14 +376,11 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     m.lock();
 
-    std::vector<Patch *> *vec;
-
-    if (selectedObjects.empty())
-        vec = &dispObjects;
-    else
+    std::vector<Patch *> *vec = &displayObjects;
+    if (!selectedObjects.empty())
         vec = new std::vector<Patch *>(selectedObjects.begin(), selectedObjects.end());
 
-    DispObject *a = (*vec)[0]->obj(), *b;
+    DisplayObject *a = (*vec)[0]->obj(), *b;
     farthestPointFrom(a, &b, vec);
     farthestPointFrom(b, &a, vec);
 
@@ -352,7 +390,7 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
     ritterSphere(center, radius, vec);
 
     float maxRadius = 0.0;
-    for (auto c : dispObjects)
+    for (auto c : displayObjects)
         if (c->obj()->radius() > maxRadius)
             maxRadius = c->obj()->radius();
 
@@ -369,32 +407,41 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 {
     if (clear)
     {
-        for (auto o : selectedObjects)
+        for (auto p : selectedObjects)
         {
-            o->obj()->clearSelection();
-            signalCheckChange(static_cast<Patch *>(o));
+            p->obj()->selectObject(_selectionMode, false);
+            signalCheckChange(p);
         }
+
         selectedObjects.clear();
     }
 
+    std::set<Patch *> changedPatches;
+
+    std::vector<Patch *>::iterator it = displayObjects.begin();
     for (auto p : *picks)
     {
-        int idx = p / 6;
-        int face = p % 6;
+        while (!(*it)->obj()->hasColor(p) && it != displayObjects.end())
+            it++;
 
-        if (idx > dispObjects.size() || idx < 0 || face > 5 || face < 0)
-            continue;
+        if (it == displayObjects.end())
+            break;
 
-        selectedObjects.insert(dispObjects[idx]);
+        selectedObjects.insert(*it);
 
-        if (_selectFaces)
-            dispObjects[idx]->obj()->selectFace(face);
-        else
-            for (int i = 0; i < 6; i++)
-                dispObjects[idx]->obj()->selectFace(i);
+        switch (_selectionMode)
+        {
+        case SM_PATCH: (*it)->obj()->selectObject(SM_PATCH, true); break;
+        case SM_FACE:  (*it)->obj()->selectFaces(true,  {p - (*it)->obj()->baseColor()}); break;
+        case SM_EDGE:  (*it)->obj()->selectEdges(true,  {p - (*it)->obj()->baseColor()}); break;
+        case SM_POINT: (*it)->obj()->selectPoints(true, {p - (*it)->obj()->baseColor()}); break;
+        }
 
-        signalCheckChange(dispObjects[idx]);
+        changedPatches.insert(*it);
     }
+    
+    for (auto p : changedPatches)
+        signalCheckChange(p);
 
     emit selectionChanged();
 }
@@ -402,32 +449,34 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 
 void ObjectSet::addToSelection(Node *node, bool signal)
 {
-    if (node->type() == NT_FACE)
+    if (node->type() == NT_FILE)
     {
-        Patch *patch = static_cast<Patch *>(node->parent());
-        if (!_selectFaces)
-        {
-            addToSelection(patch, true);
-            return;
-        }
-        selectedObjects.insert(patch);
-        patch->obj()->selectFace(node->indexInParent());
-
-        signalCheckChange(patch);
+        for (auto n : node->children())
+            addToSelection(n, false);
     }
     else if (node->type() == NT_PATCH)
     {
         Patch *patch = static_cast<Patch *>(node);
         selectedObjects.insert(patch);
-        for (int i = 0; i < 6; i++)
-            patch->obj()->selectFace(i);
+        patch->obj()->selectObject(_selectionMode, true);
 
         signalCheckChange(patch);
     }
-    else if (node->type() == NT_FILE)
-        for (auto n : node->children())
-            addToSelection(n, false);
+    else if (node->type() == NT_COMPONENT)
+    {
+        ComponentType type = static_cast<Components *>(node->parent())->cType();
+        Patch *patch = static_cast<Patch *>(node->parent()->parent());
 
+        if (type == CT_FACE && _selectionMode == SM_FACE)
+            patch->obj()->selectFaces(true, {static_cast<Component *>(node)->index()});
+        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
+            patch->obj()->selectEdges(true, {static_cast<Component *>(node)->index()});
+        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
+            patch->obj()->selectPoints(true, {static_cast<Component *>(node)->index()});
+
+        signalCheckChange(patch);
+        selectedObjects.insert(patch);
+    }
 
     if (signal)
         emit selectionChanged();
@@ -436,31 +485,34 @@ void ObjectSet::addToSelection(Node *node, bool signal)
 
 void ObjectSet::removeFromSelection(Node *node, bool signal)
 {
-    if (node->type() == NT_FACE)
+    if (node->type() == NT_FILE)
     {
-        Patch *patch = static_cast<Patch *>(node->parent());
-        if (!_selectFaces)
-        {
-            removeFromSelection(patch, true);
-            return;
-        }
-        patch->obj()->selectFace(node->indexInParent(), false);
-        if (!patch->obj()->hasSelection())
-            selectedObjects.erase(patch);
-
-        signalCheckChange(patch);
+        for (auto n : node->children())
+            removeFromSelection(n, false);
     }
     else if (node->type() == NT_PATCH)
     {
         Patch *patch = static_cast<Patch *>(node);
-        patch->obj()->clearSelection();
+        patch->obj()->selectObject(_selectionMode, false);
+        signalCheckChange(patch);
         selectedObjects.erase(patch);
+    }
+    else if (node->type() == NT_COMPONENT)
+    {
+        ComponentType type = static_cast<Components *>(node->parent())->cType();
+        Patch *patch = static_cast<Patch *>(node->parent()->parent());
+
+        if (type == CT_FACE && _selectionMode == SM_FACE)
+            patch->obj()->selectFaces(false, {static_cast<Component *>(node)->index()});
+        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
+            patch->obj()->selectEdges(false, {static_cast<Component *>(node)->index()});
+        else if (type == CT_POINT && _selectionMode == SM_POINT)
+            patch->obj()->selectPoints(false, {static_cast<Component *>(node)->index()});
 
         signalCheckChange(patch);
+        if (!patch->obj()->hasSelection())
+            selectedObjects.erase(patch);
     }
-    else if (node->type() == NT_FILE)
-        for (auto n : node->children())
-            removeFromSelection(n, false);
 
     if (signal)
         emit selectionChanged();
@@ -481,7 +533,7 @@ Node *ObjectSet::getOrCreateFileNode(QString fileName)
 
     if (!node)
     {
-        int row = root->numberOfChildren();
+        int row = root->nChildren();
         beginInsertRows(QModelIndex(), row, row);
         node = new File(fileName, root);
         endInsertRows();
@@ -491,7 +543,7 @@ Node *ObjectSet::getOrCreateFileNode(QString fileName)
 }
 
 
-void ObjectSet::farthestPointFrom(DispObject *a, DispObject **b, std::vector<Patch *> *vec)
+void ObjectSet::farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vector<Patch *> *vec)
 {
     float distance = -1;
 
@@ -523,8 +575,13 @@ void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<Patch
 
 void ObjectSet::signalCheckChange(Patch *patch)
 {
+    for (Node *n : patch->children())
+        emit dataChanged(createIndex(0, 0, n->getChild(0)),
+                         createIndex(n->nChildren()-1, 0, n->getChild(n->nChildren()-1)),
+                         QVector<int>(Qt::CheckStateRole));
+
     emit dataChanged(createIndex(0, 0, patch->getChild(0)),
-                     createIndex(5, 0, patch->getChild(5)),
+                     createIndex(patch->nChildren()-1, 0, patch->getChild(patch->nChildren()-1)),
                      QVector<int>(Qt::CheckStateRole));
 
     QModelIndex patchIndex = createIndex(patch->indexInParent(), 0, patch);

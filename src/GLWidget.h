@@ -12,7 +12,7 @@
 #include <QWheelEvent>
 
 #include "ObjectSet.h"
-#include "DispObject.h"
+#include "DisplayObject.h"
 
 #ifndef _GLWIDGET_H_
 #define _GLWIDGET_H_
@@ -35,7 +35,6 @@ public:
     QSize sizeHint() const;
 
     void centerOnSelected();
-    void initializeObject(DispObject *obj);
 
     inline double inclination() { return _inclination; }
     void setInclination(double val, bool fromMouse);
@@ -65,7 +64,7 @@ public:
 
     inline bool rightHanded() { return _rightHanded; }
     void setRightHanded(bool val);
-
+    
     inline bool showAxes() { return _showAxes; }
     void setShowAxes(bool val, bool fromMouse);
 
@@ -73,7 +72,7 @@ public:
     void keyReleaseEvent(QKeyEvent *event);
 
 public slots:
-    void initializeDispObject(DispObject *obj);
+    void initializeDispObject(DisplayObject *obj);
 
 signals:
     void inclinationChanged(double val, bool fromMouse);

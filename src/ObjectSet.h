@@ -8,12 +8,13 @@
 #include <QString>
 #include <QVector3D>
 
-#include "DispObject.h"
+#include "DisplayObject.h"
 
 #ifndef _OBJECTSET_H_
 #define _OBJECTSET_H_
 
-enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, NT_FACE };
+enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, NT_COMPONENTS, NT_COMPONENT };
+enum ComponentType { CT_FACE, CT_EDGE, CT_POINT };
 
 class Node
 {
@@ -28,7 +29,7 @@ public:
     Node *getChild(int idx);
     int indexOfChild(Node *child);
     int indexInParent();
-    int numberOfChildren();
+    int nChildren();
 
     inline Node *parent() { return _parent; }
 
@@ -64,30 +65,51 @@ private:
 class Patch : public Node
 {
 public:
-    Patch(DispObject *obj, Node *parent = NULL);
+    Patch(DisplayObject *obj, Node *parent = NULL);
     ~Patch();
 
     virtual NodeType type() { return NT_PATCH; }
     virtual QString displayString();
 
-    inline DispObject *obj() { return _obj; }
+    inline DisplayObject *obj() { return _obj; }
 
 private:
-    DispObject *_obj;
+    DisplayObject *_obj;
 };
 
 
-class Face : public Node
+class Components : public Node
 {
 public:
-    Face(int index, Node *parent = NULL);
-    ~Face() {};
+    Components(ComponentType type, Node *parent = NULL);
+    ~Components() {};
 
-    NodeType type() { return NT_FACE; }
-    QString displayString();
+    virtual NodeType type () { return NT_COMPONENTS; }
+    virtual QString displayString();
+
+    inline ComponentType cType() { return _type; }
 
 private:
-    int _index;
+    ComponentType _type;
+};
+
+
+class Component : public Node
+{
+public:
+
+    Component(uint index, Node *parent = NULL);
+    ~Component() {};
+
+    virtual NodeType type () { return NT_COMPONENT; }
+    virtual QString displayString();
+
+    bool isSelected();
+
+    inline uint index() { return _index; }
+
+private:
+    uint _index;
 };
 
 
@@ -99,10 +121,9 @@ public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
 
-
     bool hasSelection() { return !selectedObjects.empty(); }
-    bool selectFaces() { return _selectFaces; }
-    void setSelectFaces(bool val, bool fromMouse);
+    inline SelectionMode selectionMode() { return _selectionMode; }
+    void setSelectionMode(SelectionMode mode);
 
     std::mutex m;
 
@@ -123,28 +144,28 @@ public:
 
     typedef typename std::vector<Patch *>::iterator iterator;
     typedef typename std::vector<Patch *>::const_iterator const_iterator;
-    iterator begin() { return dispObjects.begin(); }
-    const_iterator begin() const { return dispObjects.begin(); }
-    const_iterator cbegin() const { return dispObjects.cbegin(); }
-    iterator end() { return dispObjects.end(); }
-    const_iterator end() const { return dispObjects.end(); }
-    const_iterator cend() const { return dispObjects.cend(); }
+    iterator begin() { return displayObjects.begin(); }
+    const_iterator begin() const { return displayObjects.begin(); }
+    const_iterator cbegin() const { return displayObjects.cbegin(); }
+    iterator end() { return displayObjects.end(); }
+    const_iterator end() const { return displayObjects.end(); }
+    const_iterator cend() const { return displayObjects.cend(); }
 
 signals:
-    void requestInitialization(DispObject *obj);
+    void requestInitialization(DisplayObject *obj);
     void update();
     void selectionChanged();
-    void selectFacesChanged(bool val, bool fromMouse);
 
 private:
     Node *root;
     Node *getOrCreateFileNode(QString fileName);
 
-    std::vector<Patch *> dispObjects;
-    std::set<Patch *> selectedObjects;
-    bool _selectFaces;
+    SelectionMode _selectionMode;
 
-    void farthestPointFrom(DispObject *a, DispObject **b, std::vector<Patch *> *vec);
+    std::vector<Patch *> displayObjects;
+    std::set<Patch *> selectedObjects;
+
+    void farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vector<Patch *> *vec);
     void ritterSphere(QVector3D *center, float *radius, std::vector<Patch *> *vec);
 
     void signalCheckChange(Patch *patch);
