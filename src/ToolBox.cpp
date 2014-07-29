@@ -3,6 +3,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QRadioButton>
 #include <QTime>
 #include <QTimer>
@@ -37,6 +38,11 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
     treeView->installEventFilter(filter);
     layout->addWidget(treeView);
     treeView->setModel(objectSet);
+
+    treeView->header()->setStretchLastSection(false);
+    treeView->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    treeView->resizeColumnToContents(1);
+    treeView->resizeColumnToContents(2);
 
 
     QGroupBox *selModePanel = new QGroupBox("Selection mode");

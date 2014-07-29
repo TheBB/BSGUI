@@ -275,14 +275,24 @@ int ObjectSet::rowCount(const QModelIndex &index) const
 
 int ObjectSet::columnCount(const QModelIndex &index) const
 {
-    return 1;
+    return 3;
 }
 
 
 QVariant ObjectSet::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    if (orientation == Qt::Horizontal && role == Qt::DisplayRole && section == 0)
-        return QString("Name");
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
+    {
+        switch (section)
+        {
+        case 0: return QString("Name");
+        case 1: case 2: return QString("");
+        }
+    }
+
+    if (orientation == Qt::Horizontal && role == Qt::SizeHintRole)
+        return section > 0 ? QSize(24, 32) : QSize();
+
     return QVariant();
 }
 
@@ -294,10 +304,23 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
 
     Node *node = static_cast<Node *>(index.internalPointer());
 
-    if (role == Qt::DisplayRole)
+    if (role == Qt::DisplayRole && index.column() == 0)
         return node->displayString();
 
-    if (role == Qt::CheckStateRole)
+    if (role == Qt::ForegroundRole && index.column() == 0)
+    {
+        ComponentType type;
+        if (node->type() == NT_COMPONENTS)
+            type = static_cast<Components *>(node)->cType();
+        else if (node->type() == NT_COMPONENT)
+            type = static_cast<Components *>(node->parent())->cType();
+        else
+            return QVariant();
+
+        return QBrush(QColor(modeMatch(_selectionMode, type) ? "black" : "gray"));
+    }
+
+    if (role == Qt::CheckStateRole && index.column() == 2)
     {
         switch (node->type())
         {
@@ -333,20 +356,7 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
         }
     }
 
-    if (role == Qt::ForegroundRole)
-    {
-        ComponentType type;
-        if (node->type() == NT_COMPONENTS)
-            type = static_cast<Components *>(node)->cType();
-        else if (node->type() == NT_COMPONENT)
-            type = static_cast<Components *>(node->parent())->cType();
-        else
-            return QVariant();
-
-        return QBrush(QColor(modeMatch(_selectionMode, type) ? "black" : "gray"));
-    }
-
-    if (role == Qt::DecorationRole)
+    if (role == Qt::DecorationRole && index.column() == 1)
     {
         if (node->type() == NT_PATCH)
         {
@@ -663,17 +673,22 @@ void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<Patch
 void ObjectSet::signalCheckChange(Patch *patch)
 {
     for (Node *n : patch->children())
+    {
         emit dataChanged(createIndex(0, 0, n->getChild(0)),
                          createIndex(n->nChildren()-1, 0, n->getChild(n->nChildren()-1)),
-                         QVector<int>(Qt::CheckStateRole, Qt::ForegroundRole));
+                         QVector<int>(Qt::ForegroundRole));
+        emit dataChanged(createIndex(0, 2, n->getChild(0)),
+                         createIndex(n->nChildren()-1, 2, n->getChild(n->nChildren()-1)),
+                         QVector<int>(Qt::CheckStateRole));
+    }
 
     emit dataChanged(createIndex(0, 0, patch->getChild(0)),
                      createIndex(patch->nChildren()-1, 0, patch->getChild(patch->nChildren()-1)),
-                     QVector<int>(Qt::CheckStateRole, Qt::ForegroundRole));
+                     QVector<int>(Qt::ForegroundRole));
 
-    QModelIndex patchIndex = createIndex(patch->indexInParent(), 0, patch);
+    QModelIndex patchIndex = createIndex(patch->indexInParent(), 2, patch);
     emit dataChanged(patchIndex, patchIndex, QVector<int>(Qt::CheckStateRole));
 
-    QModelIndex fileIndex = createIndex(patch->parent()->indexInParent(), 0, patch->parent());
+    QModelIndex fileIndex = createIndex(patch->parent()->indexInParent(), 2, patch->parent());
     emit dataChanged(fileIndex, fileIndex, QVector<int>(Qt::CheckStateRole));
 }
