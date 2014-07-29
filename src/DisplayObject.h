@@ -29,8 +29,6 @@ public:
     inline bool initialized() { return _initialized; }
     void initialize();
 
-    inline bool visible() { return _visible; }
-
     void draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showPoints);
     void drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, SelectionMode mode);
 
@@ -53,6 +51,17 @@ public:
     }
     bool fullSelection(SelectionMode mode);
 
+    inline bool isInvisible(bool countPoints)
+    {
+        return visibleFaces.empty() && visibleEdges.empty() && (countPoints ? visiblePoints.empty() : true);
+    }
+    inline bool isFullyVisible(bool countPoints)
+    {
+        return (visibleFaces.size() == nFaces() &&
+                visibleEdges.size() == nEdges() &&
+                (countPoints ? visiblePoints.size() == nPoints() : true));
+    }
+
     inline bool faceSelected(uint i) { return selectedFaces.find(i) != selectedFaces.end(); }
     inline bool edgeSelected(uint i) { return selectedEdges.find(i) != selectedEdges.end(); }
     inline bool pointSelected(uint i) { return selectedPoints.find(i) != selectedPoints.end(); }
@@ -71,7 +80,6 @@ protected:
     std::vector<pair> elementData, edgeData;
     std::vector<GLuint> pointData;
 
-    bool _visible;
     std::set<uint> visibleFaces, visibleEdges, visiblePoints;
     std::vector<uint> faceIdxs, elementIdxs, edgeIdxs;
 

@@ -23,7 +23,6 @@ uchar DisplayObject::sColor[3] = {0, 0, 0};
 
 DisplayObject::DisplayObject(int parts)
     : _initialized(false)
-    , _visible(true)
     , vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , normalBuffer(QOpenGLBuffer::VertexBuffer)
     , faceBuffer(QOpenGLBuffer::IndexBuffer)

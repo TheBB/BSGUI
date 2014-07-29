@@ -173,6 +173,7 @@ private:
     void ritterSphere(QVector3D *center, float *radius, std::vector<Patch *> *vec);
 
     void signalCheckChange(Patch *patch);
+    void signalVisibleChange(Patch *patch);
 };
 
 #endif /* _OBJECTSET_H_ */

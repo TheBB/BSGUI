@@ -1,10 +1,10 @@
 #include <thread>
+#include <QBrush>
 #include <QFileInfo>
 #include <QIcon>
 
 #include <GoTools/geometry/ObjectHeader.h>
 
-#include "GLWidget.h"
 #include "DisplayObjects/Volume.h"
 
 #include "ObjectSet.h"
@@ -215,7 +215,10 @@ void ObjectSet::setSelectionMode(SelectionMode mode, bool fromMouse)
 void ObjectSet::showSelected(bool visible)
 {
     for (auto p : selectedObjects)
+    {
         p->obj()->showSelected(_selectionMode, visible);
+        signalVisibleChange(p);
+    }
 
     emit update();
 }
@@ -224,7 +227,10 @@ void ObjectSet::showSelected(bool visible)
 void ObjectSet::showAllSelectedPatches(bool visible)
 {
     for (auto p : selectedObjects)
+    {
         p->obj()->showSelected(SM_PATCH, visible);
+        signalVisibleChange(p);
+    }
 
     emit update();
 }
@@ -233,7 +239,10 @@ void ObjectSet::showAllSelectedPatches(bool visible)
 void ObjectSet::showAll()
 {
     for (auto p : displayObjects)
+    {
         p->obj()->showSelected(SM_PATCH, true);
+        signalVisibleChange(p);
+    }
 
     emit update();
 }
@@ -317,7 +326,7 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
         else
             return QVariant();
 
-        return QBrush(QColor(modeMatch(_selectionMode, type) ? "black" : "gray"));
+        return QBrush(QColor(modeMatch(_selectionMode, type) ? "black" : "silver"));
     }
 
     if (role == Qt::CheckStateRole && index.column() == 2)
@@ -343,11 +352,8 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
         case NT_PATCH:
         {
             DisplayObject *obj = static_cast<Patch *>(node)->obj();
-            return QVariant(obj->fullSelection(_selectionMode)
-                            ? Qt::Checked
-                            : (obj->hasSelection()
-                               ? Qt::PartiallyChecked
-                               : Qt::Unchecked));
+            return QVariant(obj->fullSelection(_selectionMode) ? Qt::Checked :
+                            (obj->hasSelection() ? Qt::PartiallyChecked : Qt::Unchecked));
         }
         case NT_COMPONENT:
             if (modeMatch(_selectionMode, static_cast<Components *>(node->parent())->cType()))
@@ -360,15 +366,34 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
     {
         if (node->type() == NT_PATCH)
         {
-            ObjectType type = static_cast<Patch *>(node)->obj()->type();
+            DisplayObject *obj = static_cast<Patch *>(node)->obj();
+            QString base = ":/icons/%1_%2.png";
 
-            switch (type)
+            switch (obj->type())
             {
-            case OT_VOLUME: return QIcon(":/icons/volume.png");
+            case OT_VOLUME: base = base.arg("volume");
             }
+
+            base = base.arg(obj->isFullyVisible(false) ? "full" :
+                            (obj->isInvisible(false) ? "hidden" : "partial"));
+            return QIcon(base);
         }
         else if (node->type() == NT_FILE)
-            return QIcon(":/icons/file.png");
+        {
+            bool allInvisible = true, allVisible = true;
+            for (auto n : node->children())
+            {
+                DisplayObject *obj = static_cast<Patch *>(n)->obj();
+
+                allInvisible &= obj->isInvisible(false);
+                allVisible &= obj->isFullyVisible(false);
+
+                if (!allInvisible && !allVisible)
+                    return QIcon(":/icons/file_partial.png");
+            }
+
+            return QIcon(allVisible ? ":/icons/file_full.png" : ":/icons/file_hidden.png");
+        }
     }
 
     return QVariant();
@@ -394,7 +419,7 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
     if (!index.isValid())
         return 0;
 
-    Qt::ItemFlags flags = QAbstractItemModel::flags(index);
+    Qt::ItemFlags flags = QAbstractItemModel::flags(index) & ~Qt::ItemIsSelectable;
 
     Node *node = static_cast<Node *>(index.internalPointer());
 
@@ -646,6 +671,9 @@ void ObjectSet::farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vect
 
     for (auto c : *vec)
     {
+        if (c->obj()->isInvisible(false))
+            continue;
+
         float _distance = (c->obj()->center() - a->center()).length();
         if (_distance > distance)
         {
@@ -660,6 +688,9 @@ void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<Patch
 {
     for (auto c : *vec)
     {
+        if (c->obj()->isInvisible(false))
+            continue;
+
         float d = (c->obj()->center() - (*center)).length();
         if (d > (*radius))
         {
@@ -691,4 +722,14 @@ void ObjectSet::signalCheckChange(Patch *patch)
 
     QModelIndex fileIndex = createIndex(patch->parent()->indexInParent(), 2, patch->parent());
     emit dataChanged(fileIndex, fileIndex, QVector<int>(Qt::CheckStateRole));
+}
+
+
+void ObjectSet::signalVisibleChange(Patch *patch)
+{
+    QModelIndex patchIndex = createIndex(patch->indexInParent(), 1, patch);
+    emit dataChanged(patchIndex, patchIndex, QVector<int>(Qt::DecorationRole));
+
+    QModelIndex fileIndex = createIndex(patch->parent()->indexInParent(), 1, patch->parent());
+    emit dataChanged(fileIndex, fileIndex, QVector<int>(Qt::DecorationRole));
 }

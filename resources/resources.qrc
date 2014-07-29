@@ -1,7 +1,14 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
   <qresource>
-    <file>icons/volume.png</file>
+    <file>icons/volume_full.png</file>
+    <file>icons/volume_partial.png</file>
+    <file>icons/volume_hidden.png</file>
+
+    <file>icons/file_full.png</file>
+    <file>icons/file_partial.png</file>
+    <file>icons/file_hidden.png</file>
+
     <file>icons/file.png</file>
     <file>shaders/varying_vertex.glsl</file>
     <file>shaders/varying_fragment.glsl</file>
