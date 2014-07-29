@@ -187,10 +187,14 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
     }
     else if (mode == SM_FACE)
     {
-        for (auto f : visibleFaces)
+        for (uint f = 0; f < nFaces(); f++)
         {
-            setUniforms(prog, mvp, col, 0.0); incColors(col, 1);
-            drawCommand(GL_QUADS, {f}, nFaces(), faceIdxs);
+            if (visibleFaces.find(f) != visibleFaces.end())
+            {
+                setUniforms(prog, mvp, col, 0.0);
+                drawCommand(GL_QUADS, {f}, nFaces(), faceIdxs);
+            }
+            incColors(col, 1);
         }
     }
     else if (mode == SM_EDGE)
@@ -200,10 +204,14 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
 
         edgeBuffer.bind();
         glLineWidth(20 * EDGE_WIDTH);
-        for (auto e : visibleEdges)
+        for (uint e = 0; e < nEdges(); e++)
         {
-            setUniforms(prog, mvp, col, 0.0002); incColors(col, 1);
-            drawCommand(GL_LINES, {e}, nEdges(), edgeIdxs);
+            if (visibleEdges.find(e) != visibleEdges.end())
+            {
+                setUniforms(prog, mvp, col, 0.0002);
+                drawCommand(GL_LINES, {e}, nEdges(), edgeIdxs);
+            }
+            incColors(col, 1);
         }
     }
     else if (mode == SM_POINT)
@@ -213,10 +221,14 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
 
         pointBuffer.bind();
         glPointSize(POINT_SIZE);
-        for (auto p : visiblePoints)
+        for (uint p = 0; p < nPoints(); p++)
         {
-            setUniforms(prog, mvp, col, 0.0002); incColors(col, 1);
-            drawCommandPts({p}, nPoints());
+            if (visiblePoints.find(p) != visiblePoints.end())
+            {
+                setUniforms(prog, mvp, col, 0.0002);
+                drawCommandPts({p}, nPoints());
+            }
+            incColors(col, 1);
         }
     }
 }
