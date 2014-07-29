@@ -141,7 +141,7 @@ QString Components::displayString()
 }
 
 
-Component::Component(int index, Node *parent)
+Component::Component(uint index, Node *parent)
     : Node(parent)
     , _index(index)
 {
@@ -151,9 +151,9 @@ Component::Component(int index, Node *parent)
 QString Component::displayString()
 {
     Components *p = static_cast<Components *>(_parent);
-    return QString("%1 %2")
-        .arg(p->cType() == CT_FACE ? "Face" : (p->cType() == CT_EDGE ? "Edge" : "Point"))
-        .arg(_index + 1);
+    return (QString("%1 %2")
+            .arg(p->cType() == CT_FACE ? "Face" : (p->cType() == CT_EDGE ? "Edge" : "Point"))
+            .arg(_index + 1));
 }
 
 
@@ -191,7 +191,10 @@ void ObjectSet::setSelectionMode(SelectionMode mode)
         _selectionMode = mode;
 
         for (auto p : selectedObjects)
+        {
             p->obj()->selectionMode(mode, true);
+            signalCheckChange(p);
+        }
     }
 
     emit selectionChanged();
@@ -296,13 +299,13 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
 
 bool ObjectSet::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    // if (role == Qt::CheckStateRole)
-    // {
-    //     if (value.toInt() == Qt::Checked)
-    //         addToSelection(static_cast<Node *>(index.internalPointer()));
-    //     else
-    //         removeFromSelection(static_cast<Node *>(index.internalPointer()));
-    // }
+    if (role == Qt::CheckStateRole)
+    {
+        if (value.toInt() == Qt::Checked)
+            addToSelection(static_cast<Node *>(index.internalPointer()));
+        else
+            removeFromSelection(static_cast<Node *>(index.internalPointer()));
+    }
 
     return false;
 }
@@ -324,7 +327,7 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
     case NT_PATCH:
         return flags | Qt::ItemIsUserCheckable;
     case NT_COMPONENTS:
-        return flags;
+        return flags & ~Qt::ItemIsSelectable;
     case NT_COMPONENT:
         return flags | Qt::ItemIsUserCheckable | Qt::ItemNeverHasChildren;
     }
@@ -406,7 +409,7 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
     {
         for (auto p : selectedObjects)
         {
-            p->obj()->selectObject(false);
+            p->obj()->selectObject(_selectionMode, false);
             signalCheckChange(p);
         }
 
@@ -428,7 +431,7 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 
         switch (_selectionMode)
         {
-        case SM_PATCH: (*it)->obj()->selectObject(true); break;
+        case SM_PATCH: (*it)->obj()->selectObject(SM_PATCH, true); break;
         case SM_FACE:  (*it)->obj()->selectFaces(true,  {p - (*it)->obj()->baseColor()}); break;
         case SM_EDGE:  (*it)->obj()->selectEdges(true,  {p - (*it)->obj()->baseColor()}); break;
         case SM_POINT: (*it)->obj()->selectPoints(true, {p - (*it)->obj()->baseColor()}); break;
@@ -436,7 +439,7 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 
         changedPatches.insert(*it);
     }
-
+    
     for (auto p : changedPatches)
         signalCheckChange(p);
 
@@ -444,71 +447,76 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 }
 
 
-// void ObjectSet::addToSelection(Node *node, bool signal)
-// {
-//     if (node->type() == NT_FACE)
-//     {
-//         Patch *patch = static_cast<Patch *>(node->parent());
-//         if (!_selectFaces)
-//         {
-//             addToSelection(patch, true);
-//             return;
-//         }
-//         selectedObjects.insert(patch);
-//         patch->obj()->selectFace(node->indexInParent());
+void ObjectSet::addToSelection(Node *node, bool signal)
+{
+    if (node->type() == NT_FILE)
+    {
+        for (auto n : node->children())
+            addToSelection(n, false);
+    }
+    else if (node->type() == NT_PATCH)
+    {
+        Patch *patch = static_cast<Patch *>(node);
+        selectedObjects.insert(patch);
+        patch->obj()->selectObject(_selectionMode, true);
 
-//         signalCheckChange(patch);
-//     }
-//     else if (node->type() == NT_PATCH)
-//     {
-//         Patch *patch = static_cast<Patch *>(node);
-//         selectedObjects.insert(patch);
-//         for (int i = 0; i < 6; i++)
-//             patch->obj()->selectFace(i);
+        signalCheckChange(patch);
+    }
+    else if (node->type() == NT_COMPONENT)
+    {
+        ComponentType type = static_cast<Components *>(node->parent())->cType();
+        Patch *patch = static_cast<Patch *>(node->parent()->parent());
 
-//         signalCheckChange(patch);
-//     }
-//     else if (node->type() == NT_FILE)
-//         for (auto n : node->children())
-//             addToSelection(n, false);
+        if (type == CT_FACE && _selectionMode == SM_FACE)
+            patch->obj()->selectFaces(true, {static_cast<Component *>(node)->index()});
+        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
+            patch->obj()->selectEdges(true, {static_cast<Component *>(node)->index()});
+        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
+            patch->obj()->selectPoints(true, {static_cast<Component *>(node)->index()});
+
+        signalCheckChange(patch);
+        selectedObjects.insert(patch);
+    }
+
+    if (signal)
+        emit selectionChanged();
+}
 
 
-//     if (signal)
-//         emit selectionChanged();
-// }
+void ObjectSet::removeFromSelection(Node *node, bool signal)
+{
+    if (node->type() == NT_FILE)
+    {
+        for (auto n : node->children())
+            removeFromSelection(n, false);
+    }
+    else if (node->type() == NT_PATCH)
+    {
+        Patch *patch = static_cast<Patch *>(node);
+        patch->obj()->selectObject(_selectionMode, false);
+        signalCheckChange(patch);
+        selectedObjects.erase(patch);
+    }
+    else if (node->type() == NT_COMPONENT)
+    {
+        ComponentType type = static_cast<Components *>(node->parent())->cType();
+        Patch *patch = static_cast<Patch *>(node->parent()->parent());
 
+        if (type == CT_FACE && _selectionMode == SM_FACE)
+            patch->obj()->selectFaces(false, {static_cast<Component *>(node)->index()});
+        else if (type == CT_EDGE && _selectionMode == SM_EDGE)
+            patch->obj()->selectEdges(false, {static_cast<Component *>(node)->index()});
+        else if (type == CT_POINT && _selectionMode == SM_POINT)
+            patch->obj()->selectPoints(false, {static_cast<Component *>(node)->index()});
 
-// void ObjectSet::removeFromSelection(Node *node, bool signal)
-// {
-//     if (node->type() == NT_FACE)
-//     {
-//         Patch *patch = static_cast<Patch *>(node->parent());
-//         if (!_selectFaces)
-//         {
-//             removeFromSelection(patch, true);
-//             return;
-//         }
-//         patch->obj()->selectFace(node->indexInParent(), false);
-//         if (!patch->obj()->hasSelection())
-//             selectedObjects.erase(patch);
+        signalCheckChange(patch);
+        if (!patch->obj()->hasSelection())
+            selectedObjects.erase(patch);
+    }
 
-//         signalCheckChange(patch);
-//     }
-//     else if (node->type() == NT_PATCH)
-//     {
-//         Patch *patch = static_cast<Patch *>(node);
-//         patch->obj()->clearSelection();
-//         selectedObjects.erase(patch);
-
-//         signalCheckChange(patch);
-//     }
-//     else if (node->type() == NT_FILE)
-//         for (auto n : node->children())
-//             removeFromSelection(n, false);
-
-//     if (signal)
-//         emit selectionChanged();
-// }
+    if (signal)
+        emit selectionChanged();
+}
 
 
 Node *ObjectSet::getOrCreateFileNode(QString fileName)

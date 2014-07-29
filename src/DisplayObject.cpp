@@ -271,7 +271,7 @@ void DisplayObject::selectionMode(SelectionMode mode, bool conjunction)
     switch (mode)
     {
     case SM_PATCH:
-        selectObject(!selectedFaces.empty() || !selectedEdges.empty() || !selectedPoints.empty());
+        selectObject(mode, !selectedFaces.empty() || !selectedEdges.empty() || !selectedPoints.empty());
         break;
 
     case SM_FACE:
@@ -297,16 +297,28 @@ void DisplayObject::selectionMode(SelectionMode mode, bool conjunction)
 }
 
 
-void DisplayObject::selectObject(bool selected)
+void DisplayObject::selectObject(SelectionMode mode, bool selected)
 {
     if (selected)
     {
-        for (int i = 0; i < nFaces(); i++)
-            selectedFaces.insert(i);
-        for (int i = 0; i < nEdges(); i++)
-            selectedEdges.insert(i);
-        for (int i = 0; i < nEdges(); i++)
-            selectedPoints.insert(i);
+        if (mode == SM_FACE || mode == SM_PATCH)
+        {
+            for (int i = 0; i < nFaces(); i++)
+                selectedFaces.insert(i);
+            refreshEdgesFromFaces();
+            refreshPointsFromEdges();
+        }
+        else if (mode == SM_EDGE)
+        {
+            for (int i = 0; i < nEdges(); i++)
+                selectedEdges.insert(i);
+            refreshPointsFromEdges();
+        }
+        else if (mode == SM_POINT)
+        {
+            for (int i = 0; i < nPoints(); i++)
+                selectedPoints.insert(i);
+        }
     }
     else
     {

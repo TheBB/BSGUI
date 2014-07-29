@@ -40,7 +40,7 @@ public:
     virtual uint nPoints() = 0;
 
     void selectionMode(SelectionMode mode, bool conjunction = true);
-    void selectObject(bool selected);
+    void selectObject(SelectionMode mode, bool selected);
     void selectFaces(bool selected, std::set<uint> faces);
     void selectEdges(bool selected, std::set<uint> edges);
     void selectPoints(bool selected, std::set<uint> points);

@@ -12,10 +12,10 @@ void makeCubes(ObjectSet *objectSet, GLWidget *glWidget)
 {
     std::vector<QVector3D> centers = {
         QVector3D(0, 0, 1),
-        QVector3D(-3, 0, 0),
-        QVector3D(0, -3, 0),
-        QVector3D(6, 0, 0),
-        QVector3D(0, 4, 0),
+        // QVector3D(-3, 0, 0),
+        // QVector3D(0, -3, 0),
+        // QVector3D(6, 0, 0),
+        // QVector3D(0, 4, 0),
     };
 
 

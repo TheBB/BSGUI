@@ -97,7 +97,8 @@ private:
 class Component : public Node
 {
 public:
-    Component(int index, Node *parent = NULL);
+
+    Component(uint index, Node *parent = NULL);
     ~Component() {};
 
     virtual NodeType type () { return NT_COMPONENT; }
@@ -105,8 +106,10 @@ public:
 
     bool isSelected();
 
+    inline uint index() { return _index; }
+
 private:
-    int _index;
+    uint _index;
 };
 
 
@@ -136,8 +139,8 @@ public:
     void addCubeFromCenter(QVector3D center);
     void boundingSphere(QVector3D *center, float *radius);
     void setSelection(std::set<uint> *picks, bool clear = true);
-    // void addToSelection(Node *node, bool signal = true);
-    // void removeFromSelection(Node *node, bool signal = true);
+    void addToSelection(Node *node, bool signal = true);
+    void removeFromSelection(Node *node, bool signal = true);
 
     typedef typename std::vector<Patch *>::iterator iterator;
     typedef typename std::vector<Patch *>::const_iterator const_iterator;
