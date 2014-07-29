@@ -123,7 +123,7 @@ public:
 
     bool hasSelection() { return !selectedObjects.empty(); }
     inline SelectionMode selectionMode() { return _selectionMode; }
-    void setSelectionMode(SelectionMode mode);
+    void setSelectionMode(SelectionMode mode, bool fromMouse);
 
     std::mutex m;
 
@@ -155,6 +155,7 @@ signals:
     void requestInitialization(DisplayObject *obj);
     void update();
     void selectionChanged();
+    void selectionModeChanged(SelectionMode mode, bool fromMouse);
 
 private:
     Node *root;

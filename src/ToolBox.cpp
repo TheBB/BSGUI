@@ -18,6 +18,15 @@
 #define ZOOMSLIDER_FACTOR 500
 
 
+template <typename T, typename V>
+void blockAndSetChecked(T *obj, V val)
+{
+    bool prev = obj->blockSignals(true);
+    obj->setChecked(val);
+    obj->blockSignals(prev);
+}
+
+
 TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
                      QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags)
@@ -52,13 +61,23 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
     pointsBtn->setChecked(objectSet->selectionMode() == SM_POINT);
 
     QObject::connect(patchesBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_PATCH); });
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_PATCH, false); });
     QObject::connect(facesBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_FACE); });
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_FACE, false); });
     QObject::connect(edgesBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_EDGE); });
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_EDGE, false); });
     QObject::connect(pointsBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_POINT); });
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_POINT, false); });
+    QObject::connect(objectSet, &ObjectSet::selectionModeChanged,
+                     [patchesBtn, facesBtn, edgesBtn, pointsBtn] (SelectionMode mode, bool fromMouse) {
+                         if (!fromMouse)
+                             return;
+
+                         blockAndSetChecked<QRadioButton, bool>(patchesBtn, mode == SM_PATCH);
+                         blockAndSetChecked<QRadioButton, bool>(facesBtn, mode == SM_FACE);
+                         blockAndSetChecked<QRadioButton, bool>(edgesBtn, mode == SM_EDGE);
+                         blockAndSetChecked<QRadioButton, bool>(pointsBtn, mode == SM_POINT);
+                     });
 
     setLayout(layout);
 }
@@ -70,7 +89,6 @@ void blockAndSet(T *obj, V val)
     bool prev = obj->blockSignals(true);
     obj->setValue(val);
     obj->blockSignals(prev);
-
 }
 
 
@@ -97,13 +115,7 @@ void newUpRadioButton(QString title, QGridLayout *layout, int row, int col, GLWi
     layout->addWidget(btn, row, col, 1, 1);
     btn->setChecked(glWidget->dir() == dir);
     QObject::connect(btn, &QRadioButton::toggled,
-                     [glWidget, dir] (bool checked) {
-                         if (checked)
-                         {
-                             glWidget->setDir(dir);
-                             glWidget->update();
-                         }
-                     });
+                     [glWidget, dir] (bool checked) { if (checked) glWidget->setDir(dir); });
 }
 
 
@@ -114,15 +126,9 @@ void newPresetsRadioButton(QString title, QGridLayout *layout, int row, int col,
     btn->setChecked(checked);
     layout->addWidget(btn, row, col, 1, 1);
     QObject::connect(btn, &QRadioButton::toggled,
-                     [glWidget, val] (bool checked) {
-                         if (checked)
-                         {
-                             glWidget->usePreset(val);
-                             glWidget->update();
-                         }
-                     });
+                     [glWidget, val] (bool checked) { if (checked) glWidget->usePreset(val); });
     QObject::connect(glWidget, &GLWidget::fixedChanged,
-                     [btn, val] (bool fixed, preset view) {btn->setChecked(view == val); });
+                     [btn, val] (bool fixed, preset view) { btn->setChecked(view == val); });
 }
 
 
@@ -143,7 +149,6 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(inclinationSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
                          glWidget->setInclination((float) val / INCSLIDER_FACTOR, false);
-                         glWidget->update();
                      });
 
     row += 2;
@@ -156,7 +161,6 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(azimuthSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
                          glWidget->setAzimuth((float) val / AZMSLIDER_FACTOR, false);
-                         glWidget->update();
                      });
 
     row += 2;
@@ -169,7 +173,6 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(rollSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
                          glWidget->setRoll((float) val / ROLLSLIDER_FACTOR, false);
-                         glWidget->update();
                      });
 
     row += 2;
@@ -182,7 +185,6 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(fovSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
                          glWidget->setFov(exp((float) val / FOVSLIDER_FACTOR) * MAX_FOV, false);
-                         glWidget->update();
                      });
 
     row += 2;
@@ -195,7 +197,6 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(zoomSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
                          glWidget->setZoom((float) val / ZOOMSLIDER_FACTOR, false);
-                         glWidget->update();
                      });
 
     row += 2;
@@ -225,10 +226,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     layout->addWidget(centerBtn, row, 0, 1, 3);
 
     QObject::connect(centerBtn, &QPushButton::clicked,
-                     [glWidget] (bool val) {
-                         glWidget->centerOnSelected();
-                         glWidget->update();
-                     });
+                     [glWidget] (bool val) { glWidget->centerOnSelected(); });
     QObject::connect(objectSet, &ObjectSet::selectionChanged,
                      [centerBtn, objectSet] () {
                          centerBtn->setText(objectSet->hasSelection()
@@ -254,10 +252,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
 
     QObject::connect(glWidget, &GLWidget::perspectiveChanged, this, &CameraPanel::perspectiveChanged);
     QObject::connect(perspectiveBtn, &QRadioButton::toggled,
-                     [glWidget] (bool checked) {
-                         glWidget->setPerspective(checked);
-                         glWidget->update();
-                     });
+                     [glWidget] (bool checked) { glWidget->setPerspective(checked); });
 
     row++;
 
@@ -307,10 +302,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     leftHanded->setChecked(!glWidget->rightHanded());
 
     QObject::connect(rightHanded, &QRadioButton::toggled,
-                     [glWidget] (bool checked) {
-                         glWidget->setRightHanded(checked);
-                         glWidget->update();
-                     });
+                     [glWidget] (bool checked) { glWidget->setRightHanded(checked); });
 
     row++;
 
@@ -322,10 +314,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     row++;
 
     QObject::connect(showAxes, &QCheckBox::toggled,
-                     [glWidget] (bool checked) {
-                         glWidget->setShowAxes(checked, false);
-                         glWidget->update();
-                     });
+                     [glWidget] (bool checked) { glWidget->setShowAxes(checked, false); });
     QObject::connect(glWidget, &GLWidget::showAxesChanged, this, &CameraPanel::showAxesChanged);
 
 
@@ -403,7 +392,6 @@ void CameraPanel::lookAtChanged(QVector3D pt, bool fromMouse)
 void CameraPanel::updateLookAt(double t)
 {
     glWidget->setLookAt(QVector3D(lookAtX->value(), lookAtY->value(), lookAtZ->value()), false);
-    glWidget->update();
 }
 
 

@@ -306,27 +306,6 @@ void GLWidget::keyPressEvent(QKeyEvent *event)
         return;
     }
 
-    if (event->key() == Qt::Key_C)
-        centerOnSelected();
-    if (event->key() == Qt::Key_A)
-        setShowAxes(!_showAxes, true);
-    if (event->key() == Qt::Key_P && !_fixed)
-        setPerspective(!_perspective);
-    if (event->key() == Qt::Key_QuoteLeft)
-        usePreset(VIEW_FREE);
-    if (event->key() == Qt::Key_1)
-        usePreset(VIEW_TOP);
-    if (event->key() == Qt::Key_2)
-        usePreset(VIEW_BOTTOM);
-    if (event->key() == Qt::Key_3)
-        usePreset(VIEW_LEFT);
-    if (event->key() == Qt::Key_4)
-        usePreset(VIEW_RIGHT);
-    if (event->key() == Qt::Key_5)
-        usePreset(VIEW_FRONT);
-    if (event->key() == Qt::Key_6)
-        usePreset(VIEW_BACK);
-
     update();
 }
 
@@ -455,6 +434,7 @@ void GLWidget::setInclination(double val, bool fromMouse)
     _inclination = val;
 
     emit inclinationChanged(val, fromMouse);
+    update();
 }
 
 
@@ -467,6 +447,7 @@ void GLWidget::setAzimuth(double val, bool fromMouse)
     _azimuth = val;
 
     emit azimuthChanged(val, fromMouse);
+    update();
 }
 
 
@@ -479,6 +460,7 @@ void GLWidget::setRoll(double val, bool fromMouse)
     _roll = val;
 
     emit rollChanged(val, fromMouse);
+    update();
 }
 
 
@@ -491,20 +473,25 @@ void GLWidget::setFov(double val, bool fromMouse)
     _fov = val;
 
     emit fovChanged(val, fromMouse);
+    update();
 }
 
 
 void GLWidget::setZoom(double val, bool fromMouse)
 {
     _zoom = val;
+
     emit zoomChanged(val, fromMouse);
+    update();
 }
 
 
 void GLWidget::setLookAt(QVector3D pt, bool fromMouse)
 {
     _lookAt = pt;
+
     emit lookAtChanged(pt, fromMouse);
+    update();
 }
 
 
@@ -523,6 +510,7 @@ void GLWidget::setPerspective(bool val)
         orthoOrigFov = _fov;
 
     emit perspectiveChanged(val);
+    update();
 }
 
 
@@ -543,8 +531,6 @@ void GLWidget::usePreset(preset val)
 
         _fixed = false;
         emit fixedChanged(_fixed, val);
-
-        update();
 
         return;
     }
@@ -589,29 +575,33 @@ void GLWidget::usePreset(preset val)
 
     _fixed = true;
     emit fixedChanged(_fixed, val);
-
-    update();
 }
 
 
 void GLWidget::setDir(direction val)
 {
     _dir = val;
+
     emit dirChanged(val);
+    update();
 }
 
 
 void GLWidget::setRightHanded(bool val)
 {
     _rightHanded = val;
+
     emit rightHandedChanged(val);
+    update();
 }
 
 
 void GLWidget::setShowAxes(bool val, bool fromMouse)
 {
     _showAxes = val;
+
     emit showAxesChanged(val, fromMouse);
+    update();
 }
 
 

@@ -192,7 +192,7 @@ ObjectSet::~ObjectSet()
 }
 
 
-void ObjectSet::setSelectionMode(SelectionMode mode)
+void ObjectSet::setSelectionMode(SelectionMode mode, bool fromMouse)
 {
     if (mode != _selectionMode)
     {
@@ -207,6 +207,7 @@ void ObjectSet::setSelectionMode(SelectionMode mode)
     }
 
     emit selectionChanged();
+    emit selectionModeChanged(_selectionMode, fromMouse);
 }
 
 

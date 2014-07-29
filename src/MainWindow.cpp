@@ -12,10 +12,10 @@ void makeCubes(ObjectSet *objectSet, GLWidget *glWidget)
 {
     std::vector<QVector3D> centers = {
         QVector3D(0, 0, 1),
-        // QVector3D(-3, 0, 0),
-        // QVector3D(0, -3, 0),
-        // QVector3D(6, 0, 0),
-        // QVector3D(0, 4, 0),
+        QVector3D(-3, 0, 0),
+        QVector3D(0, -3, 0),
+        QVector3D(6, 0, 0),
+        QVector3D(0, 4, 0),
     };
 
 
@@ -65,27 +65,44 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         return false;
 
     QKeyEvent *e = static_cast<QKeyEvent *>(event);
+
     switch (e->key())
     {
+    case Qt::Key_QuoteLeft: glWidget->usePreset(VIEW_FREE); return true;
+    case Qt::Key_1: glWidget->usePreset(VIEW_TOP); return true;
+    case Qt::Key_2: glWidget->usePreset(VIEW_BOTTOM); return true;
+    case Qt::Key_3: glWidget->usePreset(VIEW_LEFT); return true;
+    case Qt::Key_4: glWidget->usePreset(VIEW_RIGHT); return true;
+    case Qt::Key_5: glWidget->usePreset(VIEW_FRONT); return true;
+    case Qt::Key_6: glWidget->usePreset(VIEW_BACK); return true;
+    case Qt::Key_A: glWidget->setShowAxes(!glWidget->showAxes(), true); return true;
+    case Qt::Key_C: glWidget->centerOnSelected(); return true;
+
+    case Qt::Key_E:
+        if (e->modifiers().testFlag(Qt::ControlModifier))
+            objectSet->setSelectionMode(SM_EDGE, true);
+        return true;
+
+    case Qt::Key_F:
+        if (e->modifiers().testFlag(Qt::ControlModifier))
+            objectSet->setSelectionMode(SM_FACE, true);
+        return true;
+
+    case Qt::Key_P:
+        if (e->modifiers().testFlag(Qt::ControlModifier))
+            objectSet->setSelectionMode(SM_PATCH, true);
+        else if (!glWidget->fixed())
+            glWidget->setPerspective(!glWidget->perspective());
+        return true;
+
+    case Qt::Key_O:
+        if (e->modifiers().testFlag(Qt::ControlModifier))
+            objectSet->setSelectionMode(SM_POINT, true);
+        return true;
+
     case Qt::Key_Control:
     case Qt::Key_Shift:
-    case Qt::Key_Alt:
-    case Qt::Key_C:
-    case Qt::Key_A:
-    case Qt::Key_P:
-    case Qt::Key_QuoteLeft:
-    case Qt::Key_1:
-    case Qt::Key_2:
-    case Qt::Key_3:
-    case Qt::Key_4:
-    case Qt::Key_5:
-    case Qt::Key_6:
-        glWidget->keyPressEvent(e);
-        return true;
-    case Qt::Key_F:
-        // objectSet->setSelectFaces(!objectSet->selectFaces(), true);
-        return true;
-    default:
-        return false;
+    case Qt::Key_Alt: glWidget->keyPressEvent(e); return true;
+    default: return false;
     }
 }

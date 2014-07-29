@@ -57,6 +57,8 @@ public:
     inline bool perspective() { return _perspective; }
     void setPerspective(bool val);
 
+    inline bool fixed() { return _fixed; }
+
     void usePreset(preset val);
 
     inline direction dir() { return _dir; }
@@ -105,36 +107,20 @@ private:
     void axesMatrix(QMatrix4x4 *);
     void multiplyDir(QMatrix4x4 *);
 
-    QOpenGLShaderProgram vcProgram;
-    QOpenGLShaderProgram ccProgram;
-    QOpenGLShaderProgram lnProgram;
-    QOpenGLBuffer auxBuffer;
-    QOpenGLBuffer axesBuffer;
-    QOpenGLBuffer selectionBuffer;
-    QOpenGLBuffer auxCBuffer;
+    QOpenGLShaderProgram vcProgram, ccProgram;
+    QOpenGLBuffer auxBuffer, axesBuffer, selectionBuffer, auxCBuffer;
 
     ObjectSet *objectSet;
 
-    bool shiftPressed;
-    bool ctrlPressed;
-    bool altPressed;
+    bool shiftPressed, ctrlPressed, altPressed;
 
-    double _inclination;
-    double _azimuth;
-    double _roll;
-    double _fov;
-    double _zoom;
+    double _inclination, _azimuth, _roll, _fov, _zoom, _diameter;
+    bool _perspective, _fixed, _rightHanded, _showAxes;
     QVector3D _lookAt;
-    bool _perspective;
-    bool _fixed;
     direction _dir;
-    bool _rightHanded;
-    bool _showAxes;
-    float _diameter;
 
     bool selectTracking;
-    QPoint selectOrig;
-    QPoint selectTo;
+    QPoint selectOrig, selectTo;
 
     bool cameraTracking;
     QPoint mouseOrig;
