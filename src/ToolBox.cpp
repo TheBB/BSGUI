@@ -311,11 +311,21 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     layout->addWidget(showAxes, row, 0, 1, 3);
     showAxes->setChecked(glWidget->showAxes());
 
-    row++;
-
     QObject::connect(showAxes, &QCheckBox::toggled,
                      [glWidget] (bool checked) { glWidget->setShowAxes(checked, false); });
     QObject::connect(glWidget, &GLWidget::showAxesChanged, this, &CameraPanel::showAxesChanged);
+
+    row++;
+
+
+    showPoints = new QCheckBox("Show vertices");
+    layout->addWidget(showPoints, row, 0, 1, 3);
+    showPoints->setChecked(glWidget->showPoints());
+
+    QObject::connect(showPoints, &QCheckBox::toggled,
+                     [glWidget] (bool checked) { glWidget->setShowPoints(checked); });
+
+    row++;
 
 
     QObject::connect(glWidget, &GLWidget::fixedChanged, this, &CameraPanel::fixedChanged);

@@ -29,7 +29,7 @@ public:
 
     inline bool visible() { return _visible; }
 
-    void draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog);
+    void draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showPoints);
     void drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, SelectionMode mode);
 
     inline QVector3D center() { return _center; };

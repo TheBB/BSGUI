@@ -122,7 +122,7 @@ void sortSelection(const std::set<uint> &selected, const std::set<uint> &visible
 }
 
 
-void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
+void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showPoints)
 {
     if (!_initialized)
         return;
@@ -157,12 +157,15 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog)
     setUniforms(prog, mvp, EDGE_COLOR_NORMAL, 0.0002); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
 
 
-    pointBuffer.bind();
-    sortSelection(selectedPoints, visiblePoints, sel, unsel);
-    glPointSize(POINT_SIZE);
+    if (showPoints)
+    {
+        pointBuffer.bind();
+        sortSelection(selectedPoints, visiblePoints, sel, unsel);
+        glPointSize(POINT_SIZE);
 
-    setUniforms(prog, mvp, POINT_COLOR_SELECTED, 0.0); drawCommandPts(sel, nPoints());
-    setUniforms(prog, mvp, POINT_COLOR_NORMAL, 0.0); drawCommandPts(unsel, nPoints());
+        setUniforms(prog, mvp, POINT_COLOR_SELECTED, 0.0); drawCommandPts(sel, nPoints());
+        setUniforms(prog, mvp, POINT_COLOR_NORMAL, 0.0); drawCommandPts(unsel, nPoints());
+    }
 }
 
 

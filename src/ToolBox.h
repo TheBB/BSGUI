@@ -47,7 +47,7 @@ private:
     QDoubleSpinBox *lookAtX, *lookAtY, *lookAtZ;
 
     QRadioButton *perspectiveBtn, *orthographicBtn;
-    QCheckBox *showAxes;
+    QCheckBox *showAxes, *showPoints;
 };
 
 

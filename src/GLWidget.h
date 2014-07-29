@@ -66,9 +66,12 @@ public:
 
     inline bool rightHanded() { return _rightHanded; }
     void setRightHanded(bool val);
-    
+
     inline bool showAxes() { return _showAxes; }
     void setShowAxes(bool val, bool fromMouse);
+
+    inline bool showPoints() { return _showPoints; }
+    void setShowPoints(bool val);
 
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
@@ -115,7 +118,7 @@ private:
     bool shiftPressed, ctrlPressed, altPressed;
 
     double _inclination, _azimuth, _roll, _fov, _zoom, _diameter;
-    bool _perspective, _fixed, _rightHanded, _showAxes;
+    bool _perspective, _fixed, _rightHanded, _showAxes, _showPoints;
     QVector3D _lookAt;
     direction _dir;
 

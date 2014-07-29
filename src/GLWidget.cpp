@@ -5,10 +5,9 @@
 #include <QDesktopWidget>
 
 #include "DisplayObject.h"
+
 #include "shaders.h"
-
 #include "GLWidget.h"
-
 
 GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     : QGLWidget(parent)
@@ -32,6 +31,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , _dir(POSZ)
     , _rightHanded(true)
     , _showAxes(true)
+    , _showPoints(false)
     , _diameter(20.0)
     , selectTracking(false)
     , cameraTracking(false)
@@ -140,7 +140,7 @@ void GLWidget::paintGL()
     matrix(&mvp);
 
     for (auto patch : *objectSet)
-        patch->obj()->draw(mvp, ccProgram);
+        patch->obj()->draw(mvp, ccProgram, _showPoints || objectSet->selectionMode() == SM_POINT);
 
     if (_showAxes)
     {
@@ -601,6 +601,14 @@ void GLWidget::setShowAxes(bool val, bool fromMouse)
     _showAxes = val;
 
     emit showAxesChanged(val, fromMouse);
+    update();
+}
+
+
+void GLWidget::setShowPoints(bool val)
+{
+    _showPoints = val;
+
     update();
 }
 
