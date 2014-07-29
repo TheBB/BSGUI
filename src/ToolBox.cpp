@@ -191,7 +191,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
 
 
     newLabelSet(&zoomLabel, layout, "Physical zoom", row);
-    newSlider(&zoomSlider, layout, -2*ZOOMSLIDER_FACTOR, 2*ZOOMSLIDER_FACTOR, row+1);
+    newSlider(&zoomSlider, layout, 0, MAX_ZOOM * ZOOMSLIDER_FACTOR, row+1);
 
     QObject::connect(glWidget, &GLWidget::zoomChanged, this, &CameraPanel::zoomChanged);
     QObject::connect(zoomSlider, &QSlider::valueChanged,

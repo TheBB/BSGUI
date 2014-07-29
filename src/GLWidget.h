@@ -18,6 +18,7 @@
 #define _GLWIDGET_H_
 
 #define MAX_FOV 135.0
+#define MAX_ZOOM 3.0
 
 enum direction { POSX, NEGX, POSY, NEGY, POSZ, NEGZ };
 enum preset { VIEW_TOP, VIEW_BOTTOM, VIEW_LEFT, VIEW_RIGHT, VIEW_FRONT, VIEW_BACK, VIEW_FREE };

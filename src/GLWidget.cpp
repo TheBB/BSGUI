@@ -24,7 +24,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , _azimuth(45.0)
     , _fov(45.0)
     , _roll(0.0)
-    , _zoom(0.0)
+    , _zoom(1.0)
     , _lookAt(0,0,0)
     , _perspective(true)
     , _fixed(false)
@@ -72,7 +72,7 @@ void GLWidget::centerOnSelected()
             _diameter = 1.0;
 
         setFov(45.0, true);
-        setZoom(0.0, true);
+        setZoom(1.0, true);
     }
 
     update();
@@ -419,7 +419,7 @@ void GLWidget::wheelEvent(QWheelEvent *event)
     if (ctrlPressed || !_perspective)
         setFov(fov() / exp((float) event->angleDelta().y() / 120.0 / (shiftPressed ? 150.0 : 15.0)), true);
     else
-        setZoom(zoom() + (double) event->angleDelta().y() / 120.0 / (shiftPressed ? 400.0 : 40.0), true);
+        setZoom(zoom() - (double) event->angleDelta().y() / 120.0 / (shiftPressed ? 400.0 : 40.0), true);
 
     update();
 }
@@ -479,6 +479,10 @@ void GLWidget::setFov(double val, bool fromMouse)
 
 void GLWidget::setZoom(double val, bool fromMouse)
 {
+    if (val > MAX_ZOOM)
+        val = MAX_ZOOM;
+    if (val < 0.0)
+        val = 0.0;
     _zoom = val;
 
     emit zoomChanged(val, fromMouse);
@@ -501,7 +505,7 @@ void GLWidget::setPerspective(bool val)
 
     if (val)
     {
-        _zoom = 1.0 - (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0) / tan(orthoOrigFov * 3.14159265 / 360.0);
+        _zoom = _zoom * tan(_fov * 3.14159265 / 360.0) / tan(orthoOrigFov * 3.14159265 / 360.0);
         _fov = orthoOrigFov;
         emit zoomChanged(_zoom, true);
         emit fovChanged(_fov, true);
@@ -631,13 +635,12 @@ void GLWidget::matrix(QMatrix4x4 *mvp)
         mvp->perspective(_fov, aspect, 0.01, 100.0);
     else
     {
-        float h = (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0);
+        float h = _zoom * tan(_fov * 3.14159265 / 360.0);
         mvp->ortho(-aspect * h, aspect * h, -h, h, 0.01, 100.0);
     }
 
-    QVector3D eye = QVector3D(0, (_perspective ? _zoom : 0.0), 0);
+    QVector3D eye = QVector3D(0, (_perspective ? - _zoom : -1.0), 0);
     mvp->lookAt(eye, eye + QVector3D(0, 1, 0), QVector3D(0, 0, 1));
-    mvp->translate(QVector3D(0, 1, 0));
     mvp->rotate(_roll, QVector3D(0, 1, 0));
     mvp->rotate(_inclination, QVector3D(1, 0, 0));
     mvp->rotate(_azimuth, QVector3D(0, 0, 1));
