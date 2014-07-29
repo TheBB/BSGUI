@@ -354,11 +354,11 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
 
             switch (type)
             {
-            case OT_VOLUME: return QIcon(":/volume.png");
+            case OT_VOLUME: return QIcon(":/icons/volume.png");
             }
         }
         else if (node->type() == NT_FILE)
-            return QIcon(":/file.png");
+            return QIcon(":/icons/file.png");
     }
 
     return QVariant();

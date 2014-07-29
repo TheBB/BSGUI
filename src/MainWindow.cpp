@@ -1,6 +1,5 @@
 #include <sstream>
 #include <thread>
-
 #include <QVector3D>
 
 #include "main.h"

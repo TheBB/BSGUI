@@ -1,12 +1,13 @@
 #include <algorithm>
 #include <cmath>
 #include <set>
+#include <QFile>
+#include <QTextStream>
 #include <QRect>
 #include <QDesktopWidget>
 
 #include "DisplayObject.h"
 
-#include "shaders.h"
 #include "GLWidget.h"
 
 GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
@@ -222,6 +223,18 @@ void GLWidget::resizeGL(int w, int h)
 }
 
 
+bool addShader(QOpenGLShaderProgram &program, QOpenGLShader::ShaderType type, QString fileName)
+{
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return false;
+
+    QTextStream stream(&file);
+    QString source = stream.readAll();
+    return program.addShaderFromSourceCode(type, source);
+}
+
+
 void GLWidget::initializeGL()
 {
     m.lock();
@@ -235,16 +248,17 @@ void GLWidget::initializeGL()
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    if (!vcProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsVaryingColor))
+
+    if (!addShader(vcProgram, QOpenGLShader::Vertex, ":/shaders/varying_vertex.glsl"))
         close();
-    if (!vcProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsVaryingColor))
+    if (!addShader(vcProgram, QOpenGLShader::Fragment, ":/shaders/varying_fragment.glsl"))
         close();
     if (!vcProgram.link())
         close();
 
-    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Vertex, vsConstantColor))
+    if (!addShader(ccProgram, QOpenGLShader::Vertex, ":/shaders/constant_vertex.glsl"))
         close();
-    if (!ccProgram.addShaderFromSourceCode(QOpenGLShader::Fragment, fsConstantColor))
+    if (!addShader(ccProgram, QOpenGLShader::Fragment, ":/shaders/constant_fragment.glsl"))
         close();
     if (!ccProgram.link())
         close();

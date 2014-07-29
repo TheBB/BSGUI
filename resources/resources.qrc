@@ -1,7 +1,11 @@
 <!DOCTYPE RCC>
 <RCC version="1.0">
-  <qresource prefix="/">
-    <file>volume.png</file>
-    <file>file.png</file>
+  <qresource>
+    <file>icons/volume.png</file>
+    <file>icons/file.png</file>
+    <file>shaders/varying_vertex.glsl</file>
+    <file>shaders/varying_fragment.glsl</file>
+    <file>shaders/constant_vertex.glsl</file>
+    <file>shaders/constant_fragment.glsl</file>
   </qresource>
 </RCC>

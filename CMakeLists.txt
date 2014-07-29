@@ -20,4 +20,32 @@ find_package(Qt5OpenGL REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(GoTools REQUIRED)
 
-add_subdirectory(src)
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/src/main.h.in"
+  "${PROJECT_BINARY_DIR}/main.h"
+  )
+
+include_directories(${PROJECT_BINARY_DIR})
+include_directories(${EIGEN3_INCLUDE_DIR})
+include_directories(${GoTools_INCLUDE_DIRS})
+include_directories(src)
+
+qt5_add_resources(RESOURCES resources/resources.qrc)
+
+add_executable(BSGUI
+  ${RESOURCES}
+  src/main.cpp
+  src/GLWidget.cpp
+  src/MainWindow.cpp
+  src/ObjectSet.cpp
+  src/ToolBox.cpp
+  src/DisplayObject.cpp
+  src/DisplayObjects/Volume.cpp
+  )
+
+qt5_use_modules(BSGUI Core Widgets Gui OpenGL)
+
+target_link_libraries(BSGUI GL)
+target_link_libraries(BSGUI ${GoTools_LIBRARIES})
+
+install(TARGETS BSGUI RUNTIME DESTINATION bin)
