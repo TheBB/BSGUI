@@ -28,16 +28,15 @@ public:
     QSize sizeHint() const { return QSize(300, 100); }
 
 public slots:
-    void inclinationChanged(double val, bool fromMouse);
-    void azimuthChanged(double val, bool fromMouse);
-    void rollChanged(double val, bool fromMouse);
-    void fovChanged(double val, bool fromMouse);
-    void zoomChanged(double val, bool fromMouse);
+    void inclinationChanged(double val);
+    void azimuthChanged(double val);
+    void rollChanged(double val);
+    void fovChanged(double val);
+    void zoomChanged(double val);
     void lookAtChanged(QVector3D pt, bool fromMouse);
     void updateLookAt(double t);
     void perspectiveChanged(bool val);
     void fixedChanged(bool val);
-    void showAxesChanged(bool val, bool fromMouse);
 
 private:
     GLWidget *glWidget;

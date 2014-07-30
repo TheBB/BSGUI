@@ -72,8 +72,8 @@ void GLWidget::centerOnSelected()
         else
             _diameter = 1.0;
 
-        setFov(45.0, true);
-        setZoom(1.0, true);
+        setFov(45.0);
+        setZoom(1.0);
     }
 
     update();
@@ -414,13 +414,13 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     else if (!_fixed)
     {
         setAzimuth(mouseOrigAzimuth + (shiftPressed ? 36.0 : 360.0) *
-                   (event->pos().x() - mouseOrig.x()) / screen.width(), true);
+                   (event->pos().x() - mouseOrig.x()) / screen.width());
         setInclination(mouseOrigInclination + (shiftPressed ? 18.0 : 180.0) *
-                       (event->pos().y() - mouseOrig.y()) / screen.height(), true);
+                       (event->pos().y() - mouseOrig.y()) / screen.height());
     }
     else
         setRoll(mouseOrigRoll - (shiftPressed ? 36.0 : 360.0) *
-                (event->pos().x() - mouseOrig.x()) / screen.width(), true);
+                (event->pos().x() - mouseOrig.x()) / screen.width());
 
     update();
 }
@@ -432,15 +432,15 @@ void GLWidget::wheelEvent(QWheelEvent *event)
         return;
 
     if (ctrlPressed || !_perspective)
-        setFov(fov() / exp((float) event->angleDelta().y() / 120.0 / (shiftPressed ? 150.0 : 15.0)), true);
+        setFov(fov() / exp((float) event->angleDelta().y() / 120.0 / (shiftPressed ? 150.0 : 15.0)));
     else
-        setZoom(zoom() - (double) event->angleDelta().y() / 120.0 / (shiftPressed ? 400.0 : 40.0), true);
+        setZoom(zoom() - (double) event->angleDelta().y() / 120.0 / (shiftPressed ? 400.0 : 40.0));
 
     update();
 }
 
 
-void GLWidget::setInclination(double val, bool fromMouse)
+void GLWidget::setInclination(double val)
 {
     if (val >= 90.0)
         val = 90.0;
@@ -448,12 +448,12 @@ void GLWidget::setInclination(double val, bool fromMouse)
         val = -90.0;
     _inclination = val;
 
-    emit inclinationChanged(val, fromMouse);
+    emit inclinationChanged(val);
     update();
 }
 
 
-void GLWidget::setAzimuth(double val, bool fromMouse)
+void GLWidget::setAzimuth(double val)
 {
     while (val > 360.0)
         val -= 360.0;
@@ -461,12 +461,12 @@ void GLWidget::setAzimuth(double val, bool fromMouse)
         val += 360.0;
     _azimuth = val;
 
-    emit azimuthChanged(val, fromMouse);
+    emit azimuthChanged(val);
     update();
 }
 
 
-void GLWidget::setRoll(double val, bool fromMouse)
+void GLWidget::setRoll(double val)
 {
     while (val > 360.0)
         val -= 360.0;
@@ -474,12 +474,12 @@ void GLWidget::setRoll(double val, bool fromMouse)
         val += 360.0;
     _roll = val;
 
-    emit rollChanged(val, fromMouse);
+    emit rollChanged(val);
     update();
 }
 
 
-void GLWidget::setFov(double val, bool fromMouse)
+void GLWidget::setFov(double val)
 {
     if (val >= MAX_FOV)
         val = MAX_FOV;
@@ -487,12 +487,12 @@ void GLWidget::setFov(double val, bool fromMouse)
         val = 0.0;
     _fov = val;
 
-    emit fovChanged(val, fromMouse);
+    emit fovChanged(val);
     update();
 }
 
 
-void GLWidget::setZoom(double val, bool fromMouse)
+void GLWidget::setZoom(double val)
 {
     if (val > MAX_ZOOM)
         val = MAX_ZOOM;
@@ -500,7 +500,7 @@ void GLWidget::setZoom(double val, bool fromMouse)
         val = 0.0;
     _zoom = val;
 
-    emit zoomChanged(val, fromMouse);
+    emit zoomChanged(val);
     update();
 }
 
@@ -522,8 +522,8 @@ void GLWidget::setPerspective(bool val)
     {
         _zoom = _zoom * tan(_fov * 3.14159265 / 360.0) / tan(orthoOrigFov * 3.14159265 / 360.0);
         _fov = orthoOrigFov;
-        emit zoomChanged(_zoom, true);
-        emit fovChanged(_fov, true);
+        emit zoomChanged(_zoom);
+        emit fovChanged(_fov);
     }
     else
         orthoOrigFov = _fov;
@@ -540,11 +540,11 @@ void GLWidget::usePreset(preset val)
         if (!_fixed)
             return;
 
-        setInclination(fixedOrigInclination, true);
-        setAzimuth(fixedOrigAzimuth, true);
-        setRoll(fixedOrigRoll, true);
-        setFov(fixedOrigFov, true);
-        setZoom(fixedOrigZoom, true);
+        setInclination(fixedOrigInclination);
+        setAzimuth(fixedOrigAzimuth);
+        setRoll(fixedOrigRoll);
+        setFov(fixedOrigFov);
+        setZoom(fixedOrigZoom);
 
         setPerspective(fixedOrigPerspective);
 
@@ -565,31 +565,31 @@ void GLWidget::usePreset(preset val)
     }
 
     setPerspective(false);
-    setRoll(0.0, true);
+    setRoll(0.0);
 
     switch (val)
     {
     case VIEW_TOP:
-        setInclination(90.0, true); break;
+        setInclination(90.0); break;
     case VIEW_BOTTOM:
-        setInclination(-90.0, true); break;
+        setInclination(-90.0); break;
     default:
-        setInclination(0.0, true);
+        setInclination(0.0);
     }
 
     switch (val)
     {
     case VIEW_TOP:
     case VIEW_BOTTOM:
-        setAzimuth(0.0, true); break;
+        setAzimuth(0.0); break;
     case VIEW_LEFT:
-        setAzimuth(0.0, true); break;
+        setAzimuth(0.0); break;
     case VIEW_RIGHT:
-        setAzimuth(180.0, true); break;
+        setAzimuth(180.0); break;
     case VIEW_FRONT:
-        setAzimuth(90.0, true); break;
+        setAzimuth(90.0); break;
     case VIEW_BACK:
-        setAzimuth(270.0, true);
+        setAzimuth(270.0);
     }
 
     _fixed = true;
@@ -615,11 +615,11 @@ void GLWidget::setRightHanded(bool val)
 }
 
 
-void GLWidget::setShowAxes(bool val, bool fromMouse)
+void GLWidget::setShowAxes(bool val)
 {
     _showAxes = val;
 
-    emit showAxesChanged(val, fromMouse);
+    emit showAxesChanged(val);
     update();
 }
 

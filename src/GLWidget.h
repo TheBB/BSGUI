@@ -38,19 +38,19 @@ public:
     void centerOnSelected();
 
     inline double inclination() { return _inclination; }
-    void setInclination(double val, bool fromMouse);
+    void setInclination(double val);
 
     inline double azimuth() { return _azimuth; }
-    void setAzimuth(double val, bool fromMouse);
+    void setAzimuth(double val);
 
     inline double roll() { return _roll; }
-    void setRoll(double roll, bool fromMouse);
+    void setRoll(double roll);
 
     inline double fov() { return _fov; }
-    void setFov(double val, bool fromMouse);
+    void setFov(double val);
 
     inline double zoom() { return _zoom; }
-    void setZoom(double val, bool fromMouse);
+    void setZoom(double val);
 
     inline QVector3D lookAt() { return _lookAt; }
     void setLookAt(QVector3D pt, bool fromMouse);
@@ -69,7 +69,7 @@ public:
     void setRightHanded(bool val);
 
     inline bool showAxes() { return _showAxes; }
-    void setShowAxes(bool val, bool fromMouse);
+    void setShowAxes(bool val);
 
     inline bool showPoints() { return _showPoints; }
     void setShowPoints(bool val);
@@ -81,17 +81,17 @@ public slots:
     void initializeDispObject(DisplayObject *obj);
 
 signals:
-    void inclinationChanged(double val, bool fromMouse);
-    void azimuthChanged(double val, bool fromMouse);
-    void fovChanged(double val, bool fromMouse);
-    void rollChanged(double val, bool fromMouse);
-    void zoomChanged(double val, bool fromMouse);
+    void inclinationChanged(double val);
+    void azimuthChanged(double val);
+    void fovChanged(double val);
+    void rollChanged(double val);
+    void zoomChanged(double val);
     void lookAtChanged(QVector3D pt, bool fromMouse);
     void perspectiveChanged(bool val);
     void fixedChanged(bool val, preset view);
     void dirChanged(direction val);
     void rightHandedChanged(bool val);
-    void showAxesChanged(bool val, bool fromMouse);
+    void showAxesChanged(bool val);
 
 protected:
     void initializeGL();

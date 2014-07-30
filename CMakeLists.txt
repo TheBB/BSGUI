@@ -37,6 +37,7 @@ add_executable(BSGUI
   src/MainWindow.cpp
   src/ObjectSet.cpp
   src/ToolBox.cpp
+  src/InfoBox.cpp
   src/DisplayObject.cpp
   src/DisplayObjects/Volume.cpp
   )

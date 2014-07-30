@@ -4,6 +4,7 @@
 #include "ObjectSet.h"
 #include "GLWidget.h"
 #include "ToolBox.h"
+#include "InfoBox.h"
 
 #ifndef _MAINWINDOW_H_
 #define _MAINWINDOW_H_
@@ -27,6 +28,9 @@ private:
     ObjectSet *_objectSet;
     GLWidget *_glWidget;
     ToolBox *_toolBox;
+    InfoBox *_infoBox;
+
+    QAction *_toolAct, *_infoAct;
 };
 
 #endif /* _MAINWINDOW_H_ */

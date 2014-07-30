@@ -125,7 +125,7 @@ public:
 
     bool hasSelection() { return !selectedObjects.empty(); }
     inline SelectionMode selectionMode() { return _selectionMode; }
-    void setSelectionMode(SelectionMode mode, bool fromMouse);
+    void setSelectionMode(SelectionMode mode);
     void showSelected(bool visible);
     void showAllSelectedPatches(bool visible);
     void showAll();
@@ -160,7 +160,7 @@ signals:
     void requestInitialization(DisplayObject *obj);
     void update();
     void selectionChanged();
-    void selectionModeChanged(SelectionMode mode, bool fromMouse);
+    void selectionModeChanged(SelectionMode mode);
 
 private:
     Node *root;

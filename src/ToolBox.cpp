@@ -19,15 +19,6 @@
 #define ZOOMSLIDER_FACTOR 500
 
 
-template <typename T, typename V>
-void blockAndSetChecked(T *obj, V val)
-{
-    bool prev = obj->blockSignals(true);
-    obj->setChecked(val);
-    obj->blockSignals(prev);
-}
-
-
 TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
                      QWidget *parent, Qt::WindowFlags flags)
     : QWidget(parent, flags)
@@ -66,23 +57,20 @@ TreePanel::TreePanel(GLWidget *glWidget, ObjectSet *objectSet, QWidget *filter,
     selModeLayout->addWidget(pointsBtn, 1, 1, 1, 1);
     pointsBtn->setChecked(objectSet->selectionMode() == SM_POINT);
 
-    QObject::connect(patchesBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_PATCH, false); });
-    QObject::connect(facesBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_FACE, false); });
-    QObject::connect(edgesBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_EDGE, false); });
-    QObject::connect(pointsBtn, &QRadioButton::toggled,
-                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_POINT, false); });
+    QObject::connect(patchesBtn, &QRadioButton::clicked,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_PATCH); });
+    QObject::connect(facesBtn, &QRadioButton::clicked,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_FACE); });
+    QObject::connect(edgesBtn, &QRadioButton::clicked,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_EDGE); });
+    QObject::connect(pointsBtn, &QRadioButton::clicked,
+                     [objectSet] (bool checked) { if (checked) objectSet->setSelectionMode(SM_POINT); });
     QObject::connect(objectSet, &ObjectSet::selectionModeChanged,
-                     [patchesBtn, facesBtn, edgesBtn, pointsBtn] (SelectionMode mode, bool fromMouse) {
-                         if (!fromMouse)
-                             return;
-
-                         blockAndSetChecked<QRadioButton, bool>(patchesBtn, mode == SM_PATCH);
-                         blockAndSetChecked<QRadioButton, bool>(facesBtn, mode == SM_FACE);
-                         blockAndSetChecked<QRadioButton, bool>(edgesBtn, mode == SM_EDGE);
-                         blockAndSetChecked<QRadioButton, bool>(pointsBtn, mode == SM_POINT);
+                     [patchesBtn, facesBtn, edgesBtn, pointsBtn] (SelectionMode mode) {
+                         patchesBtn->setChecked(mode == SM_PATCH);
+                         facesBtn->setChecked(mode == SM_FACE);
+                         edgesBtn->setChecked(mode == SM_EDGE);
+                         pointsBtn->setChecked(mode == SM_POINT);
                      });
 
     setLayout(layout);
@@ -120,7 +108,7 @@ void newUpRadioButton(QString title, QGridLayout *layout, int row, int col, GLWi
     QRadioButton *btn = new QRadioButton(title);
     layout->addWidget(btn, row, col, 1, 1);
     btn->setChecked(glWidget->dir() == dir);
-    QObject::connect(btn, &QRadioButton::toggled,
+    QObject::connect(btn, &QRadioButton::clicked,
                      [glWidget, dir] (bool checked) { if (checked) glWidget->setDir(dir); });
 }
 
@@ -131,7 +119,7 @@ void newPresetsRadioButton(QString title, QGridLayout *layout, int row, int col,
     QRadioButton *btn = new QRadioButton(title);
     btn->setChecked(checked);
     layout->addWidget(btn, row, col, 1, 1);
-    QObject::connect(btn, &QRadioButton::toggled,
+    QObject::connect(btn, &QRadioButton::clicked,
                      [glWidget, val] (bool checked) { if (checked) glWidget->usePreset(val); });
     QObject::connect(glWidget, &GLWidget::fixedChanged,
                      [btn, val] (bool fixed, preset view) { btn->setChecked(view == val); });
@@ -154,7 +142,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(glWidget, &GLWidget::inclinationChanged, this, &CameraPanel::inclinationChanged);
     QObject::connect(inclinationSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
-                         glWidget->setInclination((float) val / INCSLIDER_FACTOR, false);
+                         glWidget->setInclination((float) val / INCSLIDER_FACTOR);
                      });
 
     row += 2;
@@ -166,7 +154,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(glWidget, &GLWidget::azimuthChanged, this, &CameraPanel::azimuthChanged);
     QObject::connect(azimuthSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
-                         glWidget->setAzimuth((float) val / AZMSLIDER_FACTOR, false);
+                         glWidget->setAzimuth((float) val / AZMSLIDER_FACTOR);
                      });
 
     row += 2;
@@ -178,7 +166,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(glWidget, &GLWidget::rollChanged, this, &CameraPanel::rollChanged);
     QObject::connect(rollSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
-                         glWidget->setRoll((float) val / ROLLSLIDER_FACTOR, false);
+                         glWidget->setRoll((float) val / ROLLSLIDER_FACTOR);
                      });
 
     row += 2;
@@ -190,7 +178,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(glWidget, &GLWidget::fovChanged, this, &CameraPanel::fovChanged);
     QObject::connect(fovSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
-                         glWidget->setFov(exp((float) val / FOVSLIDER_FACTOR) * MAX_FOV, false);
+                         glWidget->setFov(exp((float) val / FOVSLIDER_FACTOR) * MAX_FOV);
                      });
 
     row += 2;
@@ -202,7 +190,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(glWidget, &GLWidget::zoomChanged, this, &CameraPanel::zoomChanged);
     QObject::connect(zoomSlider, &QSlider::valueChanged,
                      [glWidget] (int val) {
-                         glWidget->setZoom((float) val / ZOOMSLIDER_FACTOR, false);
+                         glWidget->setZoom((float) val / ZOOMSLIDER_FACTOR);
                      });
 
     row += 2;
@@ -257,8 +245,10 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     orthographicBtn->setChecked(!glWidget->perspective());
 
     QObject::connect(glWidget, &GLWidget::perspectiveChanged, this, &CameraPanel::perspectiveChanged);
-    QObject::connect(perspectiveBtn, &QRadioButton::toggled,
+    QObject::connect(perspectiveBtn, &QRadioButton::clicked,
                      [glWidget] (bool checked) { glWidget->setPerspective(checked); });
+    QObject::connect(orthographicBtn, &QRadioButton::clicked,
+                     [glWidget] (bool checked) { glWidget->setPerspective(!checked); });
 
     row++;
 
@@ -307,8 +297,10 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     coordLayout->addWidget(leftHanded);
     leftHanded->setChecked(!glWidget->rightHanded());
 
-    QObject::connect(rightHanded, &QRadioButton::toggled,
+    QObject::connect(rightHanded, &QRadioButton::clicked,
                      [glWidget] (bool checked) { glWidget->setRightHanded(checked); });
+    QObject::connect(leftHanded, &QRadioButton::clicked,
+                     [glWidget] (bool checked) { glWidget->setRightHanded(!checked); });
 
     row++;
 
@@ -317,9 +309,10 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     layout->addWidget(showAxes, row, 0, 1, 3);
     showAxes->setChecked(glWidget->showAxes());
 
-    QObject::connect(showAxes, &QCheckBox::toggled,
-                     [glWidget] (bool checked) { glWidget->setShowAxes(checked, false); });
-    QObject::connect(glWidget, &GLWidget::showAxesChanged, this, &CameraPanel::showAxesChanged);
+    QObject::connect(showAxes, &QCheckBox::clicked,
+                     [glWidget] (bool checked) { glWidget->setShowAxes(checked); });
+    QObject::connect(glWidget, &GLWidget::showAxesChanged,
+                     [this] (bool val) { this->showAxes->setChecked(val); });
 
     row++;
 
@@ -330,18 +323,18 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
 
     QObject::connect(showPoints, &QCheckBox::toggled,
                      [glWidget] (bool checked) { glWidget->setShowPoints(checked); });
-
+    
     row++;
 
 
     QObject::connect(glWidget, &GLWidget::fixedChanged, this, &CameraPanel::fixedChanged);
 
 
-    inclinationChanged(glWidget->inclination(), true);
-    azimuthChanged(glWidget->azimuth(), true);
-    rollChanged(glWidget->roll(), true);
-    fovChanged(glWidget->fov(), true);
-    zoomChanged(glWidget->zoom(), true);
+    inclinationChanged(glWidget->inclination());
+    azimuthChanged(glWidget->azimuth());
+    rollChanged(glWidget->roll());
+    fovChanged(glWidget->fov());
+    zoomChanged(glWidget->zoom());
     lookAtChanged(glWidget->lookAt(), true);
 
 
@@ -354,43 +347,38 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
 }
 
 
-void CameraPanel::inclinationChanged(double val, bool fromMouse)
+void CameraPanel::inclinationChanged(double val)
 {
     inclinationLabel->setText(QString::number(val, 'f', 1));
-    if (fromMouse)
-        blockAndSet<QSlider, int>(inclinationSlider, (int) round(val * INCSLIDER_FACTOR));
+    inclinationSlider->setValue((int) round(val * INCSLIDER_FACTOR));
 }
 
 
-void CameraPanel::azimuthChanged(double val, bool fromMouse)
+void CameraPanel::azimuthChanged(double val)
 {
     azimuthLabel->setText(QString::number(val, 'f', 1));
-    if (fromMouse)
-        blockAndSet<QSlider, int>(azimuthSlider, (int) round(val * AZMSLIDER_FACTOR));
+    azimuthSlider->setValue((int) round(val * AZMSLIDER_FACTOR));
 }
 
 
-void CameraPanel::rollChanged(double val, bool fromMouse)
+void CameraPanel::rollChanged(double val)
 {
     rollLabel->setText(QString::number(val, 'f', 1));
-    if (fromMouse)
-        blockAndSet<QSlider, int>(rollSlider, (int) round(val * ROLLSLIDER_FACTOR));
+    rollSlider->setValue((int) round(val * ROLLSLIDER_FACTOR));
 }
 
 
-void CameraPanel::fovChanged(double val, bool fromMouse)
+void CameraPanel::fovChanged(double val)
 {
     fovLabel->setText(QString::number(val, 'f', 1));
-    if (fromMouse)
-        blockAndSet<QSlider, int>(fovSlider, (int) round(FOVSLIDER_FACTOR * log(val / MAX_FOV)));
+    fovSlider->setValue((int) round(FOVSLIDER_FACTOR * log(val / MAX_FOV)));
 }
 
 
-void CameraPanel::zoomChanged(double val, bool fromMouse)
+void CameraPanel::zoomChanged(double val)
 {
     zoomLabel->setText(QString::number(val, 'f', 2));
-    if (fromMouse)
-        blockAndSet<QSlider, int>(zoomSlider, (int) round(ZOOMSLIDER_FACTOR * val));
+    zoomSlider->setValue((int) round(ZOOMSLIDER_FACTOR * val));
 }
 
 
@@ -425,17 +413,6 @@ void CameraPanel::fixedChanged(bool val)
     azimuthSlider->setEnabled(!val);
     perspectiveBtn->setEnabled(!val);
     orthographicBtn->setEnabled(!val);
-}
-
-
-void CameraPanel::showAxesChanged(bool val, bool fromMouse)
-{
-    if (fromMouse)
-    {
-        bool prev = showAxes->blockSignals(true);
-        showAxes->setChecked(val);
-        showAxes->blockSignals(prev);
-    }
 }
 
 

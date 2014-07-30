@@ -1,5 +1,6 @@
 #include <sstream>
 #include <thread>
+#include <QMenuBar>
 #include <QVector3D>
 
 #include "main.h"
@@ -17,6 +18,9 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
        << BSGUI_VERSION_PATCH;
     setWindowTitle(QString(ss.str().c_str()));
 
+    setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
+    setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
+
     _objectSet = new ObjectSet();
 
     _glWidget = new GLWidget(_objectSet, this);
@@ -26,6 +30,22 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     _toolBox = new ToolBox(_glWidget, _objectSet, "Toolbox", this);
     _toolBox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, _toolBox);
+
+    _infoBox = new InfoBox(_objectSet, "Info", this);
+    _infoBox->setAllowedAreas(Qt::BottomDockWidgetArea);
+    addDockWidget(Qt::BottomDockWidgetArea, _infoBox);
+
+    QMenu *windowsMenu = menuBar()->addMenu("Windows");
+    _toolAct = windowsMenu->addAction("Toolbox");
+    _infoAct = windowsMenu->addAction("Infobox");
+
+    _toolAct->setCheckable(true);
+    _infoAct->setCheckable(true);
+
+    QObject::connect(_toolAct, &QAction::triggered,
+                     [this] (bool checked) { this->_toolBox->setVisible(checked); });
+    QObject::connect(_infoAct, &QAction::triggered,
+                     [this] (bool checked) { this->_infoBox->setVisible(checked); });
 }
 
 
@@ -37,6 +57,17 @@ MainWindow::~MainWindow()
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
+    if (event->type() == QEvent::Show || event->type() == QEvent::Hide)
+    {
+        if (obj == _toolBox)
+            _toolAct->setChecked(event->type() == QEvent::Show);
+
+        if (obj == _infoBox)
+            _infoAct->setChecked(event->type() == QEvent::Show);
+
+        return false;
+    }
+
     if (event->type() != QEvent::KeyPress)
         return false;
 
@@ -51,29 +82,29 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     case Qt::Key_4: _glWidget->usePreset(VIEW_RIGHT); return true;
     case Qt::Key_5: _glWidget->usePreset(VIEW_FRONT); return true;
     case Qt::Key_6: _glWidget->usePreset(VIEW_BACK); return true;
-    case Qt::Key_A: _glWidget->setShowAxes(!_glWidget->showAxes(), true); return true;
+    case Qt::Key_A: _glWidget->setShowAxes(!_glWidget->showAxes()); return true;
     case Qt::Key_C: _glWidget->centerOnSelected(); return true;
 
     case Qt::Key_E:
         if (e->modifiers().testFlag(Qt::ControlModifier))
-            _objectSet->setSelectionMode(SM_EDGE, true);
+            _objectSet->setSelectionMode(SM_EDGE);
         return true;
 
     case Qt::Key_F:
         if (e->modifiers().testFlag(Qt::ControlModifier))
-            _objectSet->setSelectionMode(SM_FACE, true);
+            _objectSet->setSelectionMode(SM_FACE);
         return true;
 
     case Qt::Key_P:
         if (e->modifiers().testFlag(Qt::ControlModifier))
-            _objectSet->setSelectionMode(SM_PATCH, true);
+            _objectSet->setSelectionMode(SM_PATCH);
         else if (!_glWidget->fixed())
             _glWidget->setPerspective(!_glWidget->perspective());
         return true;
 
     case Qt::Key_V:
         if (e->modifiers().testFlag(Qt::ControlModifier))
-            _objectSet->setSelectionMode(SM_POINT, true);
+            _objectSet->setSelectionMode(SM_POINT);
         return true;
 
     case Qt::Key_H:
