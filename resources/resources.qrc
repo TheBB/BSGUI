@@ -9,7 +9,6 @@
     <file>icons/file_partial.png</file>
     <file>icons/file_hidden.png</file>
 
-    <file>icons/file.png</file>
     <file>shaders/varying_vertex.glsl</file>
     <file>shaders/varying_fragment.glsl</file>
     <file>shaders/constant_vertex.glsl</file>
