@@ -4,6 +4,7 @@
 #include <QIcon>
 
 #include <GoTools/geometry/ObjectHeader.h>
+#include <GoTools/trivariate/SplineVolume.h>
 
 #include "DisplayObjects/Volume.h"
 
@@ -437,23 +438,51 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
 }
 
 
-void ObjectSet::addCubeFromCenter(QVector3D center)
+void ObjectSet::addPatchesFromFile(std::string fileName)
 {
-    DisplayObject *obj = new Volume(center);
-    emit requestInitialization(obj);
+    std::ifstream file(fileName);
+    if (!file.good())
+    {
+        std::cerr << "Couldn't open file '" << fileName << "'." << std::endl;
+        return;
+    }
+
+    Go::ObjectHeader head;
+    head.read(file);
+
+    DisplayObject *obj = NULL;
+
+    switch (head.classType())
+    {
+    case Go::Class_SplineVolume:
+    {
+        Go::SplineVolume *v = new Go::SplineVolume();
+        v->read(file);
+        obj = new Volume(v);
+        break;
+    }
+    }
+
+    file.close();
+
+    if (!obj)
+        return;
 
     while (!obj->initialized())
+    {
+        emit requestInitialization(obj);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     if (!obj->initialized())
     {
-        qDebug() << "Failed to initialize display object! (This should never happen.)";
+        std::cerr << "Failed to initialized display object. (This should never happen.)";
         return;
     }
 
     m.lock();
 
-    Node *fileNode = getOrCreateFileNode("");
+    Node *fileNode = getOrCreateFileNode(QString(fileName.c_str()));
 
     QModelIndex index = createIndex(fileNode->indexInParent(), 0, fileNode);
     beginInsertRows(index, fileNode->nChildren(), fileNode->nChildren());
@@ -465,6 +494,37 @@ void ObjectSet::addCubeFromCenter(QVector3D center)
     m.unlock();
 
     emit update();
+}
+
+
+void ObjectSet::addCubeFromCenter(QVector3D center)
+{
+    // DisplayObject *obj = new Volume(center);
+    // emit requestInitialization(obj);
+
+    // while (!obj->initialized())
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+    // if (!obj->initialized())
+    // {
+    //     qDebug() << "Failed to initialize display object! (This should never happen.)";
+    //     return;
+    // }
+
+    // m.lock();
+
+    // Node *fileNode = getOrCreateFileNode("");
+
+    // QModelIndex index = createIndex(fileNode->indexInParent(), 0, fileNode);
+    // beginInsertRows(index, fileNode->nChildren(), fileNode->nChildren());
+    // Patch *patch = new Patch(obj, fileNode);
+    // endInsertRows();
+
+    // displayObjects.push_back(patch);
+
+    // m.unlock();
+
+    // emit update();
 }
 
 

@@ -146,7 +146,7 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showP
 
     setUniforms(prog, mvp, LINE_COLOR_SELECTED, 0.0001); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
     setUniforms(prog, mvp, LINE_COLOR_NORMAL, 0.0001); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
-    
+
 
     edgeBuffer.bind();
     sortSelection(selectedEdges, visibleEdges, sel, unsel);
@@ -277,6 +277,17 @@ void DisplayObject::ritterSphere()
             _radius = (d + _radius)/2;
         }
     }
+}
+
+
+void DisplayObject::mkSamples(const std::vector<double> &knots, std::vector<double> &params, uint ref)
+{
+    params.resize((knots.size() - 1) * ref + 1);
+
+    for (uint i = 0; i < knots.size() - 1; i++)
+        for (uint j = 0; j < ref; j++)
+            params[i*ref + j] = knots[i] + (double) j / ref * (knots[i+1] - knots[i]);
+    params.back() = knots.back();
 }
 
 

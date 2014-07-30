@@ -1,3 +1,5 @@
+#include <GoTools/trivariate/SplineVolume.h>
+
 #include "DisplayObject.h"
 
 #ifndef _VOLUME_H_
@@ -6,7 +8,8 @@
 class Volume : public DisplayObject
 {
 public:
-    Volume(QVector3D center);
+    Volume(Go::SplineVolume *vol);
+    ~Volume();
 
     ObjectType type() { return OT_VOLUME; }
 
@@ -27,11 +30,18 @@ private:
     uint nU, nV, nW;
     uint nPtsU, nPtsV, nPtsW, nPts, nElems, nElemLines, nLinesUV, nLinesUW, nLinesVW;
 
-    void mkVertexData(QVector3D);
+    // Other data
+    Go::SplineVolume *vol;
+    std::vector<double> uKnots, vKnots, wKnots;
+    std::vector<double> uParams, vParams, wParams;
+
+    void mkVertexData();
     void mkFaceData();
     void mkElementData();
     void mkEdgeData();
     void mkPointData();
+
+    QVector3D eval(double u, double v, double w);
 
     inline uint uvPt(uint i, uint j, bool posW)
     {

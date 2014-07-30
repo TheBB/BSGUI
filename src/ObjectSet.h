@@ -1,5 +1,7 @@
+#include <fstream>
 #include <mutex>
 #include <set>
+#include <string>
 #include <vector>
 #include <QAbstractItemModel>
 #include <QFileInfo>
@@ -139,6 +141,7 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
+    void addPatchesFromFile(std::string fileName);
     void addCubeFromCenter(QVector3D center);
     void boundingSphere(QVector3D *center, float *radius);
     void setSelection(std::set<uint> *picks, bool clear = true);
