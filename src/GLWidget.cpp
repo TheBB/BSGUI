@@ -403,7 +403,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
         QVector3D right = -(inv * QVector4D(1,0,0,0)).toVector3D(); right.normalize();
         QVector3D up = (inv * QVector4D(0,1,0,0)).toVector3D(); up.normalize();
 
-        float fac = (1.0 - _zoom) * tan(_fov * 3.14159265 / 360.0);
+        float fac = _zoom * tan(_fov * 3.14159265 / 360.0);
 
         setLookAt(mouseOrigLookAt + (shiftPressed ? 2.0 : 20.0) * fac / height() * (
                       right * (event->pos().x() - mouseOrig.x()) +
