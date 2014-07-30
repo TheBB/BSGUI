@@ -1,11 +1,19 @@
 #include "DisplayObjects/Volume.h"
 
 
-Volume::Volume(QVector3D center)
+Volume::Volume(Go::SplineVolume *v)
     : DisplayObject(12)
+    , vol(v)
 {
+    v->basis(0).knotsSimple(uKnots);
+    v->basis(1).knotsSimple(vKnots);
+    v->basis(2).knotsSimple(wKnots);
+
+
     // Pre refinement
-    ntU = 3; ntV = 4; ntW = 5;
+    ntU = uKnots.size() - 1;
+    ntV = vKnots.size() - 1;
+    ntW = wKnots.size() - 1;
 
     ntPtsU = ntU + 1;
     ntPtsV = ntV + 1;
@@ -14,13 +22,21 @@ Volume::Volume(QVector3D center)
 
     ntElems = 2*ntU*ntV + 2*ntU*ntW + 2*ntV*ntW;
 
+
     // Refinement
-    rU = 1; rV = 1; rW = 1;
+    rU = v->order(0) - 1;
+    rV = v->order(1) - 1;
+    rW = v->order(2) - 1;
+
+    mkSamples(uKnots, uParams, rU);
+    mkSamples(vKnots, vParams, rV);
+    mkSamples(wKnots, wParams, rW);
+
 
     // Post refinement
-    nU = rU * ntU;
-    nV = rV * ntV;
-    nW = rW * ntW;
+    nU = uParams.size() - 1;
+    nV = vParams.size() - 1;
+    nW = wParams.size() - 1;
 
     nPtsU = nU + 1;
     nPtsV = nV + 1;
@@ -35,10 +51,12 @@ Volume::Volume(QVector3D center)
 
     nElemLines = 2 * (nLinesUV + nLinesUW + nLinesVW);
 
+
     // Visibility
     visibleFaces  = {0,1,2,3,4,5};
     visibleEdges  = {0,1,2,3,4,5,6,7,8,9,10,11};
     visiblePoints = {0,1,2,3,4,5,6,7};
+
 
     // Indexes
     faceIdxs    = {0, nU*nV, nU*nV*2, 2*nU*nV + nU*nW, 2*(nU*nV + nU*nW), 2*(nU*nV + nU*nW) + nV*nW,
@@ -47,6 +65,7 @@ Volume::Volume(QVector3D center)
                    2*(nLinesUV + nLinesUW) + nLinesVW, 2*(nLinesUV + nLinesUW + nLinesVW)};
     edgeIdxs    = {0, nU, 2*nU, 3*nU, 4*nU, 4*nU + nV, 4*nU + 2*nV, 4*nU + 3*nV, 4*(nU + nV),
                    4*(nU + nV) + nW, 4*(nU + nV) + 2*nW, 4*(nU + nV) + 3*nW, 4*(nU + nV + nW)};
+
 
     // Maps
     faceEdgeMap  = {{0, {0,1,4,5}},
@@ -68,85 +87,85 @@ Volume::Volume(QVector3D center)
                     {10, {2,6}},
                     {11, {3,7}}};
 
+
     // Make data
-    mkVertexData(center);
+    mkVertexData();
     mkFaceData();
     mkElementData();
     mkEdgeData();
     mkPointData();
+
 
     // Compute bounding sphere
     computeBoundingSphere();
 }
 
 
-static inline float lpt(uint i, uint N)
+Volume::~Volume()
 {
-    return (float) i/(N-1) * 2.0 - 1.0;
+    delete vol;
 }
 
 
-void Volume::mkVertexData(QVector3D center)
+QVector3D Volume::eval(double u, double v, double w)
+{
+    Go::Point p;
+    vol->point(p, u, v, w);
+    return QVector3D(p[0], p[1], p[2]);
+}
+
+
+void Volume::mkVertexData()
 {
     vertexData.resize(nPts);
-
-    for (bool b : {true, false})
-    {
-        for (int i = 0; i < nPtsU; i++)
-            for (int j = 0; j < nPtsV; j++)
-                vertexData[uvPt(i,j,b)] = center + QVector3D(lpt(i,nPtsU), lpt(j,nPtsV), b ? 1.0 : -1.0);
-        for (int i = 0; i < nPtsU; i++)
-            for (int j = 1; j < nPtsW - 1; j++)
-                vertexData[uwPt(i,j,b)] = center + QVector3D(lpt(i,nPtsU), b ? 1.0 : -1.0, lpt(j,nPtsW));
-        for (int i = 1; i < nPtsV - 1; i++)
-            for (int j = 1; j < nPtsW - 1; j++)
-                vertexData[vwPt(i,j,b)] = center + QVector3D(b ? 1.0 : -1.0, lpt(i,nPtsV), lpt(j,nPtsW));
-    }
-
     normalData.resize(nPts);
 
+    std::vector<std::shared_ptr<Go::SplineSurface>> surfaces = vol->getBoundarySurfaces(true);
+    std::vector<double> points, d1, d2;
+
     for (bool b : {true, false})
     {
-        for (int i = 1; i < nPtsU - 1; i++)
-            for (int j = 1; j < nPtsV - 1; j++)
-                normalData[uvPt(i,j,b)] = QVector3D(0.0, 0.0, b ? 1.0 : -1.0);
-        for (int i = 1; i < nPtsU - 1; i++)
-            for (int j = 1; j < nPtsW - 1; j++)
-                normalData[uwPt(i,j,b)] = QVector3D(0.0, b ? 1.0 : -1.0, 0.0);
-        for (int i = 1; i < nPtsV - 1; i++)
-            for (int j = 1; j < nPtsW - 1; j++)
-                normalData[vwPt(i,j,b)] = QVector3D(b ? 1.0 : -1.0, 0.0, 0.0);
+        surfaces[b ? 5 : 4]->gridEvaluator(uParams, vParams, points, d1, d2);
+        for (int i = 0; i < nPtsU; i++)
+            for (int j = 0; j < nPtsV; j++)
+            {
+                uint idx = nPtsU * j + i;
+                vertexData[uvPt(i,j,b)] = QVector3D(points[3*idx], points[3*idx+1], points[3*idx+2]);
 
-        for (int i = 1; i < nPtsU - 1; i++)
-        {
-            normalData[uvPt(i,0,false)] = QVector3D(0.0, -1.0, -1.0);
-            normalData[uvPt(i,nPtsV-1,false)] = QVector3D(0.0, 1.0, -1.0);
-            normalData[uvPt(i,0,true)] = QVector3D(0.0, -1.0, 1.0);
-            normalData[uvPt(i,nPtsV-1,true)] = QVector3D(0.0, 1.0, 1.0);
-        }
-        for (int i = 1; i < nPtsV - 1; i++)
-        {
-            normalData[uvPt(0,i,false)] = QVector3D(-1.0, 0.0, -1.0);
-            normalData[uvPt(nPtsU-1,i,false)] = QVector3D(1.0, 0.0, -1.0);
-            normalData[uvPt(0,i,true)] = QVector3D(-1.0, 0.0, 1.0);
-            normalData[uvPt(nPtsU-1,i,true)] = QVector3D(1.0, 0.0, 1.0);
-        }
-        for (int i = 1; i < nPtsW - 1; i++)
-        {
-            normalData[uwPt(0,i,false)] = QVector3D(-1.0, -1.0, 0.0);
-            normalData[uwPt(nPtsU-1,i,false)] = QVector3D(1.0, -1.0, 0.0);
-            normalData[uwPt(0,i,true)] = QVector3D(-1.0, 1.0, 0.0);
-            normalData[uwPt(nPtsU-1,i,true)] = QVector3D(1.0, 1.0, 0.0);
-        }
+                Go::Point deriv1 = Go::Point(d1[3*idx], d1[3*idx+1], d1[3*idx+2]);
+                Go::Point deriv2 = Go::Point(d2[3*idx], d2[3*idx+1], d2[3*idx+2]);
+                Go::Point norm = b ? (deriv1 % deriv2) : (deriv2 % deriv1);
 
-        normalData[uvPt(0,0,false)] = QVector3D(-1.0, -1.0, -1.0);
-        normalData[uvPt(nPtsU-1,0,false)] = QVector3D(1.0, -1.0, -1.0);
-        normalData[uvPt(0,nPtsV-1,false)] = QVector3D(-1.0, 1.0, -1.0);
-        normalData[uvPt(nPtsU-1,nPtsV-1,false)] = QVector3D(1.0, 1.0, -1.0);
-        normalData[uvPt(0,0,true)] = QVector3D(-1.0, -1.0, 1.0);
-        normalData[uvPt(nPtsU-1,0,true)] = QVector3D(1.0, -1.0, 1.0);
-        normalData[uvPt(0,nPtsV-1,true)] = QVector3D(-1.0, 1.0, 1.0);
-        normalData[uvPt(nPtsU-1,nPtsV-1,true)] = QVector3D(1.0, 1.0, 1.0);
+                normalData[uvPt(i,j,b)] += QVector3D(norm[0], norm[1], norm[2]).normalized();
+            }
+
+        surfaces[b ? 3 : 2]->gridEvaluator(uParams, wParams, points, d1, d2);
+        for (int i = 0; i < nPtsU; i++)
+            for (int j = 0; j < nPtsW; j++)
+            {
+                uint idx = nPtsU * j + i;
+                vertexData[uwPt(i,j,b)] = QVector3D(points[3*idx], points[3*idx+1], points[3*idx+2]);
+
+                Go::Point deriv1 = Go::Point(d1[3*idx], d1[3*idx+1], d1[3*idx+2]);
+                Go::Point deriv2 = Go::Point(d2[3*idx], d2[3*idx+1], d2[3*idx+2]);
+                Go::Point norm = b ? (deriv2 % deriv1) : (deriv1 % deriv2);
+
+                normalData[uwPt(i,j,b)] += QVector3D(norm[0], norm[1], norm[2]).normalized();
+            }
+
+        surfaces[b ? 1 : 0]->gridEvaluator(vParams, wParams, points, d1, d2);
+        for (int i = 0; i < nPtsV; i++)
+            for (int j = 0; j < nPtsW; j++)
+            {
+                uint idx = nPtsV * j + i;
+                vertexData[vwPt(i,j,b)] = QVector3D(points[3*idx], points[3*idx+1], points[3*idx+2]);
+
+                Go::Point deriv1 = Go::Point(d1[3*idx], d1[3*idx+1], d1[3*idx+2]);
+                Go::Point deriv2 = Go::Point(d2[3*idx], d2[3*idx+1], d2[3*idx+2]);
+                Go::Point norm = b ? (deriv1 % deriv2) : (deriv2 % deriv1);
+
+                normalData[vwPt(i,j,b)] += QVector3D(norm[0], norm[1], norm[2]).normalized();
+            }
     }
 }
 

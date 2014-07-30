@@ -9,20 +9,7 @@
 
 void makeCubes(ObjectSet *objectSet, GLWidget *glWidget)
 {
-    std::vector<QVector3D> centers = {
-        QVector3D(0, 0, 1),
-        QVector3D(-3, 0, 0),
-        QVector3D(0, -3, 0),
-        QVector3D(6, 0, 0),
-        QVector3D(0, 4, 0),
-    };
-
-
-    for (auto c : centers)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        objectSet->addCubeFromCenter(c);
-    }
+    objectSet->addPatchesFromFile("NREL_wing_mesh_3D.g2");
 
     glWidget->centerOnSelected();
 }
@@ -47,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     toolBox = new ToolBox(glWidget, objectSet, "Toolbox", this);
     toolBox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, toolBox);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     std::thread *thread = new std::thread(makeCubes, objectSet, glWidget);
 }

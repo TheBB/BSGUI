@@ -87,6 +87,7 @@ protected:
     std::unordered_map<uint, pair> edgePointMap;
 
     void computeBoundingSphere();
+    void mkSamples(const std::vector<double> &knots, std::vector<double> &params, uint ref);
 
 private:
     bool _initialized;

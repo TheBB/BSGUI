@@ -17,8 +17,8 @@ find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
-find_package(Eigen3 REQUIRED)
 find_package(GoTools REQUIRED)
+find_package(GoTrivariate REQUIRED)
 
 configure_file(
   "${CMAKE_CURRENT_LIST_DIR}/src/main.h.in"
@@ -26,8 +26,8 @@ configure_file(
   )
 
 include_directories(${PROJECT_BINARY_DIR})
-include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${GoTools_INCLUDE_DIRS})
+include_directories(${GoTrivariate_INCLUDE_DIRS})
 include_directories(src)
 
 qt5_add_resources(RESOURCES resources/resources.qrc)
@@ -45,7 +45,10 @@ add_executable(BSGUI
 
 qt5_use_modules(BSGUI Core Widgets Gui OpenGL)
 
-target_link_libraries(BSGUI GL)
-target_link_libraries(BSGUI ${GoTools_LIBRARIES})
+target_link_libraries(BSGUI
+  ${GoTrivariate_LIBRARIES}
+  ${GoTools_LIBRARIES}
+  GL
+  )
 
 install(TARGETS BSGUI RUNTIME DESTINATION bin)
