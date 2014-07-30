@@ -16,14 +16,17 @@ public:
     MainWindow(QWidget *parent = NULL, Qt::WindowFlags flags = 0);
     ~MainWindow();
 
+    inline ObjectSet *objectSet() { return _objectSet; }
+    inline GLWidget *glWidget() { return _glWidget; }
+    inline ToolBox *toolBox() { return _toolBox; }
+
 protected:
     bool eventFilter(QObject *obj, QEvent *event);
 
 private:
-    ObjectSet *objectSet;
-
-    GLWidget *glWidget;
-    ToolBox *toolBox;
+    ObjectSet *_objectSet;
+    GLWidget *_glWidget;
+    ToolBox *_toolBox;
 };
 
 #endif /* _MAINWINDOW_H_ */
