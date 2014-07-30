@@ -537,6 +537,8 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
 void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 {
+    m.lock();
+
     if (clear)
     {
         for (auto p : selectedObjects)
@@ -571,7 +573,9 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 
         changedPatches.insert(*it);
     }
-    
+
+    m.unlock();
+
     for (auto p : changedPatches)
         signalCheckChange(p);
 
@@ -589,7 +593,11 @@ void ObjectSet::addToSelection(Node *node, bool signal)
     else if (node->type() == NT_PATCH)
     {
         Patch *patch = static_cast<Patch *>(node);
+
+        m.lock();
         selectedObjects.insert(patch);
+        m.unlock();
+
         patch->obj()->selectObject(_selectionMode, true);
 
         signalCheckChange(patch);
@@ -615,8 +623,11 @@ void ObjectSet::addToSelection(Node *node, bool signal)
                 break;
             }
 
-            signalCheckChange(patch);
+            m.lock();
             selectedObjects.insert(patch);
+            m.unlock();
+
+            signalCheckChange(patch);
         }
     }
 
@@ -636,8 +647,12 @@ void ObjectSet::removeFromSelection(Node *node, bool signal)
     {
         Patch *patch = static_cast<Patch *>(node);
         patch->obj()->selectObject(_selectionMode, false);
-        signalCheckChange(patch);
+
+        m.lock();
         selectedObjects.erase(patch);
+        m.unlock();
+
+        signalCheckChange(patch);
     }
     else if (node->type() == NT_COMPONENT)
     {
@@ -659,9 +674,14 @@ void ObjectSet::removeFromSelection(Node *node, bool signal)
                 break;
             }
 
-            signalCheckChange(patch);
             if (!patch->obj()->hasSelection())
+            {
+                m.lock();
                 selectedObjects.erase(patch);
+                m.unlock();
+            }
+
+            signalCheckChange(patch);
         }
     }
 
