@@ -61,6 +61,9 @@ DisplayObject::~DisplayObject()
 
 void DisplayObject::initialize()
 {
+    if (_initialized)
+        return;
+
     createBuffer(vertexBuffer);
     vertexBuffer.allocate(&vertexData[0], 3 * vertexData.size() * sizeof(float));
 

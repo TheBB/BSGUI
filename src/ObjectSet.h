@@ -176,6 +176,8 @@ private:
 
     void signalCheckChange(Patch *patch);
     void signalVisibleChange(Patch *patch);
+
+    bool addPatchFromStream(std::ifstream &stream, std::string fileName);
 };
 
 #endif /* _OBJECTSET_H_ */

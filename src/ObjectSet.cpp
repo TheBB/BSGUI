@@ -447,8 +447,27 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
         return;
     }
 
+    bool cont = true;
+    while (!file.eof() && cont)
+    {
+        cont = addPatchFromStream(file, fileName);
+        std::ws(file);
+    }
+
+    file.close();
+}
+
+
+bool ObjectSet::addPatchFromStream(std::ifstream &stream, std::string fileName)
+{
     Go::ObjectHeader head;
-    head.read(file);
+
+    try { head.read(stream); }
+    catch (...)
+    {
+        std::cerr << "Unrecognized object header in '" << fileName << "'." << std::endl;
+        return false;
+    }
 
     DisplayObject *obj = NULL;
 
@@ -457,16 +476,22 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
     case Go::Class_SplineVolume:
     {
         Go::SplineVolume *v = new Go::SplineVolume();
-        v->read(file);
+        try { v->read(stream); }
+        catch (...)
+        {
+            std::cerr << "Unable to parse SplineVolume in '" << fileName << "'." << std::endl;
+            delete v;
+            return false;
+        }
         obj = new Volume(v);
         break;
     }
+    default:
+        std::cerr << "Unrecognized class type: " << head.classType() << "." << std::endl;
     }
 
-    file.close();
-
     if (!obj)
-        return;
+        return false;
 
     while (!obj->initialized())
     {
@@ -476,8 +501,8 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
 
     if (!obj->initialized())
     {
-        std::cerr << "Failed to initialized display object. (This should never happen.)";
-        return;
+        std::cerr << "Failed to initialized display object. (This should never happen.)" << std::endl;
+        return false;
     }
 
     m.lock();
@@ -494,6 +519,8 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
     m.unlock();
 
     emit update();
+
+    return true;
 }
 
 
