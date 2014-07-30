@@ -497,37 +497,6 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
 }
 
 
-void ObjectSet::addCubeFromCenter(QVector3D center)
-{
-    // DisplayObject *obj = new Volume(center);
-    // emit requestInitialization(obj);
-
-    // while (!obj->initialized())
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-    // if (!obj->initialized())
-    // {
-    //     qDebug() << "Failed to initialize display object! (This should never happen.)";
-    //     return;
-    // }
-
-    // m.lock();
-
-    // Node *fileNode = getOrCreateFileNode("");
-
-    // QModelIndex index = createIndex(fileNode->indexInParent(), 0, fileNode);
-    // beginInsertRows(index, fileNode->nChildren(), fileNode->nChildren());
-    // Patch *patch = new Patch(obj, fileNode);
-    // endInsertRows();
-
-    // displayObjects.push_back(patch);
-
-    // m.unlock();
-
-    // emit update();
-}
-
-
 void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 {
     if (displayObjects.empty())
