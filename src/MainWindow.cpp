@@ -13,6 +13,8 @@
 MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     : QMainWindow(parent, flags)
 {
+    qRegisterMetaType<LogLevel>("LogLevel");
+
     std::ostringstream ss;
     ss << "SINTEF BSGUI "
        << BSGUI_VERSION_MAJOR << "."
@@ -35,6 +37,9 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     _infoBox = new InfoBox(_objectSet, this);
     splitter->addWidget(_infoBox);
 
+    splitter->setStretchFactor(0, 1.0);
+    splitter->setStretchFactor(1, 0.0);
+
     _toolBox = new ToolBox(_glWidget, _objectSet, "Toolbox", this);
     _toolBox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, _toolBox);
@@ -47,9 +52,9 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     _infoAct->setCheckable(true);
 
     QObject::connect(_toolAct, &QAction::triggered,
-                     [this] (bool checked) { this->_toolBox->setVisible(checked); });
+                     [this] (bool checked) { _toolBox->setVisible(checked); });
     QObject::connect(_infoAct, &QAction::triggered,
-                     [this] (bool checked) { this->_infoBox->setVisible(checked); });
+                     [this] (bool checked) { _infoBox->setVisible(checked); });
 }
 
 

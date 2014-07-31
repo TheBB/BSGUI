@@ -17,6 +17,7 @@
 
 enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, NT_COMPONENTS, NT_COMPONENT };
 enum ComponentType { CT_FACE, CT_EDGE, CT_POINT };
+enum LogLevel { LL_NORMAL, LL_WARNING, LL_ERROR, LL_FATAL };
 
 class Node
 {
@@ -161,6 +162,7 @@ signals:
     void update();
     void selectionChanged();
     void selectionModeChanged(SelectionMode mode);
+    void log(QString, LogLevel = LL_NORMAL);
 
 private:
     Node *root;

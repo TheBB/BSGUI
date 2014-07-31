@@ -312,7 +312,7 @@ CameraPanel::CameraPanel(GLWidget *glWidget, ObjectSet *objectSet,
     QObject::connect(showAxes, &QCheckBox::clicked,
                      [glWidget] (bool checked) { glWidget->setShowAxes(checked); });
     QObject::connect(glWidget, &GLWidget::showAxesChanged,
-                     [this] (bool val) { this->showAxes->setChecked(val); });
+                     [this] (bool val) { showAxes->setChecked(val); });
 
     row++;
 

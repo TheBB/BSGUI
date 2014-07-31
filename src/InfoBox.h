@@ -1,4 +1,5 @@
 #include <QTabWidget>
+#include <QTextEdit>
 
 #include "ObjectSet.h"
 
@@ -13,8 +14,13 @@ public:
     InfoBox(ObjectSet *objectSet, QWidget *parent = NULL);
     ~InfoBox() { }
 
+public slots:
+    void log(QString, LogLevel);
+
 private:
     ObjectSet *_objectSet;
+
+    QTextEdit *logBox;
 };
 
 #endif /* INFOBOX_H */

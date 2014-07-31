@@ -443,18 +443,27 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
     std::ifstream file(fileName);
     if (!file.good())
     {
-        std::cerr << "Couldn't open file '" << fileName << "'." << std::endl;
+        emit log(QString("Failed to open file '%1'").arg(QString::fromStdString(fileName)), LL_ERROR);
         return;
     }
 
+    file.seekg(0, file.end);
+    uint length = file.tellg();
+    file.seekg(0, file.beg);
+    emit log(QString("Opened file '%1' (%2 bytes)").arg(QString::fromStdString(fileName)).arg(length));
+
     bool cont = true;
+    uint num = 0;
     while (!file.eof() && cont)
     {
         cont = addPatchFromStream(file, fileName);
+        if (cont) num++;
         std::ws(file);
     }
 
     file.close();
+
+    emit log(QString("Closed file '%1' (read %2 patches)").arg(QString::fromStdString(fileName)).arg(num));
 }
 
 
@@ -462,10 +471,13 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, std::string fileName)
 {
     Go::ObjectHeader head;
 
+    QString error = QString("%2 in '%1'").arg(QString::fromStdString(fileName));
+    QString logString;
+
     try { head.read(stream); }
     catch (...)
     {
-        std::cerr << "Unrecognized object header in '" << fileName << "'." << std::endl;
+        emit log(error.arg("Unrecognized object header"), LL_ERROR);
         return false;
     }
 
@@ -479,15 +491,14 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, std::string fileName)
         try { v->read(stream); }
         catch (...)
         {
-            std::cerr << "Unable to parse SplineVolume in '" << fileName << "'." << std::endl;
+            emit log(error.arg("Unable to parse SplineVolume"), LL_ERROR);
             delete v;
-            return false;
         }
         obj = new Volume(v);
         break;
     }
     default:
-        std::cerr << "Unrecognized class type: " << head.classType() << "." << std::endl;
+        emit log(error.arg(QString("Unrecognized class type %1").arg(head.classType())), LL_ERROR);
     }
 
     if (!obj)
@@ -501,8 +512,9 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, std::string fileName)
 
     if (!obj->initialized())
     {
-        std::cerr << "Failed to initialized display object. (This should never happen.)" << std::endl;
-        return false;
+        emit log("Failed to initialize display object", LL_ERROR);
+        delete obj;
+        return true; // Can continue
     }
 
     m.lock();
