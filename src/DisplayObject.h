@@ -1,5 +1,6 @@
 #include <vector>
 #include <set>
+#include <map>
 #include <unordered_map>
 
 #include <QOpenGLBuffer>
@@ -10,6 +11,11 @@
 #ifndef _DISPLAYOBJECT_H_
 #define _DISPLAYOBJECT_H_
 
+#define NUM_COLORS 16777216
+#define COLORS_PER_OBJECT 12
+#define NUM_INDICES (NUM_COLORS/COLORS_PER_OBJECT)
+#define WHITE_KEY (NUM_COLORS-1)
+
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
@@ -18,10 +24,12 @@ typedef struct { GLuint a, b; } pair;
 enum ObjectType { OT_VOLUME };
 enum SelectionMode { SM_PATCH, SM_FACE, SM_EDGE, SM_POINT };
 
+class Patch;
+
 class DisplayObject
 {
 public:
-    DisplayObject(int parts);
+    DisplayObject();
     virtual ~DisplayObject();
 
     virtual ObjectType type() = 0;
@@ -38,6 +46,9 @@ public:
     virtual uint nFaces() = 0;
     virtual uint nEdges() = 0;
     virtual uint nPoints() = 0;
+
+    inline void setPatch(Patch *p) { _patch = p; }
+    inline Patch *patch() { return _patch; }
 
     void selectionMode(SelectionMode mode, bool conjunction = true);
     void selectObject(SelectionMode mode, bool selected);
@@ -68,8 +79,10 @@ public:
 
     void showSelected(SelectionMode mode, bool visible);
 
-    inline bool hasColor(uint color) { return minColor <= color && color < maxColor; }
-    inline uint baseColor() { return minColor; }
+    static DisplayObject *getObject(uint idx);
+    static uint colorToKey(GLubyte color[3]);
+    static void keyToIndex(uint key, uint *index, uint *offset);
+    static void colorToIndex(GLubyte color[3], uint *index, uint *offset);
 
 protected:
     QVector3D _center;
@@ -90,12 +103,11 @@ protected:
     void mkSamples(const std::vector<double> &knots, std::vector<double> &params, uint ref);
 
 private:
+    uint _index;
     bool _initialized;
-    uchar color[3];
-    uint minColor, maxColor;
+    Patch *_patch;
 
     std::set<uint> selectedFaces, selectedEdges, selectedPoints;
-
     QOpenGLBuffer vertexBuffer, normalBuffer, faceBuffer, elementBuffer, edgeBuffer, pointBuffer;
 
     void farthestPointFrom(QVector3D point, QVector3D *found);
@@ -110,9 +122,12 @@ private:
     static void bindBuffer(QOpenGLShaderProgram &prog, QOpenGLBuffer &buffer, const char *attribute);
     static void setUniforms(QOpenGLShaderProgram&, QMatrix4x4, QVector3D, float);
     static void setUniforms(QOpenGLShaderProgram&, QMatrix4x4, uchar *, float);
-    
-    static uchar sColor[3];
-    static void incColors(uchar col[3], int num);
+
+    static std::map<uint, DisplayObject *> indexMap;
+    static uint nextIndex;
+    static uint registerObject(DisplayObject *obj);
+    static void deregisterObject(uint index);
+    static QVector3D indexToColor(uint index, uint offset);
 };
 
 #endif /* _DISPLAYOBJECT_H_ */

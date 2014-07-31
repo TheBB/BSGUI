@@ -18,10 +18,11 @@ const QVector3D WHITE = QVector3D(1.0, 1.0, 1.0);
 #define POINT_SIZE 10.0
 
 
-uchar DisplayObject::sColor[3] = {0, 0, 0};
+uint DisplayObject::nextIndex = 0;
+std::map<uint, DisplayObject *> DisplayObject::indexMap;
 
 
-DisplayObject::DisplayObject(int parts)
+DisplayObject::DisplayObject()
     : _initialized(false)
     , vertexBuffer(QOpenGLBuffer::VertexBuffer)
     , normalBuffer(QOpenGLBuffer::VertexBuffer)
@@ -29,22 +30,19 @@ DisplayObject::DisplayObject(int parts)
     , elementBuffer(QOpenGLBuffer::IndexBuffer)
     , edgeBuffer(QOpenGLBuffer::IndexBuffer)
     , pointBuffer(QOpenGLBuffer::IndexBuffer)
+    , _patch(NULL)
     , selectedFaces {}
     , selectedEdges {}
     , selectedPoints {}
 {
-    minColor = sColor[0] + 255*sColor[1] + 255*255*sColor[2];
-    maxColor = minColor + parts;
-
-    for (int i = 0; i < 3; i++)
-        color[i] = sColor[i];
-
-    incColors(sColor, parts);
+    _index = registerObject(this);
 }
 
 
 DisplayObject::~DisplayObject()
 {
+    deregisterObject(_index);
+
     if (_initialized)
     {
         _initialized = false;
@@ -176,7 +174,7 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
     if (!_initialized)
         return;
 
-    uchar col[3]; col[0] = color[0]; col[1] = color[1]; col[2] = color[2];
+    uint offset = 0;
 
     prog.bind();
 
@@ -187,7 +185,7 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
     faceBuffer.bind();
     if (mode == SM_PATCH)
     {
-        setUniforms(prog, mvp, col, 0.0); incColors(col, 1);
+        setUniforms(prog, mvp, indexToColor(_index, offset), 0.0);
         drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
     }
     else if (mode == SM_FACE)
@@ -196,10 +194,10 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
         {
             if (visibleFaces.find(f) != visibleFaces.end())
             {
-                setUniforms(prog, mvp, col, 0.0);
+                setUniforms(prog, mvp, indexToColor(_index, offset), 0.0);
                 drawCommand(GL_QUADS, {f}, nFaces(), faceIdxs);
             }
-            incColors(col, 1);
+            offset++;
         }
     }
     else if (mode == SM_EDGE)
@@ -213,10 +211,10 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
         {
             if (visibleEdges.find(e) != visibleEdges.end())
             {
-                setUniforms(prog, mvp, col, 0.0002);
+                setUniforms(prog, mvp, indexToColor(_index, offset), 0.0002);
                 drawCommand(GL_LINES, {e}, nEdges(), edgeIdxs);
             }
-            incColors(col, 1);
+            offset++;
         }
     }
     else if (mode == SM_POINT)
@@ -230,10 +228,10 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
         {
             if (visiblePoints.find(p) != visiblePoints.end())
             {
-                setUniforms(prog, mvp, col, 0.0002);
+                setUniforms(prog, mvp, indexToColor(_index, offset), 0.0002);
                 drawCommandPts({p}, nPoints());
             }
-            incColors(col, 1);
+            offset++;
         }
     }
 }
@@ -562,25 +560,56 @@ void DisplayObject::setUniforms(QOpenGLShaderProgram &prog, QMatrix4x4 mvp, ucha
 }
 
 
-void DisplayObject::incColors(uchar col[3], int num)
+DisplayObject *DisplayObject::getObject(uint idx)
 {
-    for (int i = 0; i < num; i++)
-    {
-        if (col[0] == 255)
-        {
-            col[0] = 0;
-            if (col[1] == 255)
-            {
-                col[1] = 0;
-                if (col[2] == 255)
-                    col[2] = 0;
-                else
-                    col[2]++;
-            }
-            else
-                col[1]++;
-        }
-        else
-            col[0]++;
-    }
+    if (indexMap.find(idx) != indexMap.end())
+        return indexMap[idx];
+    return NULL;
+}
+
+
+uint DisplayObject::registerObject(DisplayObject *obj)
+{
+    while (indexMap.find(nextIndex) != indexMap.end())
+        nextIndex = (nextIndex + 1) % NUM_INDICES;
+
+    indexMap[nextIndex] = obj;
+    return nextIndex;
+}
+
+
+void DisplayObject::deregisterObject(uint index)
+{
+    indexMap.erase(index);
+}
+
+
+QVector3D DisplayObject::indexToColor(uint index, uint offset)
+{
+    uint i = COLORS_PER_OBJECT * index + offset;
+
+    uchar red = i % 256; i /= 256;
+    uchar green = i % 256; i /= 256;
+    uchar blue = i % 256;
+
+    return QVector3D((float) red/255, (float) green/255, (float) blue/255);
+}
+
+
+void DisplayObject::colorToIndex(GLubyte color[3], uint *index, uint *offset)
+{
+    keyToIndex(colorToKey(color), index, offset);
+}
+
+
+uint DisplayObject::colorToKey(GLubyte color[3])
+{
+    return color[2]*256*256 + color[1]*256 + color[0];
+}
+
+
+void DisplayObject::keyToIndex(uint key, uint *index, uint *offset)
+{
+    *index = key / COLORS_PER_OBJECT;
+    *offset = key % COLORS_PER_OBJECT;
 }

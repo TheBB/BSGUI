@@ -97,7 +97,7 @@ protected:
     void initializeGL();
     void resizeGL(int w, int h);
     void paintGL();
-    std::set<uint> paintGLPicks(int x, int y, int w, int h);
+    std::set<std::pair<uint,uint>> paintGLPicks(int x, int y, int w, int h);
 
     void mousePressEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);

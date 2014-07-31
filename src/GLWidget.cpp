@@ -80,7 +80,7 @@ void GLWidget::centerOnSelected()
 }
 
 
-std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
+std::set<std::pair<uint,uint>> GLWidget::paintGLPicks(int x, int y, int w, int h)
 {
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -101,26 +101,31 @@ std::set<uint> GLWidget::paintGLPicks(int x, int y, int w, int h)
     std::unordered_map<uint, uint> picks;
     for (int i = 0; i < w * h; i++)
     {
-        uint key = pixels[4*i] + 255*pixels[4*i+1] + 255*255*pixels[4*i+2];
+        uint key = DisplayObject::colorToKey(&pixels[4*i]);
+
         if (picks.find(key) != picks.end())
             picks[key]++;
         else
-            picks.insert(std::pair<uint,uint>(key, 1));
+            picks[key] = 1;
     }
 
     std::set<uint> deletes;
 
     int limit = std::min(std::min(w, h) - 1, 3);
     for (auto p : picks)
-        if (p.second < limit || p.first == 16646655)
+        if (p.second < limit || p.first == WHITE_KEY)
             deletes.insert(p.first);
 
     for (auto p : deletes)
         picks.erase(p);
-
-    std::set<uint> ret;
+    
+    std::set<std::pair<uint,uint>> ret;
     for (auto p : picks)
-        ret.insert(p.first);
+    {
+        uint index, offset;
+        DisplayObject::keyToIndex(p.first, &index, &offset);
+        ret.insert(std::pair<uint,uint>(index, offset));
+    }
 
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_LINE_SMOOTH);
@@ -371,7 +376,7 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         int toY = std::min(height() - std::min(event->pos().y(), selectOrig.y()), height() - 1);
 
         makeCurrent();
-        std::set<uint> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
+        std::set<std::pair<uint,uint>> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
 
         m.unlock();
         objectSet->m.unlock();
