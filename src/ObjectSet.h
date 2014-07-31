@@ -59,9 +59,15 @@ public:
     }
 
     inline QString fn() { return fileName; }
+    inline QString absolute() { return absolutePath; }
+
+    inline uint nChecksums() { return checksums.size(); }
 
 private:
     QString fileName, absolutePath;
+    std::vector<size_t> checksums;
+
+    void computeChecksums(std::vector<size_t> *vec);
 };
 
 
@@ -166,7 +172,7 @@ signals:
 
 private:
     Node *root;
-    Node *getOrCreateFileNode(QString fileName);
+    File *getOrCreateFileNode(QString fileName);
 
     SelectionMode _selectionMode;
 
@@ -179,7 +185,7 @@ private:
     void signalCheckChange(Patch *patch);
     void signalVisibleChange(Patch *patch);
 
-    bool addPatchFromStream(std::ifstream &stream, std::string fileName);
+    bool addPatchFromStream(std::ifstream &stream, File *file);
 };
 
 #endif /* _OBJECTSET_H_ */

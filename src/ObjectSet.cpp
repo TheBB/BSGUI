@@ -90,12 +90,49 @@ File::File(QString fn, Node *parent)
         fileName = info.fileName();
         absolutePath = info.absoluteFilePath();
     }
+
+
+    computeChecksums(&checksums);
 }
 
 
 QString File::displayString()
 {
     return fileName;
+}
+
+
+void File::computeChecksums(std::vector<size_t> *ret)
+{
+    ret->clear();
+
+    std::ifstream stream(absolutePath.toStdString());
+    if (!stream.good())
+        return;
+
+    size_t hash = 0;
+    std::hash<std::string> hasher;
+    std::string s;
+    bool hasHash = false;
+    while (std::getline(stream, s))
+    {
+        if (s == "")
+        {
+            if (hasHash)
+            {
+                ret->push_back(hash);
+                hash = 0;
+                hasHash = false;
+            }
+        }
+        else
+        {
+            hash += hasher(s);
+            hasHash = true;
+        }
+    }
+
+    stream.close();
 }
 
 
@@ -394,7 +431,7 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
                 if (!allInvisible && !allVisible)
                     return QIcon(":/icons/file_partial.png");
             }
-
+            
             return QIcon(allVisible ? ":/icons/file_full.png" : ":/icons/file_hidden.png");
         }
     }
@@ -442,38 +479,43 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
 
 void ObjectSet::addPatchesFromFile(std::string fileName)
 {
-    std::ifstream file(fileName);
-    if (!file.good())
+    File *file = getOrCreateFileNode(QString::fromStdString(fileName));
+
+    std::ifstream stream(file->absolute().toStdString());
+    if (!stream.good())
     {
         emit log(QString("Failed to open file '%1'").arg(QString::fromStdString(fileName)), LL_ERROR);
         return;
     }
 
-    file.seekg(0, file.end);
-    uint length = file.tellg();
-    file.seekg(0, file.beg);
-    emit log(QString("Opened file '%1' (%2 bytes)").arg(QString::fromStdString(fileName)).arg(length));
+    stream.seekg(0, stream.end);
+    uint length = stream.tellg();
+    stream.seekg(0, stream.beg);
+    emit log(QString("Opened file '%1' (%2 patches, %3 bytes)")
+             .arg(QString::fromStdString(fileName))
+             .arg(file->nChecksums())
+             .arg(length));
 
     bool cont = true;
-    uint num = 0;
-    while (!file.eof() && cont)
+    while (!stream.eof() && cont)
     {
-        cont = addPatchFromStream(file, fileName);
-        if (cont) num++;
-        std::ws(file);
+        cont = addPatchFromStream(stream, file);
+        std::ws(stream);
     }
 
-    file.close();
+    stream.close();
 
-    emit log(QString("Closed file '%1' (read %2 patches)").arg(QString::fromStdString(fileName)).arg(num));
+    emit log(QString("Closed file '%1' (read %2 patches)")
+             .arg(QString::fromStdString(fileName))
+             .arg(file->nChildren()));
 }
 
 
-bool ObjectSet::addPatchFromStream(std::ifstream &stream, std::string fileName)
+bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
 {
     Go::ObjectHeader head;
 
-    QString error = QString("%2 in '%1'").arg(QString::fromStdString(fileName));
+    QString error = QString("%2 in '%1'").arg(file->fn());
     QString logString;
 
     try { head.read(stream); }
@@ -502,7 +544,7 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, std::string fileName)
     default:
         emit log(error.arg(QString("Unrecognized class type %1").arg(head.classType())), LL_ERROR);
     }
-
+    
     if (!obj)
         return false;
 
@@ -521,11 +563,9 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, std::string fileName)
 
     m.lock();
 
-    Node *fileNode = getOrCreateFileNode(QString(fileName.c_str()));
-
-    QModelIndex index = createIndex(fileNode->indexInParent(), 0, fileNode);
-    beginInsertRows(index, fileNode->nChildren(), fileNode->nChildren());
-    Patch *patch = new Patch(obj, fileNode);
+    QModelIndex index = createIndex(file->indexInParent(), 0, file);
+    beginInsertRows(index, file->nChildren(), file->nChildren());
+    Patch *patch = new Patch(obj, file);
     endInsertRows();
 
     displayObjects.push_back(patch);
@@ -730,16 +770,17 @@ void ObjectSet::removeFromSelection(Node *node, bool signal)
 }
 
 
-Node *ObjectSet::getOrCreateFileNode(QString fileName)
+File *ObjectSet::getOrCreateFileNode(QString fileName)
 {
-    Node *node = NULL;
+    File *node = NULL;
 
     for (auto searchNode : root->children())
     {
-        if (!searchNode->type() == NT_FILE)
-            continue;
         if (static_cast<File *>(searchNode)->matches(fileName))
-            node = searchNode;
+        {
+            node = static_cast<File *>(searchNode);
+            break;
+        }
     }
 
     if (!node)
