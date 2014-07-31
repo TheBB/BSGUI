@@ -2,16 +2,14 @@
 
 #include "InfoBox.h"
 
-InfoBox::InfoBox(ObjectSet *objectSet,
-                 const QString &title, QWidget *parent, Qt::WindowFlags flags)
-    : QDockWidget(title, parent, flags)
+InfoBox::InfoBox(ObjectSet *objectSet, QWidget *parent)
+    : QTabWidget(parent)
+    , _objectSet(objectSet)
 {
     installEventFilter(parent);
 
-    QTabWidget *tabs = new QTabWidget();
-    tabs->addTab(new QWidget(), "Selection");
-    tabs->addTab(new QWidget(), "Pick");
-    tabs->addTab(new QWidget(), "Log");
-
-    setWidget(tabs);
+    addTab(new QWidget(), "Selection");
+    addTab(new QWidget(), "Pick");
+    addTab(new QWidget(), "Files");
+    addTab(new QWidget(), "Log");
 }

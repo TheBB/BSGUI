@@ -1,6 +1,8 @@
 #include <sstream>
 #include <thread>
 #include <QMenuBar>
+#include <QSplitter>
+#include <QTabWidget>
 #include <QVector3D>
 
 #include "main.h"
@@ -23,17 +25,19 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
 
     _objectSet = new ObjectSet();
 
+    QSplitter *splitter = new QSplitter(Qt::Vertical);
+    setCentralWidget(splitter);
+
     _glWidget = new GLWidget(_objectSet, this);
-    setCentralWidget(_glWidget);
+    splitter->addWidget(_glWidget);
     _glWidget->setFocus();
+
+    _infoBox = new InfoBox(_objectSet, this);
+    splitter->addWidget(_infoBox);
 
     _toolBox = new ToolBox(_glWidget, _objectSet, "Toolbox", this);
     _toolBox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, _toolBox);
-
-    _infoBox = new InfoBox(_objectSet, "Info", this);
-    _infoBox->setAllowedAreas(Qt::BottomDockWidgetArea);
-    addDockWidget(Qt::BottomDockWidgetArea, _infoBox);
 
     QMenu *windowsMenu = menuBar()->addMenu("Windows");
     _toolAct = windowsMenu->addAction("Toolbox");

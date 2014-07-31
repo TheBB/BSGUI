@@ -140,23 +140,23 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showP
     faceBuffer.bind();
     sortSelection(selectedFaces, visibleFaces, sel, unsel);
 
-    setUniforms(prog, mvp, FACE_COLOR_SELECTED, 0.0); drawCommand(GL_QUADS, sel, nFaces(), faceIdxs);
-    setUniforms(prog, mvp, FACE_COLOR_NORMAL, 0.0); drawCommand(GL_QUADS, unsel, nFaces(), faceIdxs);
+    setUniforms(prog, mvp, FACE_COLOR_SELECTED, -0.0003); drawCommand(GL_QUADS, sel, nFaces(), faceIdxs);
+    setUniforms(prog, mvp, FACE_COLOR_NORMAL, -0.0003); drawCommand(GL_QUADS, unsel, nFaces(), faceIdxs);
 
 
     elementBuffer.bind();
     glLineWidth(LINE_WIDTH);
 
-    setUniforms(prog, mvp, LINE_COLOR_SELECTED, 0.0001); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
-    setUniforms(prog, mvp, LINE_COLOR_NORMAL, 0.0001); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
+    setUniforms(prog, mvp, LINE_COLOR_SELECTED, -0.0002); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
+    setUniforms(prog, mvp, LINE_COLOR_NORMAL, -0.0002); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
 
 
     edgeBuffer.bind();
     sortSelection(selectedEdges, visibleEdges, sel, unsel);
     glLineWidth(EDGE_WIDTH);
 
-    setUniforms(prog, mvp, EDGE_COLOR_SELECTED, 0.0002); drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
-    setUniforms(prog, mvp, EDGE_COLOR_NORMAL, 0.0002); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
+    setUniforms(prog, mvp, EDGE_COLOR_SELECTED, -0.0001); drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
+    setUniforms(prog, mvp, EDGE_COLOR_NORMAL, -0.0001); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
 
 
     if (showPoints)
