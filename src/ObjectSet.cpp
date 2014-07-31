@@ -103,6 +103,8 @@ Patch::Patch(DisplayObject *obj, Node *parent)
     : Node(parent)
     , _obj(obj)
 {
+    obj->setPatch(this);
+
     if (obj->nFaces() > 0)
     {
         Components *faces = new Components(CT_FACE, this);
@@ -574,7 +576,7 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 }
 
 
-void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
+void ObjectSet::setSelection(std::set<std::pair<uint,uint>> *picks, bool clear)
 {
     m.lock();
 
@@ -591,26 +593,25 @@ void ObjectSet::setSelection(std::set<uint> *picks, bool clear)
 
     std::set<Patch *> changedPatches;
 
-    std::vector<Patch *>::iterator it = displayObjects.begin();
     for (auto p : *picks)
     {
-        while (!(*it)->obj()->hasColor(p) && it != displayObjects.end())
-            it++;
+        DisplayObject *obj = DisplayObject::getObject(p.first);
+        if (!obj)
+            continue;
 
-        if (it == displayObjects.end())
-            break;
-
-        selectedObjects.insert(*it);
+        if (obj->patch())
+        {
+            selectedObjects.insert(obj->patch());
+            changedPatches.insert(obj->patch());
+        }
 
         switch (_selectionMode)
         {
-        case SM_PATCH: (*it)->obj()->selectObject(SM_PATCH, true); break;
-        case SM_FACE:  (*it)->obj()->selectFaces(true,  {p - (*it)->obj()->baseColor()}); break;
-        case SM_EDGE:  (*it)->obj()->selectEdges(true,  {p - (*it)->obj()->baseColor()}); break;
-        case SM_POINT: (*it)->obj()->selectPoints(true, {p - (*it)->obj()->baseColor()}); break;
+        case SM_PATCH: obj->selectObject(SM_PATCH, true); break;
+        case SM_FACE: obj->selectFaces(true, {p.second}); break;
+        case SM_EDGE: obj->selectEdges(true, {p.second}); break;
+        case SM_POINT: obj->selectPoints(true, {p.second}); break;
         }
-
-        changedPatches.insert(*it);
     }
 
     m.unlock();

@@ -2,7 +2,7 @@
 
 
 Volume::Volume(Go::SplineVolume *v)
-    : DisplayObject(12)
+    : DisplayObject()
     , vol(v)
 {
     v->basis(0).knotsSimple(uKnots);
