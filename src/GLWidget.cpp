@@ -111,7 +111,7 @@ std::set<std::pair<uint,uint>> GLWidget::paintGLPicks(int x, int y, int w, int h
 
     std::set<uint> deletes;
 
-    int limit = std::min(std::min(w, h) - 1, 3);
+    int limit = std::min(std::min(w, h) - 1, 2);
     for (auto p : picks)
         if (p.second < limit || p.first == WHITE_KEY)
             deletes.insert(p.first);
