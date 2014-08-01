@@ -1,5 +1,7 @@
 #include <sstream>
 #include <thread>
+#include <QApplication>
+#include <QFileDialog>
 #include <QMenuBar>
 #include <QSplitter>
 #include <QTabWidget>
@@ -44,17 +46,52 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     _toolBox->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
     addDockWidget(Qt::RightDockWidgetArea, _toolBox);
 
+
+    QMenu *fileMenu = menuBar()->addMenu("File");
+    QAction *openAct = fileMenu->addAction("Open");
+    openAct->setShortcut(QKeySequence("Ctrl+O"));
+
+    connect(openAct, &QAction::triggered,
+            [this] (bool checked) {
+                QStringList list = QFileDialog::getOpenFileNames(
+                    this, "Open mesh files", ".", "GoTools files (*.g2);;All files (*)");
+                for (auto f : list)
+                    _objectSet->loadFile(f);
+            });
+
+    fileMenu->addSeparator();
+
+    QAction *exitAct = fileMenu->addAction("Exit");
+    exitAct->setShortcut(QKeySequence("Ctrl+Q"));
+
+    connect(exitAct, &QAction::triggered,
+            [] () { QApplication::exit(0); });
+
+
     QMenu *windowsMenu = menuBar()->addMenu("Windows");
     _toolAct = windowsMenu->addAction("Toolbox");
-    _infoAct = windowsMenu->addAction("Infobox");
-
+    _toolAct->setShortcut(QKeySequence("Ctrl+Shift+T"));
     _toolAct->setCheckable(true);
+    _infoAct = windowsMenu->addAction("Infobox");
+    _infoAct->setShortcut(QKeySequence("Ctrl+Shift+I"));
     _infoAct->setCheckable(true);
 
-    QObject::connect(_toolAct, &QAction::triggered,
-                     [this] (bool checked) { _toolBox->setVisible(checked); });
-    QObject::connect(_infoAct, &QAction::triggered,
-                     [this] (bool checked) { _infoBox->setVisible(checked); });
+    connect(_toolAct, &QAction::triggered,
+            [this] (bool checked) { _toolBox->setVisible(checked); });
+    connect(_infoAct, &QAction::triggered,
+            [this] (bool checked) { _infoBox->setVisible(checked); });
+
+    windowsMenu->addSeparator();
+
+    _toggleAct = windowsMenu->addAction("Toggle full view");
+    _toggleAct->setShortcut(QKeySequence("Ctrl+Shift+F"));
+    _toggleAct->setCheckable(true);
+
+    connect(_toggleAct, &QAction::triggered,
+            [this] (bool checked) {
+                _toolBox->setVisible(!checked);
+                _infoBox->setVisible(!checked);
+            });
 }
 
 
@@ -68,11 +105,14 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::Show || event->type() == QEvent::Hide)
     {
-        if (obj == _toolBox)
-            _toolAct->setChecked(event->type() == QEvent::Show);
-
-        if (obj == _infoBox)
-            _infoAct->setChecked(event->type() == QEvent::Show);
+        if (obj == _toolBox || obj == _infoBox)
+        {
+            if (obj == _toolBox)
+                _toolAct->setChecked(event->type() == QEvent::Show);
+            if (obj == _infoBox)
+                _infoAct->setChecked(event->type() == QEvent::Show);
+            _toggleAct->setChecked(!_infoBox->isVisible() && !_toolBox->isVisible());
+        }
 
         return false;
     }

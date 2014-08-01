@@ -30,7 +30,7 @@ private:
     ToolBox *_toolBox;
     InfoBox *_infoBox;
 
-    QAction *_toolAct, *_infoAct;
+    QAction *_toolAct, *_infoAct, *_toggleAct;
 };
 
 #endif /* _MAINWINDOW_H_ */

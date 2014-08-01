@@ -279,11 +279,13 @@ ObjectSet::~ObjectSet()
 }
 
 
-void ObjectSet::loadFile(std::string fileName)
+void ObjectSet::loadFile(QString fileName)
 {
     mQueue.lock();
     loadQueue.push_back(fileName);
     mQueue.unlock();
+
+    emit log(QString("Queued '%1' for loading").arg(QFileInfo(fileName).fileName()), LL_NORMAL);
 }
 
 
@@ -319,7 +321,7 @@ void ObjectSet::watchFiles()
                 emit log(QString("File '%1' has changed, queueing for reload").arg(file->fn()), LL_WARNING);
 
                 mQueue.lock();
-                loadQueue.push_back(file->absolute().toStdString());
+                loadQueue.push_back(file->absolute());
                 mQueue.unlock();
             }
         }
@@ -612,9 +614,9 @@ Qt::ItemFlags ObjectSet::flags(const QModelIndex &index) const
 }
 
 
-void ObjectSet::addPatchesFromFile(std::string fileName)
+void ObjectSet::addPatchesFromFile(QString fileName)
 {
-    File *file = getOrCreateFileNode(QString::fromStdString(fileName));
+    File *file = getOrCreateFileNode(fileName);
 
     file->m.lock();
 
@@ -635,12 +637,12 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
     std::ifstream stream(file->absolute().toStdString());
     if (!stream.good())
     {
-        emit log(QString("Failed to open file '%1'").arg(QString::fromStdString(fileName)), LL_ERROR);
+        emit log(QString("Failed to open file '%1'").arg(fileName), LL_ERROR);
         return;
     }
 
     emit log(QString("Opened file '%1' (%2 patches, %3 bytes)")
-             .arg(QString::fromStdString(fileName))
+             .arg(file->fn())
              .arg(file->nChecksums())
              .arg(file->size()));
 
@@ -657,7 +659,7 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
     stream.close();
 
     emit log(QString("Closed file '%1' (read %2 patches)")
-             .arg(QString::fromStdString(fileName))
+             .arg(file->fn())
              .arg(file->nChildren()));
 }
 

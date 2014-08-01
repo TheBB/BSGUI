@@ -164,7 +164,7 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
-    void loadFile(std::string fileName);
+    void loadFile(QString fileName);
     void boundingSphere(QVector3D *center, float *radius);
     void setSelection(std::set<std::pair<uint,uint>> *picks, bool clear = true);
     void addToSelection(Node *node, bool signal = true, bool lock = true);
@@ -182,12 +182,12 @@ private:
     File *getOrCreateFileNode(QString fileName);
 
     SelectionMode _selectionMode;
-
+    
     std::thread fileWatcher;
     bool watch;
     void watchFiles();
     std::mutex mQueue;
-    std::vector<std::string> loadQueue;
+    std::vector<QString> loadQueue;
 
     void farthestPointFrom(DisplayObject *a, DisplayObject **b, bool hasSelection);
     void ritterSphere(QVector3D *center, float *radius, bool hasSelection);
@@ -195,7 +195,7 @@ private:
     void signalCheckChange(Patch *patch);
     void signalVisibleChange(Patch *patch);
 
-    void addPatchesFromFile(std::string fileName);
+    void addPatchesFromFile(QString fileName);
     bool addPatchFromStream(std::ifstream &stream, File *file);
 };
 
