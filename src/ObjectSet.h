@@ -20,7 +20,7 @@
 enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, NT_COMPONENTS, NT_COMPONENT };
 enum ComponentType { CT_FACE, CT_EDGE, CT_POINT };
 enum LogLevel { LL_NORMAL, LL_WARNING, LL_ERROR, LL_FATAL };
-enum FileChange { FC_NONE, FC_DELETED, FC_CHANGED };
+enum FileChange { FC_NONE, FC_DELETED, FC_CHANGED, FC_CHANGING };
 
 class Node
 {
@@ -78,7 +78,7 @@ public:
 private:
     QString fileName, absolutePath;
     std::vector<size_t> checksums;
-    uint _size;
+    uint _size, lastCheckedSize;
     QDateTime modified;
 
     FileChange _change;

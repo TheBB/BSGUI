@@ -80,6 +80,7 @@ int Node::nChildren()
 File::File(QString fn, Node *parent)
     : Node(parent)
     , _change(FC_NONE)
+    , lastCheckedSize(0)
 {
     m.lock();
 
@@ -105,7 +106,7 @@ File::File(QString fn, Node *parent)
 
 void File::refreshInfo()
 {
-    QFileInfo info(fileName);
+    QFileInfo info(absolutePath);
     _size = info.size();
     modified = info.lastModified();
 
@@ -126,7 +127,13 @@ void File::checkChange()
     if (!info.exists())
         _change = FC_DELETED;
     else if (info.size() != _size || info.lastModified() > modified)
-        _change = FC_CHANGED;
+    {
+        if (info.size() == lastCheckedSize)
+            _change = FC_CHANGED;
+        else
+            _change = FC_CHANGING;
+        lastCheckedSize = info.size();
+    }
     else
         _change = FC_NONE;
 }
@@ -316,7 +323,7 @@ void ObjectSet::watchFiles()
                          .arg(file->fn()), LL_WARNING);
             else if (file->change() == FC_NONE && old == FC_DELETED)
                 emit log(QString("File '%1' was restored, but is unchanged").arg(file->fn()), LL_WARNING);
-            else if (file->change() == FC_CHANGED)
+            else if (file->change() == FC_CHANGED && old != FC_CHANGED)
             {
                 emit log(QString("File '%1' has changed, queueing for reload").arg(file->fn()), LL_WARNING);
 
