@@ -154,15 +154,6 @@ public:
     void addToSelection(Node *node, bool signal = true, bool lock = true);
     void removeFromSelection(Node *node, bool signal = true, bool lock = true);
 
-    typedef typename std::vector<Patch *>::iterator iterator;
-    typedef typename std::vector<Patch *>::const_iterator const_iterator;
-    iterator begin() { return displayObjects.begin(); }
-    const_iterator begin() const { return displayObjects.begin(); }
-    const_iterator cbegin() const { return displayObjects.cbegin(); }
-    iterator end() { return displayObjects.end(); }
-    const_iterator end() const { return displayObjects.end(); }
-    const_iterator cend() const { return displayObjects.cend(); }
-
 signals:
     void requestInitialization(DisplayObject *obj);
     void update();
@@ -176,11 +167,11 @@ private:
 
     SelectionMode _selectionMode;
 
-    std::vector<Patch *> displayObjects;
+    // std::vector<Patch *> displayObjects;
     std::set<Patch *> selectedObjects;
 
-    void farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vector<Patch *> *vec);
-    void ritterSphere(QVector3D *center, float *radius, std::vector<Patch *> *vec);
+    void farthestPointFrom(DisplayObject *a, DisplayObject **b, bool hasSelection);
+    void ritterSphere(QVector3D *center, float *radius, bool hasSelection);
 
     void signalCheckChange(Patch *patch);
     void signalVisibleChange(Patch *patch);

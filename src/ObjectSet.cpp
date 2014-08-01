@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <thread>
 #include <QBrush>
 #include <QFileInfo>
@@ -278,11 +279,16 @@ void ObjectSet::showAllSelectedPatches(bool visible)
 
 void ObjectSet::showAll()
 {
-    for (auto p : displayObjects)
+    std::lock(m, DisplayObject::m);
+
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
     {
-        p->obj()->showSelected(SM_PATCH, true);
-        signalVisibleChange(p);
+        i->second->showSelected(SM_PATCH, true);
+        signalVisibleChange(i->second->patch());
     }
+
+    m.unlock();
+    DisplayObject::m.unlock();
 
     emit update();
 }
@@ -572,8 +578,6 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
     Patch *patch = new Patch(obj, file);
     endInsertRows();
 
-    displayObjects.push_back(patch);
-
     m.unlock();
 
     emit update();
@@ -584,37 +588,36 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
 
 void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 {
-    if (displayObjects.empty())
+    DisplayObject::m.lock();
+
+    if (DisplayObject::begin() == DisplayObject::end())
     {
         *center = QVector3D(0,0,0);
         *radius = 0.0;
+        DisplayObject::m.unlock();
         return;
     }
 
-    DisplayObject::m.lock();
+    bool hasSelection = any_of(DisplayObject::begin(), DisplayObject::end(),
+                               [] (std::pair<const uint, DisplayObject *> &i) {
+                                   return i.second->hasSelection();
+                               });
 
-    std::vector<Patch *> *vec = &displayObjects;
-    if (!selectedObjects.empty())
-        vec = new std::vector<Patch *>(selectedObjects.begin(), selectedObjects.end());
-
-    DisplayObject *a = (*vec)[0]->obj(), *b;
-    farthestPointFrom(a, &b, vec);
-    farthestPointFrom(b, &a, vec);
+    DisplayObject *a = DisplayObject::begin()->second, *b;
+    farthestPointFrom(a, &b, hasSelection);
+    farthestPointFrom(b, &a, hasSelection);
 
     *center = (a->center() + b->center()) / 2;
     *radius = (a->center() - b->center()).length() / 2;
 
-    ritterSphere(center, radius, vec);
+    ritterSphere(center, radius, hasSelection);
 
     float maxRadius = 0.0;
-    for (auto c : displayObjects)
-        if (c->obj()->radius() > maxRadius)
-            maxRadius = c->obj()->radius();
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
+        if (i->second->radius() > maxRadius && (!hasSelection || i->second->hasSelection()))
+            maxRadius = i->second->radius();
 
     *radius += 2 * maxRadius;
-
-    if (!selectedObjects.empty())
-        delete vec;
 
     DisplayObject::m.unlock();
 }
@@ -809,36 +812,42 @@ File *ObjectSet::getOrCreateFileNode(QString fileName)
 }
 
 
-void ObjectSet::farthestPointFrom(DisplayObject *a, DisplayObject **b, std::vector<Patch *> *vec)
+void ObjectSet::farthestPointFrom(DisplayObject *a, DisplayObject **b, bool hasSelection)
 {
     float distance = -1;
 
-    for (auto c : *vec)
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
     {
-        if (c->obj()->isInvisible(false))
+        if (i->second->isInvisible(false))
             continue;
 
-        float _distance = (c->obj()->center() - a->center()).length();
+        if (hasSelection && !i->second->hasSelection())
+            continue;
+
+        float _distance = (i->second->center() - a->center()).length();
         if (_distance > distance)
         {
             distance = _distance;
-            *b = c->obj();
+            *b = i->second;
         }
     }
 }
 
 
-void ObjectSet::ritterSphere(QVector3D *center, float *radius, std::vector<Patch *> *vec)
+void ObjectSet::ritterSphere(QVector3D *center, float *radius, bool hasSelection)
 {
-    for (auto c : *vec)
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
     {
-        if (c->obj()->isInvisible(false))
+        if (i->second->isInvisible(false))
             continue;
 
-        float d = (c->obj()->center() - (*center)).length();
+        if (hasSelection && !i->second->hasSelection())
+            continue;
+
+        float d = (i->second->center() - (*center)).length();
         if (d > (*radius))
         {
-            *center = ((d + (*radius))/2 * (*center) + (d - (*radius))/2 * c->obj()->center()) / d;
+            *center = ((d + (*radius))/2 * (*center) + (d - (*radius))/2 * i->second->center()) / d;
             *radius = (d + (*radius))/2;
         }
     }

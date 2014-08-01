@@ -87,6 +87,10 @@ public:
     static void keyToIndex(uint key, uint *index, uint *offset);
     static void colorToIndex(GLubyte color[3], uint *index, uint *offset);
 
+    typedef typename std::map<uint, DisplayObject *>::iterator iterator;
+    static iterator begin() { return indexMap.begin(); }
+    static iterator end() { return indexMap.end(); }
+
 protected:
     QVector3D _center;
     float _radius;

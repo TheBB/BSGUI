@@ -92,8 +92,8 @@ std::set<std::pair<uint,uint>> GLWidget::paintGLPicks(int x, int y, int w, int h
     QMatrix4x4 mvp;
     matrix(&mvp);
 
-    for (auto patch : *objectSet)
-        patch->obj()->drawPicking(mvp, ccProgram, objectSet->selectionMode());
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
+        i->second->drawPicking(mvp, ccProgram, objectSet->selectionMode());
 
     GLubyte pixels[4 * w * h];
     glReadPixels(x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -145,8 +145,8 @@ void GLWidget::paintGL()
     QMatrix4x4 mvp;
     matrix(&mvp);
 
-    for (auto patch : *objectSet)
-        patch->obj()->draw(mvp, ccProgram, _showPoints || objectSet->selectionMode() == SM_POINT);
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
+        i->second->draw(mvp, ccProgram, _showPoints || objectSet->selectionMode() == SM_POINT);
 
     if (_showAxes)
     {
