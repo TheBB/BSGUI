@@ -130,7 +130,7 @@ public:
     explicit ObjectSet(QObject *parent = NULL);
     ~ObjectSet();
 
-    bool hasSelection() { return !selectedObjects.empty(); }
+    bool hasSelection();
     inline SelectionMode selectionMode() { return _selectionMode; }
     void setSelectionMode(SelectionMode mode);
     void showSelected(bool visible);
@@ -168,7 +168,7 @@ private:
     SelectionMode _selectionMode;
 
     // std::vector<Patch *> displayObjects;
-    std::set<Patch *> selectedObjects;
+    // std::set<Patch *> selectedObjects;
 
     void farthestPointFrom(DisplayObject *a, DisplayObject **b, bool hasSelection);
     void ritterSphere(QVector3D *center, float *radius, bool hasSelection);

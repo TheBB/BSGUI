@@ -379,10 +379,9 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         std::set<std::pair<uint,uint>> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
 
         m.unlock();
+        DisplayObject::m.unlock();
 
         objectSet->setSelection(&picks, !ctrlPressed);
-
-        DisplayObject::m.unlock();
     }
 }
 

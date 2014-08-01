@@ -234,18 +234,38 @@ ObjectSet::~ObjectSet()
 }
 
 
+bool ObjectSet::hasSelection()
+{
+    DisplayObject::m.lock();
+
+    bool ret = any_of(DisplayObject::begin(), DisplayObject::end(),
+                      [] (std::pair<const uint, DisplayObject *> &i) {
+                          return i.second->hasSelection();
+                      });
+
+    DisplayObject::m.unlock();
+
+    return ret;
+}
+
+
 void ObjectSet::setSelectionMode(SelectionMode mode)
 {
     if (mode != _selectionMode)
     {
+        std::lock(m, DisplayObject::m);
+
         _selectionMode = mode;
 
-        for (auto p : selectedObjects)
-            p->obj()->selectionMode(mode, true);
+        for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
+            i->second->selectionMode(mode, true);
 
         for (auto f : root->children())
             for (auto p : f->children())
                 signalCheckChange(static_cast<Patch *>(p));
+
+        m.unlock();
+        DisplayObject::m.unlock();
     }
 
     emit selectionChanged();
@@ -255,11 +275,16 @@ void ObjectSet::setSelectionMode(SelectionMode mode)
 
 void ObjectSet::showSelected(bool visible)
 {
-    for (auto p : selectedObjects)
+    std::lock(m, DisplayObject::m);
+
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
     {
-        p->obj()->showSelected(_selectionMode, visible);
-        signalVisibleChange(p);
+        i->second->showSelected(_selectionMode, visible);
+        signalVisibleChange(i->second->patch());
     }
+
+    m.unlock();
+    DisplayObject::m.unlock();
 
     emit update();
 }
@@ -267,11 +292,17 @@ void ObjectSet::showSelected(bool visible)
 
 void ObjectSet::showAllSelectedPatches(bool visible)
 {
-    for (auto p : selectedObjects)
-    {
-        p->obj()->showSelected(SM_PATCH, visible);
-        signalVisibleChange(p);
-    }
+    std::lock(m, DisplayObject::m);
+
+    for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
+        if (i->second->hasSelection())
+        {
+            i->second->showSelected(SM_PATCH, visible);
+            signalVisibleChange(i->second->patch());
+        }
+
+    m.unlock();
+    DisplayObject::m.unlock();
 
     emit update();
 }
@@ -553,10 +584,20 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
         emit log(error.arg(QString("Unrecognized class type %1").arg(head.classType())), LL_ERROR);
     }
 
-    DisplayObject::m.unlock();
-    
     if (!obj)
+    {
+        DisplayObject::m.unlock();
         return false;
+    }
+
+    m.lock();
+    QModelIndex index = createIndex(file->indexInParent(), 0, file);
+    beginInsertRows(index, file->nChildren(), file->nChildren());
+    Patch *patch = new Patch(obj, file);
+    endInsertRows();
+    m.unlock();
+
+    DisplayObject::m.unlock();
 
     while (!obj->initialized())
     {
@@ -570,15 +611,6 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
         delete obj;
         return true; // Can continue
     }
-
-    m.lock();
-
-    QModelIndex index = createIndex(file->indexInParent(), 0, file);
-    beginInsertRows(index, file->nChildren(), file->nChildren());
-    Patch *patch = new Patch(obj, file);
-    endInsertRows();
-
-    m.unlock();
 
     emit update();
 
@@ -623,21 +655,17 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 }
 
 
-// Assumes DisplayObject::m is locked!
 void ObjectSet::setSelection(std::set<std::pair<uint,uint>> *picks, bool clear)
 {
-    m.lock();
+    std::lock(m, DisplayObject::m);
 
     if (clear)
-    {
-        for (auto p : selectedObjects)
-        {
-            p->obj()->selectObject(_selectionMode, false);
-            signalCheckChange(p);
-        }
-
-        selectedObjects.clear();
-    }
+        for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
+            if (i->second->hasSelection())
+            {
+                i->second->selectObject(_selectionMode, false);
+                signalCheckChange(i->second->patch());
+            }
 
     std::set<Patch *> changedPatches;
 
@@ -648,10 +676,7 @@ void ObjectSet::setSelection(std::set<std::pair<uint,uint>> *picks, bool clear)
             continue;
 
         if (obj->patch())
-        {
-            selectedObjects.insert(obj->patch());
             changedPatches.insert(obj->patch());
-        }
 
         switch (_selectionMode)
         {
@@ -666,6 +691,7 @@ void ObjectSet::setSelection(std::set<std::pair<uint,uint>> *picks, bool clear)
         signalCheckChange(p);
 
     m.unlock();
+    DisplayObject::m.unlock();
 
     emit selectionChanged();
 }
@@ -684,8 +710,6 @@ void ObjectSet::addToSelection(Node *node, bool signal, bool lock)
     else if (node->type() == NT_PATCH)
     {
         Patch *patch = static_cast<Patch *>(node);
-
-        selectedObjects.insert(patch);
         patch->obj()->selectObject(_selectionMode, true);
 
         signalCheckChange(patch);
@@ -710,10 +734,6 @@ void ObjectSet::addToSelection(Node *node, bool signal, bool lock)
                 patch->obj()->selectPoints(true, {static_cast<Component *>(node)->index()});
                 break;
             }
-
-            m.lock();
-            selectedObjects.insert(patch);
-            m.unlock();
 
             signalCheckChange(patch);
         }
@@ -745,8 +765,6 @@ void ObjectSet::removeFromSelection(Node *node, bool signal, bool lock)
         Patch *patch = static_cast<Patch *>(node);
         patch->obj()->selectObject(_selectionMode, false);
 
-        selectedObjects.erase(patch);
-
         signalCheckChange(patch);
     }
     else if (node->type() == NT_COMPONENT)
@@ -768,9 +786,6 @@ void ObjectSet::removeFromSelection(Node *node, bool signal, bool lock)
                 patch->obj()->selectPoints(false, {static_cast<Component *>(node)->index()});
                 break;
             }
-
-            if (!patch->obj()->hasSelection())
-                selectedObjects.erase(patch);
 
             signalCheckChange(patch);
         }
