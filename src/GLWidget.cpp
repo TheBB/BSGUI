@@ -137,7 +137,7 @@ std::set<std::pair<uint,uint>> GLWidget::paintGLPicks(int x, int y, int w, int h
 
 void GLWidget::paintGL()
 {
-    std::lock(m, objectSet->m);
+    std::lock(m, DisplayObject::m);
 
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -165,7 +165,7 @@ void GLWidget::paintGL()
     swapBuffers();
 
     m.unlock();
-    objectSet->m.unlock();
+    DisplayObject::m.unlock();
 }
 
 
@@ -366,7 +366,7 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         cameraTracking = false;
     else if (event->button() == Qt::LeftButton)
     {
-        std::lock(m, objectSet->m);
+        std::lock(m, DisplayObject::m);
 
         selectTracking = false;
 
@@ -379,9 +379,10 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
         std::set<std::pair<uint,uint>> picks = paintGLPicks(x, y, toX - x + 1, toY - y + 1);
 
         m.unlock();
-        objectSet->m.unlock();
 
         objectSet->setSelection(&picks, !ctrlPressed);
+
+        DisplayObject::m.unlock();
     }
 }
 

@@ -20,6 +20,7 @@ const QVector3D WHITE = QVector3D(1.0, 1.0, 1.0);
 
 uint DisplayObject::nextIndex = 0;
 std::map<uint, DisplayObject *> DisplayObject::indexMap;
+std::mutex DisplayObject::m;
 
 
 DisplayObject::DisplayObject()

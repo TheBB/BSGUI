@@ -151,8 +151,8 @@ public:
     void addPatchesFromFile(std::string fileName);
     void boundingSphere(QVector3D *center, float *radius);
     void setSelection(std::set<std::pair<uint,uint>> *picks, bool clear = true);
-    void addToSelection(Node *node, bool signal = true);
-    void removeFromSelection(Node *node, bool signal = true);
+    void addToSelection(Node *node, bool signal = true, bool lock = true);
+    void removeFromSelection(Node *node, bool signal = true, bool lock = true);
 
     typedef typename std::vector<Patch *>::iterator iterator;
     typedef typename std::vector<Patch *>::const_iterator const_iterator;

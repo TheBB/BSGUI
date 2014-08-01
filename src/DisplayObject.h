@@ -1,6 +1,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <mutex>
 #include <unordered_map>
 
 #include <QOpenGLBuffer>
@@ -78,6 +79,8 @@ public:
     inline bool pointSelected(uint i) { return selectedPoints.find(i) != selectedPoints.end(); }
 
     void showSelected(SelectionMode mode, bool visible);
+
+    static std::mutex m;
 
     static DisplayObject *getObject(uint idx);
     static uint colorToKey(GLubyte color[3]);

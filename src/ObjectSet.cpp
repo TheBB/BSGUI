@@ -527,6 +527,8 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
 
     DisplayObject *obj = NULL;
 
+    DisplayObject::m.lock();
+
     switch (head.classType())
     {
     case Go::Class_SplineVolume:
@@ -544,6 +546,8 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
     default:
         emit log(error.arg(QString("Unrecognized class type %1").arg(head.classType())), LL_ERROR);
     }
+
+    DisplayObject::m.unlock();
     
     if (!obj)
         return false;
@@ -587,7 +591,7 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
         return;
     }
 
-    m.lock();
+    DisplayObject::m.lock();
 
     std::vector<Patch *> *vec = &displayObjects;
     if (!selectedObjects.empty())
@@ -612,10 +616,11 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
     if (!selectedObjects.empty())
         delete vec;
 
-    m.unlock();
+    DisplayObject::m.unlock();
 }
 
 
+// Assumes DisplayObject::m is locked!
 void ObjectSet::setSelection(std::set<std::pair<uint,uint>> *picks, bool clear)
 {
     m.lock();
@@ -654,30 +659,30 @@ void ObjectSet::setSelection(std::set<std::pair<uint,uint>> *picks, bool clear)
         }
     }
 
-    m.unlock();
-
     for (auto p : changedPatches)
         signalCheckChange(p);
+
+    m.unlock();
 
     emit selectionChanged();
 }
 
 
-void ObjectSet::addToSelection(Node *node, bool signal)
+void ObjectSet::addToSelection(Node *node, bool signal, bool lock)
 {
+    if (lock)
+        std::lock(m, DisplayObject::m);
+
     if (node->type() == NT_FILE)
     {
         for (auto n : node->children())
-            addToSelection(n, false);
+            addToSelection(n, false, false);
     }
     else if (node->type() == NT_PATCH)
     {
         Patch *patch = static_cast<Patch *>(node);
 
-        m.lock();
         selectedObjects.insert(patch);
-        m.unlock();
-
         patch->obj()->selectObject(_selectionMode, true);
 
         signalCheckChange(patch);
@@ -711,26 +716,33 @@ void ObjectSet::addToSelection(Node *node, bool signal)
         }
     }
 
+    if (lock)
+    {
+        m.unlock();
+        DisplayObject::m.unlock();
+    }
+
     if (signal)
         emit selectionChanged();
 }
 
 
-void ObjectSet::removeFromSelection(Node *node, bool signal)
+void ObjectSet::removeFromSelection(Node *node, bool signal, bool lock)
 {
+    if (lock)
+        std::lock(m, DisplayObject::m);
+
     if (node->type() == NT_FILE)
     {
         for (auto n : node->children())
-            removeFromSelection(n, false);
+            removeFromSelection(n, false, false);
     }
     else if (node->type() == NT_PATCH)
     {
         Patch *patch = static_cast<Patch *>(node);
         patch->obj()->selectObject(_selectionMode, false);
 
-        m.lock();
         selectedObjects.erase(patch);
-        m.unlock();
 
         signalCheckChange(patch);
     }
@@ -755,14 +767,16 @@ void ObjectSet::removeFromSelection(Node *node, bool signal)
             }
 
             if (!patch->obj()->hasSelection())
-            {
-                m.lock();
                 selectedObjects.erase(patch);
-                m.unlock();
-            }
 
             signalCheckChange(patch);
         }
+    }
+
+    if (lock)
+    {
+        m.unlock();
+        DisplayObject::m.unlock();
     }
 
     if (signal)
