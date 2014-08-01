@@ -2,8 +2,10 @@
 #include <mutex>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 #include <QAbstractItemModel>
+#include <QDateTime>
 #include <QFileInfo>
 #include <QItemSelection>
 #include <QModelIndex>
@@ -60,12 +62,16 @@ public:
 
     inline QString fn() { return fileName; }
     inline QString absolute() { return absolutePath; }
-
+    inline uint size() { return _size; }
     inline uint nChecksums() { return checksums.size(); }
+
+    std::mutex m;
 
 private:
     QString fileName, absolutePath;
     std::vector<size_t> checksums;
+    uint _size;
+    QDateTime modified;
 
     void computeChecksums(std::vector<size_t> *vec);
 };
@@ -148,7 +154,7 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
     int columnCount(const QModelIndex &parent = QModelIndex()) const;
 
-    void addPatchesFromFile(std::string fileName);
+    void loadFile(std::string fileName);
     void boundingSphere(QVector3D *center, float *radius);
     void setSelection(std::set<std::pair<uint,uint>> *picks, bool clear = true);
     void addToSelection(Node *node, bool signal = true, bool lock = true);
@@ -167,8 +173,11 @@ private:
 
     SelectionMode _selectionMode;
 
-    // std::vector<Patch *> displayObjects;
-    // std::set<Patch *> selectedObjects;
+    std::thread fileWatcher;
+    bool watch;
+    void watchFiles();
+    std::mutex mQueue;
+    std::vector<std::string> loadQueue;
 
     void farthestPointFrom(DisplayObject *a, DisplayObject **b, bool hasSelection);
     void ritterSphere(QVector3D *center, float *radius, bool hasSelection);
@@ -176,6 +185,7 @@ private:
     void signalCheckChange(Patch *patch);
     void signalVisibleChange(Patch *patch);
 
+    void addPatchesFromFile(std::string fileName);
     bool addPatchFromStream(std::ifstream &stream, File *file);
 };
 

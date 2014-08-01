@@ -80,6 +80,8 @@ int Node::nChildren()
 File::File(QString fn, Node *parent)
     : Node(parent)
 {
+    m.lock();
+
     if (fn == "")
     {
         fileName = "<none>";
@@ -90,10 +92,13 @@ File::File(QString fn, Node *parent)
         QFileInfo info(fn);
         fileName = info.fileName();
         absolutePath = info.absoluteFilePath();
+        _size = info.size();
+        modified = info.lastModified();
+
+        computeChecksums(&checksums);
     }
 
-
-    computeChecksums(&checksums);
+    m.unlock();
 }
 
 
@@ -223,14 +228,49 @@ bool Component::isSelected()
 ObjectSet::ObjectSet(QObject *parent)
     : QAbstractItemModel(parent)
     , _selectionMode(SM_PATCH)
+    , watch(true)
 {
     root = new Node();
+
+    fileWatcher = std::thread([this] () { watchFiles(); });
 }
 
 
 ObjectSet::~ObjectSet()
 {
+    watch = false;
+    fileWatcher.join();
+
     delete root;
+}
+
+
+void ObjectSet::loadFile(std::string fileName)
+{
+    mQueue.lock();
+    loadQueue.push_back(fileName);
+    mQueue.unlock();
+}
+
+
+void ObjectSet::watchFiles()
+{
+    int n = 0;
+
+    while (watch)
+    {
+        mQueue.lock();
+
+        while (!loadQueue.empty())
+        {
+            addPatchesFromFile(loadQueue.back());
+            loadQueue.pop_back();
+        }
+
+        mQueue.unlock();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 }
 
 
@@ -278,11 +318,12 @@ void ObjectSet::showSelected(bool visible)
     std::lock(m, DisplayObject::m);
 
     for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
-    {
-        i->second->showSelected(_selectionMode, visible);
-        signalVisibleChange(i->second->patch());
-    }
-
+        if (i->second->hasSelection())
+        {
+            i->second->showSelected(_selectionMode, visible);
+            signalVisibleChange(i->second->patch());
+        }
+    
     m.unlock();
     DisplayObject::m.unlock();
 
@@ -525,20 +566,21 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
         return;
     }
 
-    stream.seekg(0, stream.end);
-    uint length = stream.tellg();
-    stream.seekg(0, stream.beg);
+    file->m.lock();
+
     emit log(QString("Opened file '%1' (%2 patches, %3 bytes)")
              .arg(QString::fromStdString(fileName))
              .arg(file->nChecksums())
-             .arg(length));
-
+             .arg(file->size()));
+    
     bool cont = true;
     while (!stream.eof() && cont)
     {
         cont = addPatchFromStream(stream, file);
         std::ws(stream);
     }
+
+    file->m.unlock();
 
     stream.close();
 
