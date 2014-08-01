@@ -289,7 +289,7 @@ ObjectSet::~ObjectSet()
 void ObjectSet::loadFile(QString fileName)
 {
     mQueue.lock();
-    loadQueue.push_back(fileName);
+    loadQueue.insert(fileName);
     mQueue.unlock();
 
     emit log(QString("Queued '%1' for loading").arg(QFileInfo(fileName).fileName()), LL_NORMAL);
@@ -303,11 +303,9 @@ void ObjectSet::watchFiles()
     while (watch)
     {
         mQueue.lock();
-        while (!loadQueue.empty())
-        {
-            addPatchesFromFile(loadQueue.back());
-            loadQueue.pop_back();
-        }
+        for (auto fn : loadQueue)
+            addPatchesFromFile(fn);
+        loadQueue.clear();
         mQueue.unlock();
 
         m.lock();
@@ -328,7 +326,7 @@ void ObjectSet::watchFiles()
                 emit log(QString("File '%1' has changed, queueing for reload").arg(file->fn()), LL_WARNING);
 
                 mQueue.lock();
-                loadQueue.push_back(file->absolute());
+                loadQueue.insert(file->absolute());
                 mQueue.unlock();
             }
         }

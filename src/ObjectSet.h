@@ -187,7 +187,7 @@ private:
     bool watch;
     void watchFiles();
     std::mutex mQueue;
-    std::vector<QString> loadQueue;
+    std::set<QString> loadQueue;
 
     void farthestPointFrom(DisplayObject *a, DisplayObject **b, bool hasSelection);
     void ritterSphere(QVector3D *center, float *radius, bool hasSelection);
