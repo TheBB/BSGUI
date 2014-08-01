@@ -301,7 +301,6 @@ void ObjectSet::watchFiles()
         }
         mQueue.unlock();
 
-
         m.lock();
         for (auto f : root->children())
         {
@@ -326,7 +325,8 @@ void ObjectSet::watchFiles()
         }
         m.unlock();
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (watch)
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
@@ -643,11 +643,12 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
              .arg(QString::fromStdString(fileName))
              .arg(file->nChecksums())
              .arg(file->size()));
-    
+
     bool cont = true;
     while (!stream.eof() && cont)
     {
         cont = addPatchFromStream(stream, file);
+        cont &= watch;
         std::ws(stream);
     }
 
