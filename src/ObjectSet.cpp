@@ -79,6 +79,7 @@ int Node::nChildren()
 
 File::File(QString fn, Node *parent)
     : Node(parent)
+    , _change(FC_NONE)
 {
     m.lock();
 
@@ -102,9 +103,42 @@ File::File(QString fn, Node *parent)
 }
 
 
+void File::refreshInfo()
+{
+    QFileInfo info(fileName);
+    _size = info.size();
+    modified = info.lastModified();
+
+    computeChecksums(&checksums);
+}
+
+
 QString File::displayString()
 {
     return fileName;
+}
+
+
+void File::checkChange()
+{
+    QFileInfo info(absolutePath);
+
+    if (!info.exists())
+        _change = FC_DELETED;
+    else if (info.size() != _size || info.lastModified() > modified)
+        _change = FC_CHANGED;
+    else
+        _change = FC_NONE;
+}
+
+
+void File::clearPatches()
+{
+    while (!_children.empty())
+    {
+        delete static_cast<Patch *>(_children.back());
+        _children.pop_back();
+    }
 }
 
 
@@ -260,14 +294,37 @@ void ObjectSet::watchFiles()
     while (watch)
     {
         mQueue.lock();
-
         while (!loadQueue.empty())
         {
             addPatchesFromFile(loadQueue.back());
             loadQueue.pop_back();
         }
-
         mQueue.unlock();
+
+
+        m.lock();
+        for (auto f : root->children())
+        {
+            File *file = static_cast<File *>(f);
+
+            FileChange old = file->change();
+            file->checkChange();
+
+            if (file->change() == FC_DELETED && old != FC_DELETED)
+                emit log(QString("File '%1' was deleted, but the patches are still in memory")
+                         .arg(file->fn()), LL_WARNING);
+            else if (file->change() == FC_NONE && old == FC_DELETED)
+                emit log(QString("File '%1' was restored, but is unchanged").arg(file->fn()), LL_WARNING);
+            else if (file->change() == FC_CHANGED)
+            {
+                emit log(QString("File '%1' has changed, queueing for reload").arg(file->fn()), LL_WARNING);
+
+                mQueue.lock();
+                loadQueue.push_back(file->absolute().toStdString());
+                mQueue.unlock();
+            }
+        }
+        m.unlock();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -559,14 +616,28 @@ void ObjectSet::addPatchesFromFile(std::string fileName)
 {
     File *file = getOrCreateFileNode(QString::fromStdString(fileName));
 
+    file->m.lock();
+
+    file->refreshInfo();
+
+    if (file->nChildren() > 0)
+    {
+        std::lock(m, DisplayObject::m);
+
+        beginRemoveRows(createIndex(file->indexInParent(), 0, file), 0, file->nChildren() - 1);
+        file->clearPatches();
+        endRemoveRows();
+
+        m.unlock();
+        DisplayObject::m.unlock();
+    }
+
     std::ifstream stream(file->absolute().toStdString());
     if (!stream.good())
     {
         emit log(QString("Failed to open file '%1'").arg(QString::fromStdString(fileName)), LL_ERROR);
         return;
     }
-
-    file->m.lock();
 
     emit log(QString("Opened file '%1' (%2 patches, %3 bytes)")
              .arg(QString::fromStdString(fileName))

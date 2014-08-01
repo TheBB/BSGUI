@@ -20,6 +20,7 @@
 enum NodeType { NT_ROOT, NT_FILE, NT_PATCH, NT_COMPONENTS, NT_COMPONENT };
 enum ComponentType { CT_FACE, CT_EDGE, CT_POINT };
 enum LogLevel { LL_NORMAL, LL_WARNING, LL_ERROR, LL_FATAL };
+enum FileChange { FC_NONE, FC_DELETED, FC_CHANGED };
 
 class Node
 {
@@ -55,6 +56,8 @@ public:
     NodeType type() { return NT_FILE; }
     QString displayString();
 
+    void refreshInfo();
+
     inline bool matches(QString fn)
     {
         return fn == "" && absolutePath == "" || QFileInfo(fn).absoluteFilePath() == absolutePath;
@@ -65,6 +68,11 @@ public:
     inline uint size() { return _size; }
     inline uint nChecksums() { return checksums.size(); }
 
+    void checkChange();
+    inline FileChange change() { return _change; }
+
+    void clearPatches();
+
     std::mutex m;
 
 private:
@@ -72,6 +80,8 @@ private:
     std::vector<size_t> checksums;
     uint _size;
     QDateTime modified;
+
+    FileChange _change;
 
     void computeChecksums(std::vector<size_t> *vec);
 };
