@@ -23,6 +23,11 @@ configure_file(
   "${PROJECT_BINARY_DIR}/main.h"
   )
 
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/Doxyfile.in"
+  "${PROJECT_BINARY_DIR}/Doxyfile"
+  )
+
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${GoTools_INCLUDE_DIRS})
 include_directories(${GoTrivariate_INCLUDE_DIRS})
@@ -53,3 +58,11 @@ target_link_libraries(BSGUI
   )
 
 install(TARGETS BSGUI RUNTIME DESTINATION bin)
+
+# For generating the doxy
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+  add_custom_target(doc doxygen ${PROJECT_BINARY_DIR}/Doxyfile
+                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+                    COMMENT "Generating API documentation" VERBATIM)
+endif()
