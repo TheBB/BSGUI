@@ -307,9 +307,16 @@ void ObjectSet::watchFiles()
     {
         mQueue.lock();
         for (auto fn : loadQueue)
+        {
             addPatchesFromFile(fn);
+            if (!watch)
+                break;
+        }
         loadQueue.clear();
         mQueue.unlock();
+
+        if (!watch)
+            break;
 
         m.lock();
         for (auto f : root->children())
