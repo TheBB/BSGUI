@@ -172,6 +172,13 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
             _objectSet->showSelected(true);
         return true;
 
+    case Qt::Key_Escape:
+    {
+        std::set<std::pair<uint,uint>> p;
+        _objectSet->setSelection(&p, true);
+        return true;
+    }
+
     case Qt::Key_Control:
     case Qt::Key_Shift:
     case Qt::Key_Alt: _glWidget->keyPressEvent(e); return true;
