@@ -39,31 +39,34 @@ and very basic manipulation.
 
 The code is heavily integrated with Qt.
 
-The `MainWindow` class subclasses `QMainWindow` and contains two primary widgets: a
-`GLWidget` object (subclasss of `QGLWidget`), and a `ToolBox` object (subclass of
-`QDockWidget`). The `GLWidget` owns most of the screen space and is used for rendering.
-The dockable toolbox is used for all other kinds of widgets.
+The MainWindow class subclasses QMainWindow and contains three primary widgets: a
+GLWidget object (subclasss of QGLWidget), a ToolBox object (subclass of
+QDockWidget) and an InfoBox object (subclass of QWidget). The GLWidget owns
+most of the screen space and is used for rendering. The toolbox is intended for
+interactive widgets, and the infobox for information display.
 
-In addition, there is an `ObjectSet` object created. This object maintains ownership
-of all the open spline objects. It is a subclass of `QAbstractItemModel`, which allows
-the `QTreeView` widget in the toolbox to display the state of the application.
+In addition, there is an ObjectSet object created. This object maintains ownership
+of all the open spline objects. It is a subclass of QAbstractItemModel, which allows
+the QTreeView widget in the toolbox to display the state of the application.
 
-The `ObjectSet` is responsible for creating, updating and destroying objects. It emits
-signals to which the `GLWidget` and the toolbox subwidgets should listen.
+The ObjectSet is responsible for creating, updating and destroying objects. It emits
+signals to which the GLWidget and the toolbox and infobox widgets should listen.
 
-There are two important mutexes used for multithreading. One belongs to the `ObjectSet`,
-and the other to the `GLWidget`. Any behaviour that takes place in the OpenGL context
-should first lock the `GLWidget`. This is:
+Some important mutexes:
 
-- The three basic context-sensitive member methods of `GLWidget`: `GLWidget::initializeGL`,
-  `GLWidget::resizeGL` and `GLWidget::paintGL`. The context is set automatically before
-  these methods are called.
-- The `GLWidget::initializeDispObject` slot. This initializes a displayable object within
-  the relevant OpenGL context (i.e. it copies memory from RAM to GPU). This method has to
-  explicitly set the context.
-
-Any behaviour that modifies the `ObjectSet`, or requires it to remain constant, should
-also lock the `ObjectSet` mutex.
+- GLWidget::m should be locked when any context-sensitive OpenGL functions are used.
+  In particular this means during GLWidget::initializeGL, GLWidget::resizeGL,
+  GLWidget::paintGL, GLWidget::paintGLPicks and GLWidget::initializeDispObject.
+- DisplayObject::m is a static mutex which should be locked whenever code needs to
+  interact with the static index of display objects. This is required whenever objects
+  are created or destroyed, whenever selections are manipulated, or whenever anything
+  loops over all objects (such as during drawing).
+- ObjectSet::m should be locked whenever something manipulates the internal tree
+  representation kept by this object. This should not be necessary outside of the
+  ObjectSet itself.
+- ObjectSet::mQueue should be locked whenever a thread manipulates the file loading
+  queue.
+- Each File object also has a lock, but it's not currently useful.
 
 \section controls Controls
 
@@ -71,10 +74,9 @@ Keyboard controls:
 
 - 1-6: Set a fixed preset orthographic camera (top, bottom, left, right, front, back).
 - \`: Set a free camera.
+- A: Toggle drawing of the axes cross.
 - P: Switch between perspective and orthographic projections.
-- C: Center the camera on the selected patch.
-
-These require the `GLWidget` to have focus.
+- C: Center the camera on the selected patch, or the whole scene.
 
 In free mode:
 
@@ -107,10 +109,29 @@ The camera look-at point is persistent throughout. If you move in fixed mode, yo
 also have moved the camera in free mode. Except for this, the free mode camera state
 will be saved.
 
+\section selection Selection
+
+There are four selection modes: patches, faces, edges and vertices. You can switch between
+them using Ctrl+P, Ctrl+F, Ctrl+E and Ctrl+V.
+
+In patch selection mode, each patch is either fully selected or fully unselected. In the other
+modes, a patch may also be partially selected.
+
+If you switch selection mode while a selection is active, the "expected" thing happens, for
+certain values of "expected".
+
+Press S to show and H to hide the current selection. Selection does not depend on visibility!
+In particular, if you hide selected patches, they remain selected. You can see which objects
+are selected in the treeview. Press escape to clear the selection.
+
+For convenience, Ctrl+S and Ctrl+H will show or hide full patches. This has the same effect
+as switching to patch selection mode and then clicking S or H.
+
+In all cases, Ctrl+Shift+S will show all patches, selected or not.
+
 \section requirements Library requirements
 
 - Qt 5
-- Eigen3
 - OpenGL
 
 The developer uses rather cutting-edge libraries, but one may hope the implementation
