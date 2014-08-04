@@ -39,10 +39,8 @@ class Patch;
 //! \ref DisplayObjectComponents for more.
 //!
 //! To subclass DisplayObject, you must implement type(), nFaces(), nEdges() and
-//! nPoints(). In addition, the constructor must initialize the #visibleFaces, #visibleEdges,
-//! #visiblePoints, #faceIdxs, #elementIdxs, #edgeIdxs, #faceOffsets, #lineOffsets, #edgeOffsets,
-//! #pointOffsets, #faceEdgeMap and #edgePointMap members. The superclass should then deal with
-//! initialization and drawing for you.
+//! nPoints(). In addition, the constructor must initialize a number of protected members.
+//! These are described in \ref DisplayObjectSubclassing.
 class DisplayObject
 {
 public:
@@ -111,10 +109,11 @@ public:
     //!
     //! The selection mode (ObjectSet::_selectionMode) has an impact on the functionality of
     //! many of these functions, but DisplayObject has no internal memory of the current selection
-    //! mode.
+    //! mode. This is arguably a mistake, since things get complicated.
     //!
-    //! **NB:** that when a face is selected (say), the neighboring edges and vertices are also
-    //! selected, even if the current selection mode is neither \c SM_EDGE or \c SM_POINT. This
+    //! **NB:** When a face is selected (say), the neighboring edges and vertices are also
+    //! selected (in the sense that the #selectedEdges and #selectedPoints sets will not be empty),
+    //! even if the current selection mode is neither \c SM_EDGE or \c SM_POINT. This
     //! has an effect on drawing only!
     //!
     //! However, the function showSelected() will be faithful to the selection mode. In the above
@@ -268,50 +267,201 @@ protected:
     QVector3D _center; //!< Center of the bounding sphere.
     float _radius; //!< Radius of the bounding sphere.
 
-    std::vector<QVector3D> vertexData, normalData;
+
+    //! \defgroup DisplayObjectSubclassing DisplayObject subclassing
+    //! The constructor of the subclass should populate each of these members. They define the
+    //! shape and topology of the DisplayObject, necessary for the \ref DisplayObjectComponents
+    //! and the OpenGL drawing functions to work.
+    //!
+    //! @{
+
+    //! The vertices of this object. The order is not important (for the superclass).
+    std::vector<QVector3D> vertexData;
+
+    //! The outward-facing normals (if applicable). The indexing must correspond to #vertexData.
+    std::vector<QVector3D> normalData;
+
+    //! A quad of indices for each quadrilateral polygon to draw. Indices must correspond to #vertexData.
     std::vector<quad> faceData;
-    std::vector<pair> elementData, edgeData;
+
+    //! \brief A pair of indices for each element line to draw. These are the thin blue lines
+    //! inside faces. Indices must correspond to #vertexData.
+    std::vector<pair> elementData;
+
+    //! \brief A pair of indices for each edge to draw. These are the thick black lines denoting
+    //! the actual topological edges. Indices must correspond to #vertexData.
+    std::vector<pair> edgeData;
+
+    //! \brief An index for each vertex to draw. These are drawn as black circles.
+    //! Indices must correspond to #vertexData.
     std::vector<GLuint> pointData;
 
-    std::set<uint> visibleFaces, visibleEdges, visiblePoints;
-    std::vector<uint> faceIdxs, elementIdxs, edgeIdxs;
-    std::vector<float> faceOffsets, lineOffsets, edgeOffsets, pointOffsets;
+    //! The indices of the visible faces.
+    std::set<uint> visibleFaces;
 
+    //! The indices of the visible edges.
+    std::set<uint> visibleEdges;
+
+    //! \brief The indices of the visible vertices. Note that vertex drawing can be overridden.
+    //! The vertices should still be visible internally!
+    std::set<uint> visiblePoints;
+
+    //! \brief Index bounds for faces.
+    //!
+    //! Should be of size nFaces()+1. E.g. if the first 20 entries in #faceData make up the first
+    //! face, and the second 40 make up the second face, then #faceIdxs should be {0,20,60}.
+    //! Used by draw() to find the right indices when not all faces are visible.
+    std::vector<uint> faceIdxs;
+
+    //! \brief Index bounds for elements. Works like #faceIdxs, but for #elementData.
+    std::vector<uint> elementIdxs;
+
+    //! \brief Index bounds for edges. Works like #faceIdxs, but for #edgeData.
+    std::vector<uint> edgeIdxs;
+
+
+    //! \brief Normal offsets used for drawing faces.
+    //!
+    //! Each vertex **v** is drawn at **v** + *c* **n**, where **n** is the outward facing normal at
+    //! that point. This can be useful for drawing lines slightly outside of faces to make them more
+    //! visible. This vector contains the offsets used for faces. A value of zero will mean drawing
+    //! at the actual location.
+    std::vector<float> faceOffsets;
+
+    //! \brief Normal offsets used for drawing element lines. See #faceOffsets.
+    //!
+    //! It can be useful to have two entries here, one for each side of the face.
+    std::vector<float> lineOffsets;
+
+    //! \brief Normal offsets used for drawing edges. See #faceOffsets.
+    std::vector<float> edgeOffsets;
+
+    //! \brief Normal offsets used for drawing edges. See #faceOffsets.
+    std::vector<float> pointOffsets;
+
+    //! A map from face index to edge indices describing the topology of this object.
     std::unordered_map<uint, quad> faceEdgeMap;
+
+    //! A map from edge index to vertex indices describing the topology of this object.
     std::unordered_map<uint, pair> edgePointMap;
 
+    //! @}
+
+
+    //! \brief Computes (estimates) the minimal bounding sphere of this object using
+    //! #vertexData, and saves the results to #_center and #_radius.
     void computeBoundingSphere();
-    void mkSamples(const std::vector<double> &knots, std::vector<double> &params, uint ref);
+
+    //! Utility function that refines a vector *knot* of knot values by inserting *ref*
+    //! points in each element, storing the results in *params*.
+    static void mkSamples(const std::vector<double> &knots, std::vector<double> &params, uint ref);
 
 private:
+    //! Index of this object. (See \ref DisplayObjectIndex for details.)
     uint _index;
+
+    //! True if this object has been initialized.
     bool _initialized;
+
+    //! The Patch object that owns this.
     Patch *_patch;
 
-    std::set<uint> selectedFaces, selectedEdges, selectedPoints;
-    QOpenGLBuffer vertexBuffer, normalBuffer, faceBuffer, elementBuffer, edgeBuffer, pointBuffer;
 
+    //! \addtogroup DisplayObjectComponents
+    //! @{
+    std::set<uint> selectedFaces;
+    std::set<uint> selectedEdges;
+    std::set<uint> selectedPoints;
+    //! @}
+
+
+    //! OpenGL buffer corresponding to #vertexData.
+    QOpenGLBuffer vertexBuffer;
+
+    //! OpenGL buffer corresponding to #normalData.
+    QOpenGLBuffer normalBuffer;
+
+    //! OpenGL buffer corresponding to #faceData.
+    QOpenGLBuffer faceBuffer;
+
+    //! OpenGL buffer corresponding to #elementData.
+    QOpenGLBuffer elementBuffer;
+
+    //! OpenGL buffer corresponding to #edgeData.
+    QOpenGLBuffer edgeBuffer;
+
+    //! OpenGL buffer corresponding to #pointData.
+    QOpenGLBuffer pointBuffer;
+
+
+    //! \brief Computes, among the points in #vertexData, the one farthest from *point*.
+    //!
+    //! \retval found The most distant point.
     void farthestPointFrom(QVector3D point, QVector3D *found);
+
+    //! \brief Computes (estimates) the minimal bounding sphere using the Ritter algorithm.
+    //!
+    //! Assumes that #_center and #_radius are decent guesses that might not cover the whole object.
     void ritterSphere();
 
+
+    //! Selects only those edges that are neighboring a selected face.
     void refreshEdgesFromFaces();
+
+    //! Selects only those points that are neighboring a selected edge.
     void refreshPointsFromEdges();
+
+    //! \brief Balloons a selection of edges to a selection of faces.
+    //!
+    //! \param conjunction If *true* a face needs **all** its neighboring edges to become selected.
+    //! If *false*, it needs only one.
     void balloonEdgesToFaces(bool conjunction);
+
+    //! \brief Balloons a selection of vertices to a selection of edges.
+    //! \param conjunction If *true* an edge needs *both* its neighboring vertices to become selected.
+    //! If *false*, it needs only one.
     void balloonPointsToEdges(bool conjunction);
 
+    //! Creates and binds an OpenGL buffer with static draw usage pattern.
     static void createBuffer(QOpenGLBuffer &buffer);
-    static void bindBuffer(QOpenGLShaderProgram &prog, QOpenGLBuffer &buffer, const char *attribute);
-    static void setUniforms(QOpenGLShaderProgram&, QMatrix4x4, QVector3D, float);
-    static void setUniforms(QOpenGLShaderProgram&, QMatrix4x4, uchar *, float);
 
-    //! DisplayObject::m should be locked before calling.
+    //! \brief Binds an OpenGL buffer to the given program.
+    //! \param prog Program to bind to.
+    //! \param buffer OpenGL buffer object to bind.
+    //! \param attribute Program attribute to bind to.
+    static void bindBuffer(QOpenGLShaderProgram &prog, QOpenGLBuffer &buffer, const char *attribute);
+
+    //! \brief Sets the uniform values in the shader program.
+    //! \param prog Program to bind to.
+    //! \param mvp Model-view-projection matrix to transform augmented 4-vectors from model space
+    //! to the drawing surface.
+    //! \param col Color to draw in .
+    //! \param p Normal offset (see #faceOffsets).
+    static void setUniforms(QOpenGLShaderProgram& prog, QMatrix4x4 mvp, QVector3D col, float p);
+    static void setUniforms(QOpenGLShaderProgram& prog, QMatrix4x4 mvp, uchar *col, float p);
+
+    //! \addtogroup DisplayObjectIndex
+    //! @{
+
+    //! \brief The map from indices to \link DisplayObject DisplayObjects \endlink.
+    //! DisplayObject::m should be locked before manipulating.
     static std::map<uint, DisplayObject *> indexMap;
+
+    //! The next available index, used by #registerObject as a cache.
     static uint nextIndex;
+
+    //! \brief Register a new DisplayObject and get an index.
     //! DisplayObject::m should be locked before calling.
     static uint registerObject(DisplayObject *obj);
+
+    //! \brief Unregister a DisplayObject and free the index.
     //! DisplayObject::m should be locked before calling.
     static void deregisterObject(uint index);
+
+    //! \brief Convert an index to a color.
     static QVector3D indexToColor(uint index, uint offset);
+
+    //! @}
 };
 
 #endif /* _DISPLAYOBJECT_H_ */
