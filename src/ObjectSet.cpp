@@ -10,6 +10,7 @@
 
 #include "DisplayObjects/Volume.h"
 #include "DisplayObjects/Surface.h"
+#include "DisplayObjects/Curve.h"
 
 #include "ObjectSet.h"
 
@@ -715,6 +716,19 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
             return false;
         }
         obj = new Surface(s);
+        break;
+    }
+    case Go::Class_SplineCurve:
+    {
+        Go::SplineCurve *c = new Go::SplineCurve();
+        try { c->read(stream); }
+        catch (...)
+        {
+            emit log(error.arg("Unable to parse SplineCurve"), LL_ERROR);
+            delete c;
+            return false;
+        }
+        obj = new Curve(c);
         break;
     }
     default:

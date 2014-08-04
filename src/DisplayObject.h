@@ -22,7 +22,7 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef struct { GLuint a, b, c, d; } quad;
 typedef struct { GLuint a, b; } pair;
-enum ObjectType { OT_VOLUME, OT_SURFACE };
+enum ObjectType { OT_VOLUME, OT_SURFACE, OT_CURVE };
 enum SelectionMode { SM_PATCH, SM_FACE, SM_EDGE, SM_POINT };
 
 class Patch;

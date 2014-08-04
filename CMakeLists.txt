@@ -41,6 +41,7 @@ add_executable(BSGUI
   src/DisplayObject.cpp
   src/DisplayObjects/Volume.cpp
   src/DisplayObjects/Surface.cpp
+  src/DisplayObjects/Curve.cpp
   )
 
 qt5_use_modules(BSGUI Core Widgets Gui OpenGL)

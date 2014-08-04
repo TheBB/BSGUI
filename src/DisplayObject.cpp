@@ -164,7 +164,7 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showP
     sortSelection(selectedEdges, visibleEdges, sel, unsel);
     glLineWidth(EDGE_WIDTH);
 
-    for (auto off : pointOffsets)
+    for (auto off : edgeOffsets)
     {
         setUniforms(prog, mvp, EDGE_COLOR_SELECTED, off);
         drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
@@ -206,8 +206,22 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
     faceBuffer.bind();
     if (mode == SM_PATCH)
     {
-        setUniforms(prog, mvp, indexToColor(_index, offset), 0.0);
-        drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+        if (nFaces() > 0)
+            for (auto off : faceOffsets)
+            {
+                setUniforms(prog, mvp, indexToColor(_index, offset), off);
+                drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+            }
+        else
+        {
+            edgeBuffer.bind();
+            glLineWidth(20 * EDGE_WIDTH);
+            for (auto off : edgeOffsets)
+            {
+                setUniforms(prog, mvp, indexToColor(_index, offset), off);
+                drawCommand(GL_LINES, visibleEdges, nEdges(), edgeIdxs);
+            }
+        }
     }
     else if (mode == SM_FACE)
     {
@@ -353,9 +367,15 @@ void DisplayObject::selectObject(SelectionMode mode, bool selected)
     {
         if (mode == SM_FACE || mode == SM_PATCH)
         {
-            for (int i = 0; i < nFaces(); i++)
-                selectedFaces.insert(i);
-            refreshEdgesFromFaces();
+            if (nFaces() > 0)
+            {
+                for (int i = 0; i < nFaces(); i++)
+                    selectedFaces.insert(i);
+                refreshEdgesFromFaces();
+            }
+            else
+                for (int i = 0; i < nEdges(); i++)
+                    selectedEdges.insert(i);
             refreshPointsFromEdges();
         }
         else if (mode == SM_EDGE)
