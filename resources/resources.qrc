@@ -5,6 +5,14 @@
     <file>icons/volume_partial.png</file>
     <file>icons/volume_hidden.png</file>
 
+    <file>icons/surface_full.png</file>
+    <file>icons/surface_partial.png</file>
+    <file>icons/surface_hidden.png</file>
+
+    <file>icons/curve_full.png</file>
+    <file>icons/curve_partial.png</file>
+    <file>icons/curve_hidden.png</file>
+
     <file>icons/file_full.png</file>
     <file>icons/file_partial.png</file>
     <file>icons/file_hidden.png</file>

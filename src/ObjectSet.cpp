@@ -556,7 +556,9 @@ QVariant ObjectSet::data(const QModelIndex &index, int role) const
 
             switch (obj->type())
             {
-            case OT_VOLUME: base = base.arg("volume");
+            case OT_VOLUME: base = base.arg("volume"); break;
+            case OT_SURFACE: base = base.arg("surface"); break;
+            case OT_CURVE: base = base.arg("curve"); break;
             }
 
             base = base.arg(obj->isFullyVisible(false) ? "full" :
