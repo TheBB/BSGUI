@@ -107,14 +107,6 @@ Volume::~Volume()
 }
 
 
-QVector3D Volume::eval(double u, double v, double w)
-{
-    Go::Point p;
-    vol->point(p, u, v, w);
-    return QVector3D(p[0], p[1], p[2]);
-}
-
-
 void Volume::mkVertexData()
 {
     vertexData.resize(nPts);

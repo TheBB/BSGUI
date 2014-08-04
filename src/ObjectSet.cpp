@@ -6,8 +6,10 @@
 
 #include <GoTools/geometry/ObjectHeader.h>
 #include <GoTools/trivariate/SplineVolume.h>
+#include <GoTools/geometry/SplineSurface.h>
 
 #include "DisplayObjects/Volume.h"
+#include "DisplayObjects/Surface.h"
 
 #include "ObjectSet.h"
 
@@ -697,8 +699,22 @@ bool ObjectSet::addPatchFromStream(std::ifstream &stream, File *file)
         {
             emit log(error.arg("Unable to parse SplineVolume"), LL_ERROR);
             delete v;
+            return false;
         }
         obj = new Volume(v);
+        break;
+    }
+    case Go::Class_SplineSurface:
+    {
+        Go::SplineSurface *s = new Go::SplineSurface();
+        try { s->read(stream); }
+        catch (...)
+        {
+            emit log(error.arg("Unable to parse SplineSurface"), LL_ERROR);
+            delete s;
+            return false;
+        }
+        obj = new Surface(s);
         break;
     }
     default:

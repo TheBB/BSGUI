@@ -41,8 +41,6 @@ private:
     void mkEdgeData();
     void mkPointData();
 
-    QVector3D eval(double u, double v, double w);
-
     inline uint uvPt(uint i, uint j, bool posW)
     {
         return posW ?
@@ -91,21 +89,21 @@ private:
             2*nU*nV + 2*nU*nW + nV*j + i;
     }
 
-    inline uint uElmt(uint i, int j, bool posO, bool axV)
+    inline uint uElmt(uint i, uint j, bool posO, bool axV)
     {
         if (axV)
             return 2*nLinesUV + (posO ? nLinesUW : 0) + nU*j + i;
         return (posO ? nLinesUV : 0) + nU*j + i;
     }
 
-    inline uint vElmt(uint i, int j, bool posO, bool axU)
+    inline uint vElmt(uint i, uint j, bool posO, bool axU)
     {
         if (axU)
             return 2*nLinesUV + 2*nLinesUW + (posO ? nLinesVW : 0) + nV*j + i;
         return nU*(ntV-1) + (posO ? nLinesUV : 0) + nV*j + i;
     }
 
-    inline uint wElmt(uint i, int j, bool posO, bool axU)
+    inline uint wElmt(uint i, uint j, bool posO, bool axU)
     {
         if (axU)
             return 2*nLinesUV + 2*nLinesUW + nV*(ntW-1) + (posO ? nLinesVW : 0) + nW*j + i;

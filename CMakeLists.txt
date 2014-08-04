@@ -40,6 +40,7 @@ add_executable(BSGUI
   src/InfoBox.cpp
   src/DisplayObject.cpp
   src/DisplayObjects/Volume.cpp
+  src/DisplayObjects/Surface.cpp
   )
 
 qt5_use_modules(BSGUI Core Widgets Gui OpenGL)
