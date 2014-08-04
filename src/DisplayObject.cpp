@@ -238,8 +238,11 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
     }
     else if (mode == SM_EDGE)
     {
-        setUniforms(prog, mvp, WHITE, 0.0);
-        drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+        if (nFaces() > 0)
+        {
+            setUniforms(prog, mvp, WHITE, 0.0);
+            drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+        }
 
         edgeBuffer.bind();
         glLineWidth(20 * EDGE_WIDTH);
@@ -256,8 +259,11 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
     }
     else if (mode == SM_POINT)
     {
-        setUniforms(prog, mvp, WHITE, 0.0);
-        drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+        if (nFaces() > 0)
+        {
+            setUniforms(prog, mvp, WHITE, 0.0);
+            drawCommand(GL_QUADS, visibleFaces, nFaces(), faceIdxs);
+        }
 
         pointBuffer.bind();
         glPointSize(POINT_SIZE);
