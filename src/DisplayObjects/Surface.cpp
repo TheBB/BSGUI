@@ -46,6 +46,13 @@ Surface::Surface(Go::SplineSurface *s)
     visiblePoints = {0,1,2,3};
 
 
+    // Offsets
+    faceOffsets = {0.0};
+    lineOffsets = {-0.0001, 0.0001};
+    edgeOffsets = {0.0};
+    pointOffsets = {0.0};
+
+
     // Indexes
     faceIdxs    = {0, nU*nV};
     elementIdxs = {0, nElemLines};

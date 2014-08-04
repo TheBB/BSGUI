@@ -139,23 +139,38 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showP
     faceBuffer.bind();
     sortSelection(selectedFaces, visibleFaces, sel, unsel);
 
-    setUniforms(prog, mvp, FACE_COLOR_SELECTED, -0.0003); drawCommand(GL_QUADS, sel, nFaces(), faceIdxs);
-    setUniforms(prog, mvp, FACE_COLOR_NORMAL, -0.0003); drawCommand(GL_QUADS, unsel, nFaces(), faceIdxs);
+    for (auto off : faceOffsets)
+    {
+        setUniforms(prog, mvp, FACE_COLOR_SELECTED, off);
+        drawCommand(GL_QUADS, sel, nFaces(), faceIdxs);
+        setUniforms(prog, mvp, FACE_COLOR_NORMAL, off);
+        drawCommand(GL_QUADS, unsel, nFaces(), faceIdxs);
+    }
 
 
     elementBuffer.bind();
     glLineWidth(LINE_WIDTH);
 
-    setUniforms(prog, mvp, LINE_COLOR_SELECTED, -0.0002); drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
-    setUniforms(prog, mvp, LINE_COLOR_NORMAL, -0.0002); drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
+    for (auto off : lineOffsets)
+    {
+        setUniforms(prog, mvp, LINE_COLOR_SELECTED, off);
+        drawCommand(GL_LINES, sel, nFaces(), elementIdxs);
+        setUniforms(prog, mvp, LINE_COLOR_NORMAL, off);
+        drawCommand(GL_LINES, unsel, nFaces(), elementIdxs);
+    }
 
 
     edgeBuffer.bind();
     sortSelection(selectedEdges, visibleEdges, sel, unsel);
     glLineWidth(EDGE_WIDTH);
 
-    setUniforms(prog, mvp, EDGE_COLOR_SELECTED, -0.0001); drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
-    setUniforms(prog, mvp, EDGE_COLOR_NORMAL, -0.0001); drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
+    for (auto off : pointOffsets)
+    {
+        setUniforms(prog, mvp, EDGE_COLOR_SELECTED, off);
+        drawCommand(GL_LINES, sel, nEdges(), edgeIdxs);
+        setUniforms(prog, mvp, EDGE_COLOR_NORMAL, off);
+        drawCommand(GL_LINES, unsel, nEdges(), edgeIdxs);
+    }
 
 
     if (showPoints)
@@ -164,8 +179,13 @@ void DisplayObject::draw(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, bool showP
         sortSelection(selectedPoints, visiblePoints, sel, unsel);
         glPointSize(POINT_SIZE);
 
-        setUniforms(prog, mvp, POINT_COLOR_SELECTED, 0.0); drawCommandPts(sel, nPoints());
-        setUniforms(prog, mvp, POINT_COLOR_NORMAL, 0.0); drawCommandPts(unsel, nPoints());
+        for (auto off : pointOffsets)
+        {
+            setUniforms(prog, mvp, POINT_COLOR_SELECTED, off);
+            drawCommandPts(sel, nPoints());
+            setUniforms(prog, mvp, POINT_COLOR_NORMAL, off);
+            drawCommandPts(unsel, nPoints());
+        }
     }
 }
 
@@ -194,10 +214,11 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
         for (uint f = 0; f < nFaces(); f++)
         {
             if (visibleFaces.find(f) != visibleFaces.end())
-            {
-                setUniforms(prog, mvp, indexToColor(_index, offset), 0.0);
-                drawCommand(GL_QUADS, {f}, nFaces(), faceIdxs);
-            }
+                for (auto off : faceOffsets)
+                {
+                    setUniforms(prog, mvp, indexToColor(_index, offset), off);
+                    drawCommand(GL_QUADS, {f}, nFaces(), faceIdxs);
+                }
             offset++;
         }
     }
@@ -211,10 +232,11 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
         for (uint e = 0; e < nEdges(); e++)
         {
             if (visibleEdges.find(e) != visibleEdges.end())
-            {
-                setUniforms(prog, mvp, indexToColor(_index, offset), 0.0002);
-                drawCommand(GL_LINES, {e}, nEdges(), edgeIdxs);
-            }
+                for (auto off : edgeOffsets)
+                {
+                    setUniforms(prog, mvp, indexToColor(_index, offset), off);
+                    drawCommand(GL_LINES, {e}, nEdges(), edgeIdxs);
+                }
             offset++;
         }
     }
@@ -228,10 +250,11 @@ void DisplayObject::drawPicking(QMatrix4x4 &mvp, QOpenGLShaderProgram &prog, Sel
         for (uint p = 0; p < nPoints(); p++)
         {
             if (visiblePoints.find(p) != visiblePoints.end())
-            {
-                setUniforms(prog, mvp, indexToColor(_index, offset), 0.0002);
-                drawCommandPts({p}, nPoints());
-            }
+                for (auto off : pointOffsets)
+                {
+                    setUniforms(prog, mvp, indexToColor(_index, offset), off);
+                    drawCommandPts({p}, nPoints());
+                }
             offset++;
         }
     }

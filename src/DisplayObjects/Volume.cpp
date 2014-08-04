@@ -58,6 +58,13 @@ Volume::Volume(Go::SplineVolume *v)
     visiblePoints = {0,1,2,3,4,5,6,7};
 
 
+    // Offsets
+    faceOffsets = {-0.0003};
+    lineOffsets = {-0.0002, -0.0004};
+    edgeOffsets = {-0.0001};
+    pointOffsets = {0};
+
+
     // Indexes
     faceIdxs    = {0, nU*nV, nU*nV*2, 2*nU*nV + nU*nW, 2*(nU*nV + nU*nW), 2*(nU*nV + nU*nW) + nV*nW,
                    2*(nU*nV + nU*nW + nV*nW)};

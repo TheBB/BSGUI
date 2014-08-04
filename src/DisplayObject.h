@@ -102,6 +102,7 @@ protected:
 
     std::set<uint> visibleFaces, visibleEdges, visiblePoints;
     std::vector<uint> faceIdxs, elementIdxs, edgeIdxs;
+    std::vector<float> faceOffsets, lineOffsets, edgeOffsets, pointOffsets;
 
     std::unordered_map<uint, quad> faceEdgeMap;
     std::unordered_map<uint, pair> edgePointMap;
