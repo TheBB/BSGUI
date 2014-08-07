@@ -24,9 +24,9 @@ Volume::Volume(Go::SplineVolume *v)
 
 
     // Refinement
-    rU = v->order(0) - 1;
-    rV = v->order(1) - 1;
-    rW = v->order(2) - 1;
+    rU = (v->order(0) + 2) * (v->rational() ? 5 : 1);
+    rV = (v->order(1) + 2) * (v->rational() ? 5 : 1);
+    rW = (v->order(2) + 2) * (v->rational() ? 5 : 1);
 
     mkSamples(uKnots, uParams, rU);
     mkSamples(vKnots, vParams, rV);

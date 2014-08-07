@@ -21,16 +21,16 @@ Surface::Surface(Go::SplineSurface *s)
 
 
     // Refinement
-    rU = s->order_u() - 1;
-    rV = s->order_v() - 1;
+    rU = s->order_u() + 2;
+    rV = s->order_v() + 2;
 
     mkSamples(uKnots, uParams, rU);
     mkSamples(vKnots, vParams, rV);
 
 
     // Post refinement
-    nU = uParams.size() - 1;
-    nV = vParams.size() - 1;
+    nU = (uParams.size() - 1) * (s->rational() ? 5 : 1);
+    nV = (vParams.size() - 1) * (s->rational() ? 5 : 1);
 
     nPtsU = nU + 1;
     nPtsV = nV + 1;

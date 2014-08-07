@@ -14,7 +14,7 @@ Curve::Curve(Go::SplineCurve *c)
 
 
     // Refinement
-    r = c->order() - 1;
+    r = (c->order() - 1) * (c->rational() ? 5 : 1);
     mkSamples(knots, params, r);
 
 
