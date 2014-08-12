@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.11)
 
-project(BSGUI CXX)
+project(BSGUI CXX C)
 
 set(BSGUI_VERSION_MAJOR 0)
 set(BSGUI_VERSION_MINOR 1)
@@ -17,6 +17,7 @@ find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(GoTools REQUIRED)
 find_package(GoTrivariate REQUIRED)
+find_package(OpenGL REQUIRED)
 
 configure_file(
   "${CMAKE_CURRENT_LIST_DIR}/src/main.h.in"
@@ -31,6 +32,7 @@ configure_file(
 include_directories(${PROJECT_BINARY_DIR})
 include_directories(${GoTools_INCLUDE_DIRS})
 include_directories(${GoTrivariate_INCLUDE_DIRS})
+include_directories(${OPENGL_INCLUDE_DIRS})
 include_directories(src)
 
 qt5_add_resources(RESOURCES resources/resources.qrc)
@@ -54,7 +56,7 @@ qt5_use_modules(BSGUI Core Widgets Gui OpenGL)
 target_link_libraries(BSGUI
   ${GoTrivariate_LIBRARIES}
   ${GoTools_LIBRARIES}
-  GL
+  ${OPENGL_LIBRARIES}
   )
 
 install(TARGETS BSGUI RUNTIME DESTINATION bin)
