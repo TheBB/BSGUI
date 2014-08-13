@@ -45,12 +45,13 @@
 #include <QTextStream>
 #include <QRect>
 #include <QDesktopWidget>
+#include <QSettings>
 
 #include "DisplayObject.h"
 
 #include "GLWidget.h"
 
-GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
+GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent, QSettings *settings)
     : QGLWidget(parent)
     , vcProgram(), ccProgram()
     , auxBuffer(QOpenGLBuffer::VertexBuffer)
@@ -67,7 +68,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , _roll(0.0)
     , _zoom(1.0)
     , _lookAt(0,0,0)
-    , _perspective(true)
+    , _perspective(settings?settings->value("camera/perspective").toBool():true)
     , _fixed(false)
     , _dir(POSZ)
     , _rightHanded(true)
@@ -76,6 +77,7 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
     , _diameter(20.0)
     , selectTracking(false)
     , cameraTracking(false)
+    , _settings(settings)
 {
     installEventFilter(parent);
     setFocusPolicy(Qt::ClickFocus);
@@ -87,6 +89,8 @@ GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
 
 GLWidget::~GLWidget()
 {
+  if (_settings)
+    _settings->setValue("camera/perspective", _perspective);
 }
 
 

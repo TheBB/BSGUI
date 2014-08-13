@@ -63,12 +63,14 @@
 enum direction { POSX, NEGX, POSY, NEGY, POSZ, NEGZ };
 enum preset { VIEW_TOP, VIEW_BOTTOM, VIEW_LEFT, VIEW_RIGHT, VIEW_FRONT, VIEW_BACK, VIEW_FREE };
 
+class QSettings;
+
 class GLWidget : public QGLWidget
 {
     Q_OBJECT
 
 public:
-    GLWidget(ObjectSet *oSet, QWidget *parent = NULL);
+    GLWidget(ObjectSet *oSet, QWidget *parent = NULL, QSettings *settings=NULL);
     virtual ~GLWidget();
 
     std::mutex m;
@@ -175,6 +177,8 @@ private:
 
     double fixedOrigInclination, fixedOrigAzimuth, fixedOrigRoll, fixedOrigFov, fixedOrigZoom;
     bool fixedOrigPerspective;
+
+    QSettings* _settings;
 };
 
 #endif /* _GLWIDGET_H_ */

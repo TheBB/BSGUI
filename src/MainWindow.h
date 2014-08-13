@@ -49,6 +49,8 @@
 #ifndef _MAINWINDOW_H_
 #define _MAINWINDOW_H_
 
+class QSettings;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -69,6 +71,7 @@ private:
     GLWidget *_glWidget;
     ToolBox *_toolBox;
     InfoBox *_infoBox;
+    QSettings* _settings;
 
     QAction *_toolAct, *_infoAct, *_toggleAct;
 };

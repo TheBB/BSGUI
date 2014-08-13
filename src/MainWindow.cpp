@@ -43,6 +43,7 @@
 #include <QApplication>
 #include <QFileDialog>
 #include <QMenuBar>
+#include <QSettings>
 #include <QSplitter>
 #include <QTabWidget>
 #include <QVector3D>
@@ -67,12 +68,14 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     setCorner(Qt::BottomRightCorner, Qt::RightDockWidgetArea);
     setCorner(Qt::BottomLeftCorner, Qt::LeftDockWidgetArea);
 
+    _settings = new QSettings("SINTEF", "BSGUI");
+
     _objectSet = new ObjectSet();
 
     QSplitter *splitter = new QSplitter(Qt::Vertical);
     setCentralWidget(splitter);
 
-    _glWidget = new GLWidget(_objectSet, this);
+    _glWidget = new GLWidget(_objectSet, this, _settings);
     splitter->addWidget(_glWidget);
     _glWidget->setFocus();
 
@@ -138,6 +141,8 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
 MainWindow::~MainWindow()
 {
     delete _objectSet;
+    delete _glWidget;
+    delete _settings;
 }
 
 
