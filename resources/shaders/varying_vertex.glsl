@@ -38,7 +38,7 @@
  * written agreement between you and SINTEF ICT.
  */
 
-#version 130
+#version 150
 
 in vec3 vertexPosition;
 in vec3 vertexColor;

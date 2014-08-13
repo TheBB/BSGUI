@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 #include <set>
 #include <QFile>
 #include <QTextStream>
@@ -50,8 +51,8 @@
 
 #include "GLWidget.h"
 
-GLWidget::GLWidget(ObjectSet *oSet, QWidget *parent)
-    : QGLWidget(parent)
+GLWidget::GLWidget(QGLFormat fmt, ObjectSet *oSet, QWidget *parent)
+    : QGLWidget(fmt, parent)
     , vcProgram(), ccProgram()
     , auxBuffer(QOpenGLBuffer::VertexBuffer)
     , axesBuffer(QOpenGLBuffer::IndexBuffer)
@@ -282,6 +283,17 @@ bool addShader(QOpenGLShaderProgram &program, QOpenGLShader::ShaderType type, QS
 
 void GLWidget::initializeGL()
 {
+    QGLFormat fmt = format();
+    QGLFormat afmt = context()->format();
+
+    std::cout << "OpenGL context is " << (context()->isValid() ? "valid" : "invalid") << std::endl;
+    std::cout << "Asked for OpenGL v" << fmt.majorVersion() << "." << fmt.minorVersion()
+              << " and got v" << afmt.majorVersion() << "." << afmt.minorVersion() << std::endl;
+    std::cout << "          Vendor: " << (const char*)glGetString(GL_VENDOR) << std::endl;
+    std::cout << "        Renderer: " << (const char*)glGetString(GL_RENDERER) << std::endl;
+    std::cout << "         Version: " << (const char*)glGetString(GL_VERSION) << std::endl;
+    std::cout << "    GLSL version: " << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+
     m.lock();
 
     glEnable(GL_BLEND);

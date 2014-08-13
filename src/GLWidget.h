@@ -44,6 +44,7 @@
 #include <QVector3D>
 #include <QVector4D>
 
+#include <QGLFormat>
 #include <QGLWidget>
 #include <QMatrix4x4>
 #include <QMouseEvent>
@@ -68,7 +69,7 @@ class GLWidget : public QGLWidget
     Q_OBJECT
 
 public:
-    GLWidget(ObjectSet *oSet, QWidget *parent = NULL);
+    GLWidget(QGLFormat fmt, ObjectSet *oSet, QWidget *parent = NULL);
     virtual ~GLWidget();
 
     std::mutex m;

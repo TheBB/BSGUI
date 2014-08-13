@@ -72,7 +72,17 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
     QSplitter *splitter = new QSplitter(Qt::Vertical);
     setCentralWidget(splitter);
 
-    _glWidget = new GLWidget(_objectSet, this);
+
+    QGLFormat fmt;
+    fmt.setRgba(true);
+    fmt.setAlpha(true);
+    fmt.setDepth(true);
+    fmt.setDoubleBuffer(true);
+    fmt.setVersion(3,2);
+    fmt.setProfile(QGLFormat::CoreProfile);
+    QGLFormat::setDefaultFormat(fmt);
+
+    _glWidget = new GLWidget(fmt, _objectSet, this);
     splitter->addWidget(_glWidget);
     _glWidget->setFocus();
 

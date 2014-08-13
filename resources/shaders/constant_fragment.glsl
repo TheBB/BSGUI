@@ -38,10 +38,11 @@
  * written agreement between you and SINTEF ICT.
  */
 
-#version 130
+#version 150
 
-in vec3 fsLines;
 uniform vec3 col;
+
+out vec4 gl_FragColor;
 
 void main(void)
 {
