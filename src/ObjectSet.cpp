@@ -822,7 +822,12 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 {
     DisplayObject::m.lock();
 
-    if (DisplayObject::begin() == DisplayObject::end())
+    bool hasVisible = any_of(DisplayObject::begin(), DisplayObject::end(),
+                             [] (std::pair<const uint, DisplayObject *> &i) {
+                                 return !i.second->isInvisible(false);
+                             });
+
+    if (!hasVisible)
     {
         *center = QVector3D(0,0,0);
         *radius = 0.0;
@@ -832,7 +837,7 @@ void ObjectSet::boundingSphere(QVector3D *center, float *radius)
 
     bool hasSelection = any_of(DisplayObject::begin(), DisplayObject::end(),
                                [] (std::pair<const uint, DisplayObject *> &i) {
-                                   return i.second->hasSelection();
+                                   return !i.second->isInvisible(false) && i.second->hasSelection();
                                });
 
     DisplayObject *a = DisplayObject::begin()->second, *b;
