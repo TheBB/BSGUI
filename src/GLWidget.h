@@ -178,7 +178,7 @@ private:
     double fixedOrigInclination, fixedOrigAzimuth, fixedOrigRoll, fixedOrigFov, fixedOrigZoom;
     bool fixedOrigPerspective;
 
-    QSettings* _settings;
+    QSettings *_settings;
 };
 
 #endif /* _GLWIDGET_H_ */

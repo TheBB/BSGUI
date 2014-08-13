@@ -71,7 +71,7 @@ private:
     GLWidget *_glWidget;
     ToolBox *_toolBox;
     InfoBox *_infoBox;
-    QSettings* _settings;
+    QSettings *_settings;
 
     QAction *_toolAct, *_infoAct, *_toggleAct;
 };
