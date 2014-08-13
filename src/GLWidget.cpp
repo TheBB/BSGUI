@@ -207,6 +207,26 @@ void GLWidget::paintGL()
 
     m.unlock();
     DisplayObject::m.unlock();
+
+    GLenum err;
+    while (err = glGetError())
+    {
+        switch (err)
+        {
+        case GL_NO_ERROR: qDebug() << "no error"; break;
+        case GL_INVALID_ENUM: qDebug() << "invalid enum"; break;
+        case GL_INVALID_VALUE: qDebug() << "invalid value"; break;
+        case GL_INVALID_OPERATION: qDebug() << "invalid operation"; break;
+        case GL_INVALID_FRAMEBUFFER_OPERATION: qDebug() << "invalid framebuffer operation"; break;
+        case GL_OUT_OF_MEMORY: qDebug() << "out of memory"; break;
+        case GL_STACK_UNDERFLOW: qDebug() << "stack underflow"; break;
+        case GL_STACK_OVERFLOW: qDebug() << "stack overflow"; break;
+        default: qDebug() << "something else"; break;
+        }
+
+    }
+
+    qDebug() << "done painting";
 }
 
 
