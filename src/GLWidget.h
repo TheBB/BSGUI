@@ -49,6 +49,7 @@
 #include <QMatrix4x4>
 #include <QMouseEvent>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLVertexArrayObject>
 #include <QSize>
 #include <QWheelEvent>
 
@@ -154,6 +155,7 @@ private:
 
     QOpenGLShaderProgram vcProgram, ccProgram;
     QOpenGLBuffer auxBuffer, axesBuffer, selectionBuffer, auxCBuffer;
+    QOpenGLVertexArrayObject vao;
 
     ObjectSet *objectSet;
 

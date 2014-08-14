@@ -38,6 +38,8 @@
  * written agreement between you and SINTEF ICT.
  */
 
+#include "GLutils.h"
+
 #include "DisplayObject.h"
 
 const QVector3D FACE_COLOR_NORMAL    = QVector3D(0.737, 0.929, 1.000);
@@ -103,6 +105,8 @@ void DisplayObject::initialize()
     if (_initialized)
         return;
 
+    checkErrors("DO::initialize.init");
+
     createBuffer(vertexBuffer);
     vertexBuffer.allocate(&vertexData[0], 3 * vertexData.size() * sizeof(float));
 
@@ -122,6 +126,8 @@ void DisplayObject::initialize()
     pointBuffer.allocate(&pointData[0], pointData.size() * sizeof(GLuint));
 
     _initialized = true;
+
+    checkErrors("DO::initialize.fin");
 }
 
 

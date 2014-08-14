@@ -48,6 +48,7 @@
 #include <QDesktopWidget>
 
 #include "DisplayObject.h"
+#include "GLutils.h"
 
 #include "GLWidget.h"
 
@@ -58,6 +59,7 @@ GLWidget::GLWidget(QGLFormat fmt, ObjectSet *oSet, QWidget *parent)
     , axesBuffer(QOpenGLBuffer::IndexBuffer)
     , selectionBuffer(QOpenGLBuffer::IndexBuffer)
     , auxCBuffer(QOpenGLBuffer::VertexBuffer)
+    , vao()
     , objectSet(oSet)
     , shiftPressed(false)
     , ctrlPressed(false)
@@ -88,6 +90,7 @@ GLWidget::GLWidget(QGLFormat fmt, ObjectSet *oSet, QWidget *parent)
 
 GLWidget::~GLWidget()
 {
+    vao.destroy();
 }
 
 
@@ -126,8 +129,8 @@ std::set<std::pair<uint,uint>> GLWidget::paintGLPicks(int x, int y, int w, int h
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glDisable(GL_POINT_SMOOTH);
-    glDisable(GL_LINE_SMOOTH);
+    // glDisable(GL_POINT_SMOOTH);
+    // glDisable(GL_LINE_SMOOTH);
     glDisable(GL_MULTISAMPLE);
 
     QMatrix4x4 mvp;
@@ -169,8 +172,8 @@ std::set<std::pair<uint,uint>> GLWidget::paintGLPicks(int x, int y, int w, int h
     }
 
     glEnable(GL_MULTISAMPLE);
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_POINT_SMOOTH);
+    // glEnable(GL_LINE_SMOOTH);
+    // glEnable(GL_POINT_SMOOTH);
 
     return ret;
 }
@@ -178,22 +181,27 @@ std::set<std::pair<uint,uint>> GLWidget::paintGLPicks(int x, int y, int w, int h
 
 void GLWidget::paintGL()
 {
+    checkErrors("paintGL.init");
+
     std::lock(m, DisplayObject::m);
 
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    checkErrors("paintGL.postClear");
 
     QMatrix4x4 mvp;
     matrix(&mvp);
 
     for (auto i = DisplayObject::begin(); i != DisplayObject::end(); i++)
         i->second->draw(mvp, ccProgram, _showPoints || objectSet->selectionMode() == SM_POINT);
+    checkErrors("paintGL.postLoop");
 
     if (_showAxes)
     {
         glDisable(GL_DEPTH_TEST);
         drawAxes();
         glEnable(GL_DEPTH_TEST);
+        checkErrors("paintGL.postAxes");
     }
 
     if (selectTracking)
@@ -201,6 +209,7 @@ void GLWidget::paintGL()
         glDisable(GL_DEPTH_TEST);
         drawSelection();
         glEnable(GL_DEPTH_TEST);
+        checkErrors("paintGL.postSelection");
     }
 
     swapBuffers();
@@ -208,31 +217,15 @@ void GLWidget::paintGL()
     m.unlock();
     DisplayObject::m.unlock();
 
-    GLenum err;
-    while (err = glGetError())
-    {
-        switch (err)
-        {
-        case GL_NO_ERROR: qDebug() << "no error"; break;
-        case GL_INVALID_ENUM: qDebug() << "invalid enum"; break;
-        case GL_INVALID_VALUE: qDebug() << "invalid value"; break;
-        case GL_INVALID_OPERATION: qDebug() << "invalid operation"; break;
-        case GL_INVALID_FRAMEBUFFER_OPERATION: qDebug() << "invalid framebuffer operation"; break;
-        case GL_OUT_OF_MEMORY: qDebug() << "out of memory"; break;
-        case GL_STACK_UNDERFLOW: qDebug() << "stack underflow"; break;
-        case GL_STACK_OVERFLOW: qDebug() << "stack overflow"; break;
-        default: qDebug() << "something else"; break;
-        }
-
-    }
-
-    qDebug() << "done painting";
+    checkErrors("paintGL.fin");
 }
 
 
 void GLWidget::drawAxes()
 {
     vcProgram.bind();
+
+    vao.bind();
 
     auxBuffer.bind();
     vcProgram.enableAttributeArray("vertexPosition");
@@ -247,14 +240,19 @@ void GLWidget::drawAxes()
     vcProgram.setUniformValue("mvp", mvp);
 
     axesBuffer.bind();
-    glLineWidth(3.0);
+    checkErrors("drawAxes.preLineWidth");
+
+    glLineWidth((GLfloat) 1.0);
+    checkErrors("drawAxes.postLineWidth");
     glDrawElements(GL_LINES, 2 * 3, GL_UNSIGNED_INT, 0);
+
+    vao.release();
 }
 
 
 void GLWidget::drawSelection()
 {
-    glDisable(GL_LINE_SMOOTH);
+    // glDisable(GL_LINE_SMOOTH);
 
     ccProgram.bind();
 
@@ -271,21 +269,25 @@ void GLWidget::drawSelection()
     mvp.scale((float) d.x()/width()*2.0, - (float) d.y()/height()*2.0, 1.0);
     ccProgram.setUniformValue("mvp", mvp);
 
-    ccProgram.setUniformValue("col", QVector4D(0,0,0,0.6));
+    ccProgram.setUniformValue("col", QVector3D(0,0,0));
 
     selectionBuffer.bind();
     glLineWidth(1.0);
     glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, 0);
 
-    glEnable(GL_LINE_SMOOTH);
+    // glEnable(GL_LINE_SMOOTH);
 }
 
 
 void GLWidget::resizeGL(int w, int h)
 {
+    checkErrors("resizeGL.init");
+
     m.lock();
     glViewport(0, 0, w, h);
     m.unlock();
+
+    checkErrors("resizeGL.fin");
 }
 
 
@@ -303,6 +305,8 @@ bool addShader(QOpenGLShaderProgram &program, QOpenGLShader::ShaderType type, QS
 
 void GLWidget::initializeGL()
 {
+    checkErrors("initializeGL.init");
+
     QGLFormat fmt = format();
     QGLFormat afmt = context()->format();
 
@@ -314,17 +318,26 @@ void GLWidget::initializeGL()
     std::cout << "         Version: " << (const char*)glGetString(GL_VERSION) << std::endl;
     std::cout << "    GLSL version: " << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
+    GLint range[2];
+    glGetIntegerv(GL_ALIASED_LINE_WIDTH_RANGE, range);
+    std::cout << "      Aliased LW: " << range[0] << " -> " << range[1] << std::endl;
+    glGetIntegerv(GL_SMOOTH_LINE_WIDTH_RANGE, range);
+    std::cout << "  Antialiased LW: " << range[0] << " -> " << range[1] << std::endl;
+
+    checkErrors("initializeGL.postCheck");
+
     m.lock();
 
     glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_POINT_SMOOTH);
+    // glEnable(GL_LINE_SMOOTH);
+    // glEnable(GL_POINT_SMOOTH);
     glDepthFunc(GL_LEQUAL);
-    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 
+    checkErrors("initializeGL.postEnable");
 
     if (!addShader(vcProgram, QOpenGLShader::Vertex, ":/shaders/varying_vertex.glsl"))
         close();
@@ -333,12 +346,19 @@ void GLWidget::initializeGL()
     if (!vcProgram.link())
         close();
 
+    checkErrors("initializeGL.postVCLink");
+
     if (!addShader(ccProgram, QOpenGLShader::Vertex, ":/shaders/constant_vertex.glsl"))
         close();
     if (!addShader(ccProgram, QOpenGLShader::Fragment, ":/shaders/constant_fragment.glsl"))
         close();
     if (!ccProgram.link())
         close();
+
+    checkErrors("initializeGL.postCCLink");
+
+    vao.create();
+    vao.bind();
 
     std::vector<QVector3D> auxData = {
         QVector3D(0,0,0), QVector3D(1,0,0),
@@ -350,18 +370,21 @@ void GLWidget::initializeGL()
     auxBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     auxBuffer.bind();
     auxBuffer.allocate(&auxData[0], 7 * 3 * sizeof(float));
+    checkErrors("initializeGL.postAuxBuffer");
 
     std::vector<GLuint> axesData = {0, 1, 2, 3, 4, 5};
     axesBuffer.create();
     axesBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     axesBuffer.bind();
     axesBuffer.allocate(&axesData[0], 3 * 2 * sizeof(GLuint));
+    checkErrors("initializeGL.postAxesBuffer");
 
     std::vector<GLuint> selectionData = {0, 1, 6, 3};
     selectionBuffer.create();
     selectionBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     selectionBuffer.bind();
     selectionBuffer.allocate(&selectionData[0], 4 * sizeof(GLuint));
+    checkErrors("initializeGL.postSelectionBuffer");
 
     std::vector<QVector3D> auxColors = {
         QVector3D(1,0,0), QVector3D(1,0,0),
@@ -374,7 +397,11 @@ void GLWidget::initializeGL()
     auxCBuffer.bind();
     auxCBuffer.allocate(&auxColors[0], 7 * 3 * sizeof(float));
 
+    vao.release();
+
     m.unlock();
+
+    checkErrors("initializeGL.fin");
 }
 
 

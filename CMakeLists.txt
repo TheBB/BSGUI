@@ -51,6 +51,7 @@ qt5_add_resources(RESOURCES resources/resources.qrc)
 add_executable(BSGUI
   ${RESOURCES}
   src/main.cpp
+  src/GLutils.cpp
   src/GLWidget.cpp
   src/MainWindow.cpp
   src/ObjectSet.cpp
