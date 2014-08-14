@@ -1,3 +1,5 @@
+#version 150
+
 /*
  * Copyright (C) 2014 SINTEF ICT,
  * Applied Mathematics, Norway.
@@ -37,8 +39,6 @@
  * This file may be used in accordance with the terms contained in a
  * written agreement between you and SINTEF ICT.
  */
-
-#version 150
 
 in vec3 vertexPosition;
 in vec3 vertexColor;

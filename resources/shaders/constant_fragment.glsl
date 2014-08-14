@@ -1,3 +1,5 @@
+#version 150
+
 /*
  * Copyright (C) 2014 SINTEF ICT,
  * Applied Mathematics, Norway.
@@ -38,13 +40,11 @@
  * written agreement between you and SINTEF ICT.
  */
 
-#version 150
-
 uniform vec3 col;
 
-out vec4 gl_FragColor;
+out vec4 fragColor;
 
 void main(void)
 {
-    gl_FragColor = vec4(col, 1.0);
+    fragColor = vec4(col, 1.0);
 }

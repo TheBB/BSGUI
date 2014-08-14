@@ -52,7 +52,7 @@
 
 #include "GLWidget.h"
 
-#define AW 0.025
+#define AW 0.029
 
 GLWidget::GLWidget(QGLFormat fmt, ObjectSet *oSet, QWidget *parent)
     : QGLWidget(fmt, parent)
@@ -805,7 +805,7 @@ void GLWidget::axesMatrix(QMatrix4x4 *mvp)
     mvp->setToIdentity();
 
     float aspect = (float) width() / height();
-    mvp->translate(QVector3D(1.0 - 0.12/aspect, -0.88, 0));
+    mvp->translate(QVector3D(1.0 - 0.09/aspect, -0.91, 0));
     mvp->perspective(45.0, aspect, 0.01, 100.0);
 
     mvp->lookAt(QVector3D(0, 0, 0), QVector3D(0, 1, 0), QVector3D(0, 0, 1));
@@ -813,7 +813,7 @@ void GLWidget::axesMatrix(QMatrix4x4 *mvp)
     mvp->rotate(_roll, QVector3D(0, 1, 0));
     mvp->rotate(_inclination, QVector3D(1, 0, 0));
     mvp->rotate(_azimuth, QVector3D(0, 0, 1));
-    mvp->scale(0.04);
+    mvp->scale(0.03);
     multiplyDir(mvp);
 }
 
