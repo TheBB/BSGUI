@@ -192,6 +192,8 @@ void GLWidget::paintGL()
         i->second->draw(mvp, ccProgram, _showPoints || objectSet->selectionMode() == SM_POINT);
     checkErrors("paintGL.postLoop");
 
+    vao.bind();
+
     if (_showAxes)
     {
         glDisable(GL_DEPTH_TEST);
@@ -208,6 +210,8 @@ void GLWidget::paintGL()
         checkErrors("paintGL.postSelection");
     }
 
+    vao.release();
+
     swapBuffers();
 
     m.unlock();
@@ -220,8 +224,6 @@ void GLWidget::paintGL()
 void GLWidget::drawAxes()
 {
     vcProgram.bind();
-
-    vao.bind();
 
     auxBuffer.bind();
     vcProgram.enableAttributeArray("vertexPosition");
@@ -238,12 +240,11 @@ void GLWidget::drawAxes()
     axesBuffer.bind();
     checkErrors("drawAxes.preLineWidth");
 
-    glLineWidth((GLfloat) 1.0);
     checkErrors("drawAxes.postLineWidth");
     vcProgram.setUniformValue("thickness", (GLfloat) 0.03);
     glDrawElements(GL_LINES, 3 * 2, GL_UNSIGNED_INT, 0);
 
-    vao.release();
+    vcProgram.release();
 }
 
 
@@ -267,8 +268,9 @@ void GLWidget::drawSelection()
     ccProgram.setUniformValue("col", QVector3D(0,0,0));
 
     selectionBuffer.bind();
-    glLineWidth(1.0);
     glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, 0);
+
+    ccProgram.release();
 }
 
 
@@ -359,11 +361,12 @@ void GLWidget::initializeAux()
         QVector3D(0, 0, 0), QVector3D(1, 0, 0),
         QVector3D(0, 0, 0), QVector3D(0, 1, 0),
         QVector3D(0, 0, 0), QVector3D(0, 0, 1),
+        QVector3D(1, 1, 0),
     };
     auxBuffer.create();
     auxBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     auxBuffer.bind();
-    auxBuffer.allocate(&auxData[0], 6 * 3 * sizeof(float));
+    auxBuffer.allocate(&auxData[0], 7 * 3 * sizeof(float));
     checkErrors("initializeAux.postAuxBuffer");
 
     std::vector<GLuint> axesData = {0, 1, 2, 3, 4, 5};
@@ -373,17 +376,18 @@ void GLWidget::initializeAux()
     axesBuffer.allocate(&axesData[0], 3 * 2 * sizeof(GLuint));
     checkErrors("initializeAux.postAxesBuffer");
 
-    // std::vector<GLuint> selectionData = {0, 1, 6, 3};
-    // selectionBuffer.create();
-    // selectionBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    // selectionBuffer.bind();
-    // selectionBuffer.allocate(&selectionData[0], 4 * sizeof(GLuint));
-    // checkErrors("initializeGL.postSelectionBuffer");
+    std::vector<GLuint> selectionData = {0, 1, 6, 3};
+    selectionBuffer.create();
+    selectionBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    selectionBuffer.bind();
+    selectionBuffer.allocate(&selectionData[0], 4 * sizeof(GLuint));
+    checkErrors("initializeGL.postSelectionBuffer");
 
     std::vector<QVector3D> auxColors = {
         QVector3D(1,0,0), QVector3D(1,0,0),
         QVector3D(0,1,0), QVector3D(0,1,0),
         QVector3D(0,0,1), QVector3D(0,0,1),
+        QVector3D(0,0,0),
     };
     auxCBuffer.create();
     auxCBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
