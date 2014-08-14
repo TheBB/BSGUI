@@ -147,6 +147,8 @@ protected:
     void wheelEvent(QWheelEvent *event);
 
 private:
+    void initializeAux();
+
     void drawAxes();
     void drawSelection();
     void matrix(QMatrix4x4 *);
