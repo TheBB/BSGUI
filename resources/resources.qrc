@@ -17,9 +17,10 @@
     <file>icons/file_partial.png</file>
     <file>icons/file_hidden.png</file>
 
-    <file>shaders/varying_vertex.glsl</file>
-    <file>shaders/varying_fragment.glsl</file>
-    <file>shaders/constant_vertex.glsl</file>
-    <file>shaders/constant_fragment.glsl</file>
+    <file>shaders/v_tl_v.glsl</file>
+    <file>shaders/v_tl_g.glsl</file>
+    <file>shaders/v_tl_f.glsl</file>
+    <file>shaders/c_v.glsl</file>
+    <file>shaders/c_f.glsl</file>
   </qresource>
 </RCC>

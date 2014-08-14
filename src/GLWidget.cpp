@@ -52,8 +52,6 @@
 
 #include "GLWidget.h"
 
-#define AW 0.029
-
 GLWidget::GLWidget(QGLFormat fmt, ObjectSet *oSet, QWidget *parent)
     : QGLWidget(fmt, parent)
     , vcProgram(), ccProgram()
@@ -242,7 +240,8 @@ void GLWidget::drawAxes()
 
     glLineWidth((GLfloat) 1.0);
     checkErrors("drawAxes.postLineWidth");
-    glDrawElements(GL_TRIANGLES, 36 * 3, GL_UNSIGNED_INT, 0);
+    vcProgram.setUniformValue("thickness", (GLfloat) 0.03);
+    glDrawElements(GL_LINES, 3 * 2, GL_UNSIGNED_INT, 0);
 
     vao.release();
 }
@@ -324,8 +323,9 @@ void GLWidget::initializeGL()
 
     checkErrors("initializeGL.postEnable");
 
-    if (!addShader(vcProgram, QOpenGLShader::Vertex, ":/shaders/varying_vertex.glsl") ||
-        !addShader(vcProgram, QOpenGLShader::Fragment, ":/shaders/varying_fragment.glsl") ||
+    if (!addShader(vcProgram, QOpenGLShader::Vertex, ":/shaders/v_tl_v.glsl") ||
+        !addShader(vcProgram, QOpenGLShader::Geometry, ":/shaders/v_tl_g.glsl") ||
+        !addShader(vcProgram, QOpenGLShader::Fragment, ":/shaders/v_tl_f.glsl") ||
         !vcProgram.link())
     {
         close();
@@ -333,8 +333,8 @@ void GLWidget::initializeGL()
 
     checkErrors("initializeGL.postVCLink");
 
-    if (!addShader(ccProgram, QOpenGLShader::Vertex, ":/shaders/constant_vertex.glsl") ||
-        !addShader(ccProgram, QOpenGLShader::Fragment, ":/shaders/constant_fragment.glsl") ||
+    if (!addShader(ccProgram, QOpenGLShader::Vertex, ":/shaders/c_v.glsl") ||
+        !addShader(ccProgram, QOpenGLShader::Fragment, ":/shaders/c_f.glsl") ||
         !ccProgram.link())
     {
         close();
@@ -356,50 +356,21 @@ void GLWidget::initializeAux()
     vao.bind();
 
     std::vector<QVector3D> auxData = {
-        // X-axis
-        QVector3D(AW, -AW, -AW), QVector3D(AW, AW, -AW),
-        QVector3D(AW, -AW, AW), QVector3D(AW, AW, AW),
-        QVector3D(1.0, -AW, -AW), QVector3D(1.0, AW, -AW),
-        QVector3D(1.0, -AW, AW), QVector3D(1.0, AW, AW),
-
-        // Y-axis
-        QVector3D(-AW, AW, -AW), QVector3D(AW, AW, -AW),
-        QVector3D(-AW, AW, AW), QVector3D(AW, AW, AW),
-        QVector3D(-AW, 1.0, -AW), QVector3D(AW, 1.0, -AW),
-        QVector3D(-AW, 1.0, AW), QVector3D(AW, 1.0, AW),
-
-        // Z-axis
-        QVector3D(-AW, -AW, AW), QVector3D(AW, -AW, AW),
-        QVector3D(-AW, AW, AW), QVector3D(AW, AW, AW),
-        QVector3D(-AW, -AW, 1.0), QVector3D(AW, -AW, 1.0),
-        QVector3D(-AW, AW, 1.0), QVector3D(AW, AW, 1.0),
+        QVector3D(0, 0, 0), QVector3D(1, 0, 0),
+        QVector3D(0, 0, 0), QVector3D(0, 1, 0),
+        QVector3D(0, 0, 0), QVector3D(0, 0, 1),
     };
     auxBuffer.create();
     auxBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     auxBuffer.bind();
-    auxBuffer.allocate(&auxData[0], 24 * 3 * sizeof(float));
+    auxBuffer.allocate(&auxData[0], 6 * 3 * sizeof(float));
     checkErrors("initializeAux.postAuxBuffer");
 
-    std::vector<GLuint> axesData = {
-        // X-axis
-        0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6,
-        0, 1, 4, 1, 5, 4, 2, 3, 6, 3, 7, 6,
-        1, 5, 3, 5, 7, 3, 0, 4, 2, 4, 6, 2,
-
-        // Y-axis
-        8, 9, 10, 9, 11, 10, 12, 13, 14, 13, 15, 14,
-        8, 9, 12, 9, 13, 12, 10, 11, 14, 11, 15, 14,
-        9, 13, 11, 13, 15, 11, 8, 12, 10, 12, 14, 10,
-
-        // Z-axis
-        16, 17, 18, 17, 19, 18, 20, 21, 22, 21, 23, 22,
-        16, 17, 20, 17, 21, 20, 18, 19, 22, 19, 23, 22,
-        17, 21, 19, 21, 23, 19, 16, 20, 18, 20, 22, 18,
-    };
+    std::vector<GLuint> axesData = {0, 1, 2, 3, 4, 5};
     axesBuffer.create();
     axesBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     axesBuffer.bind();
-    axesBuffer.allocate(&axesData[0], 36 * 3 * sizeof(GLuint));
+    axesBuffer.allocate(&axesData[0], 3 * 2 * sizeof(GLuint));
     checkErrors("initializeAux.postAxesBuffer");
 
     // std::vector<GLuint> selectionData = {0, 1, 6, 3};
@@ -410,28 +381,14 @@ void GLWidget::initializeAux()
     // checkErrors("initializeGL.postSelectionBuffer");
 
     std::vector<QVector3D> auxColors = {
-        // X-axis
         QVector3D(1,0,0), QVector3D(1,0,0),
-        QVector3D(1,0,0), QVector3D(1,0,0),
-        QVector3D(1,0,0), QVector3D(1,0,0),
-        QVector3D(1,0,0), QVector3D(1,0,0),
-
-        // Y-axis
         QVector3D(0,1,0), QVector3D(0,1,0),
-        QVector3D(0,1,0), QVector3D(0,1,0),
-        QVector3D(0,1,0), QVector3D(0,1,0),
-        QVector3D(0,1,0), QVector3D(0,1,0),
-
-        // Z-axis
-        QVector3D(0,0,1), QVector3D(0,0,1),
-        QVector3D(0,0,1), QVector3D(0,0,1),
-        QVector3D(0,0,1), QVector3D(0,0,1),
         QVector3D(0,0,1), QVector3D(0,0,1),
     };
     auxCBuffer.create();
     auxCBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     auxCBuffer.bind();
-    auxCBuffer.allocate(&auxColors[0], 24 * 3 * sizeof(float));
+    auxCBuffer.allocate(&auxColors[0], 6 * 3 * sizeof(float));
 
     vao.release();
 }
@@ -805,7 +762,7 @@ void GLWidget::axesMatrix(QMatrix4x4 *mvp)
     mvp->setToIdentity();
 
     float aspect = (float) width() / height();
-    mvp->translate(QVector3D(1.0 - 0.09/aspect, -0.91, 0));
+    mvp->translate(QVector3D(1.0 - 0.08/aspect, -0.92, 0));
     mvp->perspective(45.0, aspect, 0.01, 100.0);
 
     mvp->lookAt(QVector3D(0, 0, 0), QVector3D(0, 1, 0), QVector3D(0, 0, 1));

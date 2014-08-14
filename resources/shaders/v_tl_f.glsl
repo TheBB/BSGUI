@@ -40,14 +40,11 @@
  * written agreement between you and SINTEF ICT.
  */
 
-in vec3 vertexPosition;
-in vec3 vertexColor;
-uniform mat4 mvp;
+in vec3 fColor;
 
-out vec3 outColor;
+out vec4 outColor;
 
 void main(void)
 {
-    outColor = vertexColor;
-    gl_Position = mvp * vec4(vertexPosition, 1.0);
+    outColor = vec4(fColor, 1.0);
 }
