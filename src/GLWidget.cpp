@@ -52,7 +52,7 @@
 
 #include "GLWidget.h"
 
-#define AW 0.02
+#define AW 0.025
 
 GLWidget::GLWidget(QGLFormat fmt, ObjectSet *oSet, QWidget *parent)
     : QGLWidget(fmt, parent)

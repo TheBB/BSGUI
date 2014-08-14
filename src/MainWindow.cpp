@@ -74,12 +74,14 @@ MainWindow::MainWindow(QWidget *parent, Qt::WindowFlags flags)
 
 
     QGLFormat fmt;
+    fmt.setVersion(3,2);
+    fmt.setProfile(QGLFormat::CoreProfile);
     fmt.setRgba(true);
     fmt.setAlpha(true);
     fmt.setDepth(true);
     fmt.setDoubleBuffer(true);
-    fmt.setVersion(3,2);
-    fmt.setProfile(QGLFormat::CoreProfile);
+    fmt.setSampleBuffers(true);
+    fmt.setSamples(16);
     QGLFormat::setDefaultFormat(fmt);
 
     _glWidget = new GLWidget(fmt, _objectSet, this);
