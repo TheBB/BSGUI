@@ -42,11 +42,19 @@
 #include <QApplication>
 #include <QGLFormat>
 
+#include "OGRE/OgreLogManager.h"
+#include "OGRE/OgreRoot.h"
+
 #include "MainWindow.h"
 
 
 int main(int argc, char **argv)
 {
+    Ogre::LogManager *ogLog = new Ogre::LogManager();
+    ogLog->createLog("Ogre.log", true, false, false);
+    Ogre::Root *ogRoot = new Ogre::Root();
+    delete ogRoot;
+
     QGLFormat fmt;
     fmt.setRgba(true);
     fmt.setAlpha(true);
