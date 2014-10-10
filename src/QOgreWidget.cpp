@@ -38,22 +38,37 @@
  * written agreement between you and SINTEF ICT.
  */
 
-#include <thread>
-#include <QApplication>
-#include <QGLFormat>
+#include "QOgreWidget.h"
 
-#include "OGRE/OgreLogManager.h"
-#include "OGRE/OgreRoot.h"
+#include <QtX11Extras/QX11Info>
 
-#include "MainWindow.h"
-
-
-int main(int argc, char **argv)
+QOgreWidget::QOgreWidget(Ogre::Root *ogreRoot, QWidget *parent) : QGLWidget(parent)
+                                                                , ogreRoot(ogreRoot)
 {
-    QApplication app(argc, argv);
-    MainWindow window;
-    window.showMaximized();
+    setAttribute(Qt::WA_PaintOnScreen, true);
+    setAttribute(Qt::WA_NoSystemBackground, true);
+    setFocusPolicy(Qt::StrongFocus);
 
-    app.connect(&app, SIGNAL(lastWindowClosed()), &app, SLOT(quit()));
-    return app.exec();
+    Ogre::String winHandle;
+    winHandle =  Ogre::StringConverter::toString((unsigned long)QX11Info::display()) + ":";
+    winHandle += Ogre::StringConverter::toString((unsigned int)QX11Info::appScreen()) + ":";
+    winHandle += Ogre::StringConverter::toString((unsigned int)winId());
+
+    Ogre::NameValuePairList params;
+    params["parentWindowHandle"] = winHandle;
+    params["FSAA"] = Ogre::String("8");
+
+    ogreRenderWindow = ogreRoot->createRenderWindow("OgreWidget_RenderWindow",
+                                                    qMax(width(), 640),
+                                                    qMax(height(), 480),
+                                                    false, &params);
+    ogreRenderWindow->setActive(true);
+    ogreRenderWindow->setVisible(true);
+
+    WId ogreWinId = 0x0;
+    ogreRenderWindow->getCustomAttribute("WINDOW", &ogreWinId);
+    assert(ogreWinId);
+
+    QWidget::create(ogreWinId);
+    setAttribute(Qt::WA_OpaquePaintEvent);
 }

@@ -40,6 +40,7 @@ endif()
 # Include and build Ogre
 
 find_package(OGRE REQUIRED)
+set(OGRE_RESOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ogre/resources")
 
 
 # Find Qt5, GoTools and OpenGL
@@ -48,6 +49,7 @@ find_package(Qt5Core REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
+find_package(Qt5X11Extras REQUIRED)
 find_package(GoTools REQUIRED)
 find_package(GoTrivariate REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -57,13 +59,19 @@ find_package(OpenGL REQUIRED)
 
 configure_file(
   "${CMAKE_CURRENT_LIST_DIR}/src/main.h.in"
-  "${PROJECT_BINARY_DIR}/main.h"
-  )
+  "${PROJECT_BINARY_DIR}/main.h")
+
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/ogre/plugins.cfg.in"
+  "${PROJECT_BINARY_DIR}/ogre/plugins.cfg")
+
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/ogre/resources.cfg.in"
+  "${PROJECT_BINARY_DIR}/ogre/resources.cfg")
 
 configure_file(
   "${CMAKE_CURRENT_LIST_DIR}/Doxyfile.in"
-  "${PROJECT_BINARY_DIR}/Doxyfile"
-  )
+  "${PROJECT_BINARY_DIR}/Doxyfile")
 
 
 # Includes
@@ -86,18 +94,19 @@ qt5_add_resources(RESOURCES resources/resources.qrc)
 add_executable(BSGUI
   ${RESOURCES}
   src/main.cpp
-  src/GLWidget.cpp
   src/MainWindow.cpp
-  src/ObjectSet.cpp
-  src/ToolBox.cpp
-  src/InfoBox.cpp
-  src/DisplayObject.cpp
-  src/DisplayObjects/Volume.cpp
-  src/DisplayObjects/Surface.cpp
-  src/DisplayObjects/Curve.cpp
+  src/QOgreWidget.cpp
+  # src/GLWidget.cpp
+  # src/ObjectSet.cpp
+  # src/ToolBox.cpp
+  # src/InfoBox.cpp
+  # src/DisplayObject.cpp
+  # src/DisplayObjects/Volume.cpp
+  # src/DisplayObjects/Surface.cpp
+  # src/DisplayObjects/Curve.cpp
   )
 
-qt5_use_modules(BSGUI Core Widgets Gui OpenGL)
+qt5_use_modules(BSGUI Core Widgets Gui OpenGL X11Extras)
 
 target_link_libraries(BSGUI
   ${GoTrivariate_LIBRARIES}

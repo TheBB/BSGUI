@@ -38,22 +38,23 @@
  * written agreement between you and SINTEF ICT.
  */
 
-#include <thread>
-#include <QApplication>
-#include <QGLFormat>
+#include <OGRE/Ogre.h>
 
-#include "OGRE/OgreLogManager.h"
-#include "OGRE/OgreRoot.h"
+#include <QGLWidget>
 
-#include "MainWindow.h"
+#ifndef _QOGREWIDGET_H_
+#define _QOGREWIDGET_H_
 
-
-int main(int argc, char **argv)
+class QOgreWidget : public QGLWidget
 {
-    QApplication app(argc, argv);
-    MainWindow window;
-    window.showMaximized();
+    Q_OBJECT
 
-    app.connect(&app, SIGNAL(lastWindowClosed()), &app, SLOT(quit()));
-    return app.exec();
-}
+public:
+    QOgreWidget(Ogre::Root *ogreRoot, QWidget *parent = NULL);
+
+private:
+    Ogre::Root *ogreRoot;
+    Ogre::RenderWindow *ogreRenderWindow;
+};
+
+#endif /* _QOGREWIDGET_H_ */

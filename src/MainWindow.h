@@ -38,42 +38,38 @@
  * written agreement between you and SINTEF ICT.
  */
 
-#include <QKeyEvent>
 #include <QMainWindow>
+#include <OGRE/Ogre.h>
 
-#include "ObjectSet.h"
-#include "GLWidget.h"
-#include "ToolBox.h"
-#include "InfoBox.h"
+#include "QOgreWidget.h"
 
 #ifndef _MAINWINDOW_H_
 #define _MAINWINDOW_H_
 
-class QSettings;
-
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-    
+
 public:
-    MainWindow(QWidget *parent = NULL, Qt::WindowFlags flags = 0);
+    MainWindow();
     ~MainWindow();
 
-    inline ObjectSet *objectSet() { return _objectSet; }
-    inline GLWidget *glWidget() { return _glWidget; }
-    inline ToolBox *toolBox() { return _toolBox; }
-
-protected:
-    bool eventFilter(QObject *obj, QEvent *event);
-
 private:
-    ObjectSet *_objectSet;
-    GLWidget *_glWidget;
-    ToolBox *_toolBox;
-    InfoBox *_infoBox;
-    QSettings *_settings;
+    void setupResources();
+    void setupRenderSystem();
 
-    QAction *_toolAct, *_infoAct, *_toggleAct;
+    void createWidgets();
+
+    QOgreWidget *ogreWidget;
+
+    Ogre::Root *ogreRoot;
+    Ogre::LogManager *ogreLogManager;
+    Ogre::RenderSystem *ogreRenderSystem;
+    Ogre::RenderWindow *ogreRenderWindow;
+
+private slots:
+    void onZoomIn();
+    void onZoomOut();
 };
 
 #endif /* _MAINWINDOW_H_ */
