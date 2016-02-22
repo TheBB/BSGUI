@@ -29,6 +29,7 @@ find_package(Qt5OpenGL REQUIRED)
 find_package(GoTools REQUIRED)
 find_package(GoTrivariate REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(Threads)
 
 configure_file(
   "${CMAKE_CURRENT_LIST_DIR}/src/main.h.in"
@@ -68,6 +69,7 @@ target_link_libraries(BSGUI
   ${GoTrivariate_LIBRARIES}
   ${GoTools_LIBRARIES}
   ${OPENGL_LIBRARIES}
+  ${CMAKE_THREAD_LIBS_INIT}
   )
 
 install(TARGETS BSGUI RUNTIME DESTINATION bin)
